@@ -1,0 +1,23 @@
+body {
+  margin: 0;
+  background: #fafafa;
+  color: #1a1a1a;
+}
+
+button {
+  background: #0d5c46;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+button:hover {
+  background: #0a4735;
+}
+
+li {
+  margin-bottom: 4px;
+}
