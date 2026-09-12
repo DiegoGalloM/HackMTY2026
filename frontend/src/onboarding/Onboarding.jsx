@@ -53,6 +53,10 @@ export default function Onboarding({ ownerId = "demo-owner" }) {
     else goToStep("week_description");
   };
 
+  const goToPreviousQuestion = () => {
+    setQuestionIndex((index) => Math.max(0, index - 1));
+  };
+
   const toggleDay = (id) => setDays((prev) => (prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id]));
 
   const detectCity = () => {
@@ -189,9 +193,19 @@ export default function Onboarding({ ownerId = "demo-owner" }) {
         <ProgressBar value={(questionIndex + 1) / questions.length} />
         <p className="ob-question">{q.text}</p>
         <BubbleGrid>
-          <Bubble label="No" variant="no" onClick={() => answerQuestion(false)} />
-          <Bubble label="Sí" variant="yes" onClick={() => answerQuestion(true)} />
+          <Bubble label="No" variant="no" selected={answers[q.id] === false} onClick={() => answerQuestion(false)} />
+          <Bubble label="Sí" variant="yes" selected={answers[q.id] === true} onClick={() => answerQuestion(true)} />
         </BubbleGrid>
+        <button
+          type="button"
+          className="ob-back"
+          aria-label="Volver a la pregunta anterior"
+          title="Volver a la pregunta anterior"
+          disabled={questionIndex === 0}
+          onClick={goToPreviousQuestion}
+        >
+          <BackArrowIcon />
+        </button>
       </Screen>
     );
   }
@@ -333,6 +347,15 @@ function PencilIcon() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M12 20h9" />
       <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  );
+}
+
+function BackArrowIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M19 12H5" />
+      <path d="m11 18-6-6 6-6" />
     </svg>
   );
 }

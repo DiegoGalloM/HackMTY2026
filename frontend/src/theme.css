@@ -29,7 +29,7 @@ button { appearance: none; -webkit-appearance: none; font-family: inherit; }
 .bubble--large { padding: 16px 24px; font-size: 16px; flex-direction: column; min-width: 96px; }
 .bubble__icon { font-size: 26px; }
 
-.ob-screen { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 32px 24px; text-align: center; overflow-y: auto; animation: ob-screen-in .32s cubic-bezier(.22,.61,.36,1) both; }
+.ob-screen { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 32px 24px; text-align: center; overflow-y: auto; animation: ob-screen-in .32s cubic-bezier(.22,.61,.36,1) both; }
 @keyframes ob-screen-in {
   from { opacity: 0; transform: translateX(18px); }
   to { opacity: 1; transform: translateX(0); }
@@ -42,6 +42,10 @@ button { appearance: none; -webkit-appearance: none; font-family: inherit; }
 .ob-question { font-size: 19px; font-weight: 600; min-height: 60px; display: flex; align-items: center; }
 .ob-continue { background: var(--c1-navy); color: var(--c1-white); border: none; border-radius: 999px; padding: 14px 28px; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; max-width: 280px; }
 .ob-continue:disabled { background: #b9c3ca; cursor: not-allowed; }
+.ob-back { position: absolute; left: 50%; bottom: 24px; width: 52px; height: 52px; display: inline-flex; align-items: center; justify-content: center; transform: translateX(-50%); background: var(--c1-navy); border: none; border-radius: 50%; color: var(--c1-white); font-size: 28px; line-height: 1; cursor: pointer; padding: 0 0 2px; transition: background .15s ease, transform .15s ease; }
+.ob-back:hover:not(:disabled) { background: #00395d; }
+.ob-back:active:not(:disabled) { transform: translateX(-50%) scale(0.94); }
+.ob-back:disabled { background: #b9c3ca; color: var(--c1-white); cursor: not-allowed; }
 .ob-input { border: 1.5px solid var(--c1-bubble-border); border-radius: 999px; padding: 12px 18px; font-size: 15px; width: 100%; max-width: 280px; text-align: center; }
 .ob-error { color: var(--c1-red); font-size: 13px; margin: 0; }
 .ob-progress-track { width: 100%; max-width: 280px; height: 6px; background: #ececec; border-radius: 999px; overflow: hidden; }
