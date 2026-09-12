@@ -50,11 +50,11 @@ export const quickActions: QuickAction[] = [
     to: "/transferencias",
   },
   {
-    id: "qa_topup",
-    label: "Recargas",
-    caption: "Tiempo aire",
-    icon: "phone",
-    to: "/pagos",
+    id: "qa_education",
+    label: "ONE Education",
+    caption: "Ideas para tu negocio",
+    icon: "education",
+    to: "/educacion",
   },
   {
     id: "qa_bills",

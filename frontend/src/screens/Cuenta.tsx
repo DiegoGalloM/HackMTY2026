@@ -4,7 +4,14 @@ import QuickActionsGrid from "../components/QuickActionsGrid";
 import Screen from "../components/Screen";
 import { formatCurrency, formatDate, movements } from "../data/mock";
 
-export default function Cuenta() {
+interface CuentaProps {
+  profile: {
+    category: string | null;
+    answers: Record<string, boolean>;
+  } | null;
+}
+
+export default function Cuenta({ profile: _profile }: CuentaProps) {
   return (
     <Screen>
       <BalanceHeader />
