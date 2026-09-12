@@ -165,6 +165,10 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete }) {
       <BubbleGrid>
         {CATEGORIES.map((c) => <Bubble key={c.id} label={c.label} icon={c.icon} size="large" onClick={() => pickCategory(c.id)} />)}
       </BubbleGrid>
+      {/* Atajo para demos/dev: brinca toda la encuesta sin guardar perfil. */}
+      <button type="button" className="ob-link-btn" onClick={() => onComplete?.()}>
+        Saltar encuesta
+      </button>
     </Screen>
   );
 
