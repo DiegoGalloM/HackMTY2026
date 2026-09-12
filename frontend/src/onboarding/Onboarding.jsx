@@ -6,7 +6,7 @@ import { CATEGORIES, UNIVERSAL_QUESTIONS, CATEGORY_QUESTIONS, WEEKDAYS, EMPLOYEE
 const API_BASE = "http://localhost:8000";
 const STEPS = ["welcome", "otro_detail", "questions", "week_description", "schedule", "employees", "city", "done"];
 
-export default function Onboarding({ ownerId = "demo-owner" }) {
+export default function Onboarding({ ownerId = "demo-owner", onComplete }) {
   const [stepIndex, setStepIndex] = useState(0);
   const [category, setCategory] = useState(null);
   const [otroDetail, setOtroDetail] = useState("");
@@ -169,6 +169,38 @@ export default function Onboarding({ ownerId = "demo-owner" }) {
       <BubbleGrid>
         {CATEGORIES.map((c) => <Bubble key={c.id} label={c.label} icon={c.icon} size="large" onClick={() => pickCategory(c.id)} />)}
       </BubbleGrid>
+      {/* Atajo para demos/dev: brinca toda la encuesta sin guardar perfil. */}
+      <button type="button" className="ob-link-btn" onClick={() => onComplete?.()}>
+        Saltar encuesta
+      </button>
+    </Screen>
+  );
+
+  if (step === "otro_detail") return (
+    <Screen transitionKey="otro_detail">
+      <p className="ob-subtitle">Cuéntanos, ¿a qué se dedica tu negocio?</p>
+      <input
+        className="ob-input"
+        placeholder="Ej. Taller de bicicletas"
+        value={otroDetail}
+        onChange={(e) => setOtroDetail(e.target.value)}
+        autoFocus
+      />
+      <button className="ob-continue" disabled={!otroDetail.trim()} onClick={() => goToStep("questions")}>Continuar</button>
+    </Screen>
+  );
+
+  if (step === "otro_detail") return (
+    <Screen transitionKey="otro_detail">
+      <p className="ob-subtitle">Cuéntanos, ¿a qué se dedica tu negocio?</p>
+      <input
+        className="ob-input"
+        placeholder="Ej. Taller de bicicletas"
+        value={otroDetail}
+        onChange={(e) => setOtroDetail(e.target.value)}
+        autoFocus
+      />
+      <button className="ob-continue" disabled={!otroDetail.trim()} onClick={() => goToStep("questions")}>Continuar</button>
     </Screen>
   );
 
@@ -285,6 +317,81 @@ export default function Onboarding({ ownerId = "demo-owner" }) {
     </Screen>
   );
 
+  if (step === "week_description") return (
+    <Screen transitionKey="week_description">
+      <p className="ob-subtitle">Cuéntanos cómo es una semana normal en tu negocio</p>
+
+      <div className="ob-mode-toggle" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={weekMode === "text"}
+          className={`ob-mode-btn ${weekMode === "text" ? "ob-mode-btn--active" : ""}`}
+          onClick={() => setWeekMode("text")}
+        >
+          <PencilIcon /> Escribir
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={weekMode === "audio"}
+          className={`ob-mode-btn ${weekMode === "audio" ? "ob-mode-btn--active" : ""}`}
+          onClick={() => setWeekMode("audio")}
+        >
+          <MicIcon size={16} /> Narrar
+        </button>
+      </div>
+
+      {weekMode === "text" ? (
+        <textarea
+          className="ob-textarea"
+          placeholder="Ej. Los lunes recibo mercancía, entre semana atiendo el local de 9 a 6, los fines de semana es cuando más vendo…"
+          value={weekText}
+          onChange={(e) => setWeekText(e.target.value)}
+          rows={5}
+        />
+      ) : (
+        <div className="ob-recorder">
+          <button
+            type="button"
+            className={`ob-mic-btn ${recording ? "ob-mic-btn--recording" : ""}`}
+            onClick={toggleRecording}
+            aria-label={recording ? "Detener grabación" : "Iniciar grabación"}
+          >
+            {recording && <span className="ob-mic-btn__ring" aria-hidden="true" />}
+            {recording ? <StopIcon /> : <MicIcon size={28} />}
+          </button>
+
+          {recording && (
+            <div className="ob-wave" aria-hidden="true">
+              <span /><span /><span /><span /><span />
+            </div>
+          )}
+
+          <p className="ob-recorder-status">
+            {recording ? `Grabando… ${formatTime(recordSeconds)}` : audioUrl ? "Grabación lista" : "Toca para grabar"}
+          </p>
+          {recordError && <p className="ob-error">{recordError}</p>}
+
+          {audioUrl && !recording && (
+            <div className="ob-recorder-playback">
+              <audio controls src={audioUrl} />
+              <button type="button" className="ob-link-btn" onClick={resetRecording}>Grabar de nuevo</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      <button
+        className="ob-continue"
+        disabled={weekMode === "text" ? !weekText.trim() : !audioBlob}
+        onClick={() => goToStep("schedule")}
+      >
+        Continuar
+      </button>
+    </Screen>
+  );
+
   if (step === "schedule") return (
     <Screen transitionKey="schedule">
       <p className="ob-subtitle">¿Qué días opera tu negocio?</p>
@@ -314,6 +421,12 @@ export default function Onboarding({ ownerId = "demo-owner" }) {
     <Screen transitionKey="done">
       <h2 className="ob-title">{submitted ? "¡Listo! 🎉" : "Algo salió mal, intenta de nuevo."}</h2>
       <p className="ob-subtitle">Tu perfil de negocio quedó guardado.</p>
+      <button
+        className="ob-continue"
+        onClick={() => onComplete?.({ category, answers })}
+      >
+        Ir a mi cuenta
+      </button>
     </Screen>
   );
 }
