@@ -26,11 +26,14 @@ class MemoryProfileStore(ProfileStore):
         if not profiles:
             return {"category": category, "n_negocios": 0, "answers_pct_true": {}}
 
+        # Se cuentan todas las preguntas que aparecen en la categoría, incluso las
+        # que siempre salieron False (quedan en 0.0). SnowflakeProfileStore hace lo
+        # mismo con FLATTEN — las dos implementaciones tienen que devolver la misma
+        # forma, porque /business-profile/stats/{category} no sabe cuál está activa.
         totals: dict[str, int] = defaultdict(int)
         for p in profiles:
             for key, value in p.answers.items():
-                if value:
-                    totals[key] += 1
+                totals[key] += 1 if value else 0
 
         n = len(profiles)
         return {
