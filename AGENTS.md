@@ -22,8 +22,13 @@ backend/app/
     transactions.py
   models/schemas.py  # Pydantic response models
   services/insights.py  # placeholder for the AI/analytics layer
-frontend/src/
-  App.jsx            # starter dashboard, REPLACE with the real idea
+frontend/src/            # Vite + React + TS + Tailwind v4, mobile-first PWA
+  App.tsx                # rutas (HashRouter) + AnimatePresence + BottomNav
+  components/            # BalanceHeader, CreditCardTile, QuickActionsGrid,
+                         # BottomNav, Screen (wrapper de transición + padding)
+  screens/               # Cuenta, Retiros, Transferencias, Pagos, Mas
+  data/mock.ts           # datos de demo + formatters (sin backend todavía)
+  data/types.ts          # tipos compartidos, alineados con schemas.py
 desktop/README.md     # how to package frontend/ as a native app
 
 ```
@@ -59,6 +64,6 @@ What will probably change:
 
 * New routers in `backend/app/routers/` for the specific domain.
 * `services/insights.py` stops being a placeholder and actually calls Gemini/Claude.
-* `frontend/src/App.jsx` is replaced by the real screens.
+* `frontend/src/data/mock.ts` stops being mock data and starts calling FastAPI (the types in `data/types.ts` already match the intended response shapes).
 
 What will probably NOT change: `nessie/`, the CI, the config pattern.
