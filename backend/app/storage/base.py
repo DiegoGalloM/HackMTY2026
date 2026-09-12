@@ -1,7 +1,9 @@
 # backend/app/storage/base.py
 from abc import ABC, abstractmethod
 from typing import Any
+
 from app.models.schemas import BusinessProfile
+
 
 class ProfileStore(ABC):
     @abstractmethod
