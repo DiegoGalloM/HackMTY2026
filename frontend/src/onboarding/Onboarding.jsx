@@ -3,7 +3,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Bubble, BubbleGrid } from "./Bubble.jsx";
 import { CATEGORIES, UNIVERSAL_QUESTIONS, CATEGORY_QUESTIONS, WEEKDAYS, EMPLOYEE_OPTIONS } from "./questions.js";
 
-const API_BASE = "http://localhost:8000";
+// Por default apunta al backend local de cada quien. Para usar un backend
+// compartido (o el desplegado), pongan VITE_API_URL en frontend/.env.local
+// — no hace falta tocar este archivo ni recompilar nada mas.
+const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 const STEPS = ["welcome", "otro_detail", "questions", "week_description", "schedule", "employees", "city", "done"];
 
 export default function Onboarding({ ownerId = "demo-owner", onComplete }) {
@@ -26,6 +29,7 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete }) {
   const [locationError, setLocationError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
 
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
@@ -132,9 +136,10 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete }) {
 
   const submit = async () => {
     setSubmitting(true);
+    setSubmitError(null);
     try {
       const audioBase64 = weekMode === "audio" && audioBlob ? await blobToBase64(audioBlob) : null;
-      await fetch(`${API_BASE}/business-profile/${ownerId}`, {
+      const res = await fetch(`${API_BASE}/business-profile/${ownerId}`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           category,
@@ -149,9 +154,17 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete }) {
           week_description_audio_mime: audioBlob?.type ?? null,
         }),
       });
+      // fetch NO lanza error con un 4xx/5xx: hay que revisar res.ok a mano, si no
+      // un 500 del backend se veria como guardado exitoso.
+      if (!res.ok) throw new Error(`El servidor respondió ${res.status}`);
       setSubmitted(true);
-    } catch {
+    } catch (err) {
       setSubmitted(false);
+      setSubmitError(
+        err instanceof TypeError
+          ? "No se pudo conectar con el servidor. Revisa que el backend esté corriendo."
+          : err.message,
+      );
     } finally {
       setSubmitting(false);
       goToStep("done");
@@ -298,9 +311,20 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete }) {
 
   return (
     <Screen transitionKey="done">
-      <h2 className="ob-title">{submitted ? "¡Listo! 🎉" : "Algo salió mal, intenta de nuevo."}</h2>
-      <p className="ob-subtitle">Tu perfil de negocio quedó guardado.</p>
-      <button className="ob-continue" onClick={() => onComplete?.()}>Ir a mi cuenta</button>
+      <h2 className="ob-title">{submitted ? "¡Listo! 🎉" : "No se pudo guardar"}</h2>
+      <p className="ob-subtitle">
+        {submitted
+          ? "Tu perfil de negocio quedó guardado."
+          : "Tus respuestas siguen aquí — puedes reintentar sin volver a capturarlas."}
+      </p>
+      {!submitted && submitError && <p className="ob-error">{submitError}</p>}
+      {submitted ? (
+        <button className="ob-continue" onClick={() => onComplete?.()}>Ir a mi cuenta</button>
+      ) : (
+        <button className="ob-continue" disabled={submitting} onClick={submit}>
+          {submitting ? "Guardando…" : "Reintentar"}
+        </button>
+      )}
     </Screen>
   );
 }

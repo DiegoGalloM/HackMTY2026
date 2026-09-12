@@ -13,9 +13,12 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg", "apple-touch-icon.png"],
       manifest: {
-        name: "Monito — Banca Digital",
-        short_name: "Monito",
-        description: "App de banca digital para HackMTY 2026",
+        name: "Capital One Business — Flujo de efectivo para microempresas",
+        // short_name es lo que cabe debajo del icono en la pantalla de inicio:
+        // arriba de ~12 caracteres el sistema lo trunca con puntos suspensivos.
+        short_name: "C1 Business",
+        description:
+          "Gestión de flujo de efectivo para microempresas: construye liquidez y aprende finanzas sobre la marcha.",
         lang: "es",
         start_url: "./",
         scope: "./",

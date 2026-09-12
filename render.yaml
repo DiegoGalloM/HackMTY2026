@@ -1,0 +1,64 @@
+# Blueprint de Render: levanta el backend (FastAPI) y el frontend (build de Vite)
+# desde este mismo repo. Ver docs/DEPLOY.md para los pasos.
+#
+# Los envVars con `sync: false` NO se guardan aqui — se capturan a mano en el
+# dashboard de Render. Nunca pongan credenciales en este archivo, es publico.
+
+services:
+  # ---------------------------------------------------------------- backend --
+  - type: web
+    name: hackmty2026-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    # $PORT lo asigna Render; 0.0.0.0 es obligatorio para que sea alcanzable
+    # desde fuera del contenedor (127.0.0.1 solo escucha adentro).
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.10"
+      - key: USE_MOCK_NESSIE
+        value: "true"
+      - key: USE_SNOWFLAKE
+        value: "true"
+      # Origen exacto del frontend desplegado, sin diagonal final.
+      # Ej: https://hackmty2026-web.onrender.com,http://localhost:5173
+      - key: CORS_ORIGINS
+        sync: false
+      - key: NESSIE_API_KEY
+        sync: false
+      - key: SNOWFLAKE_ACCOUNT
+        sync: false
+      - key: SNOWFLAKE_USER
+        sync: false
+      - key: SNOWFLAKE_PASSWORD
+        sync: false
+      - key: SNOWFLAKE_WAREHOUSE
+        value: HACKMTY_WH
+      - key: SNOWFLAKE_DATABASE
+        value: HACKMTY
+      - key: SNOWFLAKE_SCHEMA
+        value: PUBLIC
+      - key: SNOWFLAKE_ROLE
+        value: ACCOUNTADMIN
+
+  # --------------------------------------------------------------- frontend --
+  - type: web
+    name: hackmty2026-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      # URL del backend de arriba. Ej: https://hackmty2026-api.onrender.com
+      # Vite la hornea en el build, asi que cambiarla requiere redeploy.
+      - key: VITE_API_URL
+        sync: false
+    routes:
+      # SPA: react-router maneja las rutas del lado del cliente, asi que
+      # cualquier path tiene que servir index.html o da 404 al recargar.
+      - type: rewrite
+        source: /*
+        destination: /index.html
