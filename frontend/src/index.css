@@ -1,23 +1,61 @@
+@import "tailwindcss";
+
+/* Paleta Capital One. Tailwind v4 expone estos tokens como utilidades
+   (bg-brand, text-navy, …), así que el color vive en un solo lugar.
+     brand  = Capital One Blue, acciones primarias
+     navy   = azul del logo, texto y fondo de la tarjeta
+     accent = rojo del swoosh, reservado para la marca y el botón central */
+@theme {
+  --color-brand: #004977;
+  --color-navy: #13294b;
+  --color-accent: #d03027;
+  --color-accent-bright: #ee4b3b;
+  --color-positive: #0f7a4f;
+  --color-surface: #f4f6f9;
+  --color-tile: #e6eaf0;
+  --color-ink: #13294b;
+  --color-muted: #6b7a90;
+
+  --font-sans:
+    "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+}
+
+/* Alturas del chrome de la app, usadas por el padding del contenido y la
+   barra inferior. Se declaran una sola vez para que no se desincronicen. */
+:root {
+  --nav-height: 4rem;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+}
+
+html,
+body,
+#root {
+  /* 100dvh: la barra de URL móvil no recorta el layout al hacer scroll. */
+  height: 100dvh;
+}
+
 body {
   margin: 0;
-  background: #fafafa;
-  color: #1a1a1a;
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  /* Evita el bounce de iOS: el scroll vive en el contenedor de la pantalla. */
+  overscroll-behavior-y: none;
 }
 
-button {
-  background: #0d5c46;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
+/* Sin halo azul al tocar en Android/Chrome. */
+* {
+  -webkit-tap-highlight-color: transparent;
 }
 
-button:hover {
-  background: #0a4735;
-}
-
-li {
-  margin-bottom: 4px;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

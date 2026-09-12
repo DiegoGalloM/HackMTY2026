@@ -24,7 +24,12 @@ class NewPurchase(BaseModel):
 
 class BusinessProfile(BaseModel):
     category: str
+    category_detail: str | None = None
     operating_days: list[str]
     city: str
     employees: str | None = None
     answers: dict[str, bool]
+    week_description_mode: str | None = None
+    week_description_text: str | None = None
+    week_description_audio_base64: str | None = None
+    week_description_audio_mime: str | None = None
