@@ -1,54 +1,44 @@
-# AGENTS.md — contexto para Claude/IA trabajando en este repo
+# AGENTS.md — context for Claude/AI working on this repo
 
-## Qué es esto
+## What is this
 
-Base de repo para el reto de Capital One en HackMTY 2026. Backend en
-FastAPI que envuelve la API de Nessie (banca simulada) detrás de una
-interfaz común, para poder cambiar entre datos reales y mock sin tocar el
-resto del código. Frontend en React/Vite pensado para servirse como web Y
-empaquetarse como app de escritorio (Tauri o Electron, ver `desktop/`).
+Base repo for the Capital One challenge at HackMTY 2026. FastAPI backend that wraps the Nessie API (simulated banking) behind a common interface, so we can switch between real and mock data without touching the rest of the code. React/Vite frontend designed to be served as a web app AND packaged as a desktop app (Tauri or Electron, see `desktop/`).
 
-**La idea de producto todavía no está definida** — este repo es la
-plomería (auth-less, sin dominio de negocio todavía), no el producto final.
+**The product idea is not yet defined** — this repo is the plumbing (auth-less, without a business domain yet), not the final product.
 
-## Estructura
+## Structure
 
 ```
 backend/app/
-  main.py            # FastAPI app + rutas registradas
-  config.py          # Settings desde .env (pydantic-settings)
+  main.py            # FastAPI app + registered routes
+  config.py          # Settings from .env (pydantic-settings)
   nessie/
-    base.py          # Interfaz común (ABC)
-    real_client.py   # Cliente real contra api.nessieisreal.com
-    mock_client.py   # Cliente mock en memoria (mismos métodos)
-    __init__.py      # get_nessie_client() -> real o mock según .env
+    base.py          # Common interface (ABC)
+    real_client.py   # Real client against api.nessieisreal.com
+    mock_client.py   # In-memory mock client (same methods)
+    __init__.py      # get_nessie_client() -> real or mock based on .env
   routers/
     accounts.py
     transactions.py
-  models/schemas.py  # Pydantic models de respuesta
-  services/insights.py  # placeholder para la capa de IA/análisis
+  models/schemas.py  # Pydantic response models
+  services/insights.py  # placeholder for the AI/analytics layer
 frontend/src/
-  App.jsx            # dashboard starter, REEMPLAZAR por la idea real
-desktop/README.md     # cómo empaquetar frontend/ como app nativa
+  App.jsx            # starter dashboard, REPLACE with the real idea
+desktop/README.md     # how to package frontend/ as a native app
+
 ```
 
-## Regla de oro
+## Golden rule
 
-Nunca llamar a `httpx` directo desde un router o servicio — siempre a
-través de `Depends(get_nessie_client)`. Así, si Nessie se cae durante el
-hackathon, cambiar `USE_MOCK_NESSIE=true` en `.env` basta para seguir
-developing/demoing sin tocar una sola línea de lógica de negocio.
+Never call `httpx` directly from a router or service — always go through `Depends(get_nessie_client)`. This way, if Nessie goes down during the hackathon, changing `USE_MOCK_NESSIE=true` in `.env` is enough to keep developing/demoing without touching a single line of business logic.
 
-## Patrones ya establecidos (seguirlos, no reinventarlos)
+## Established patterns (follow them, don't reinvent them)
 
-- **Service result implícito vía HTTPException**: los routers lanzan
-  `HTTPException` en errores esperados (404, etc.), no devuelven `None`
-  silenciosamente.
-- **useCallback antes que el useEffect que lo usa** en el frontend.
-- Todo dato sensible (API keys) vive en `.env`, nunca hardcodeado — ver
-  `.env.example` para la lista completa de variables.
+* **Implicit service result via HTTPException**: routers raise `HTTPException` on expected errors (404, etc.), they don't silently return `None`.
+* **useCallback before the useEffect that uses it** in the frontend.
+* All sensitive data (API keys) lives in `.env`, never hardcoded — see `.env.example` for the complete list of variables.
 
-## Comandos
+## Commands
 
 ```bash
 # Backend
@@ -60,14 +50,15 @@ pytest -q
 # Frontend
 cd frontend && npm install && npm run dev   # http://localhost:5173
 npm run build
+
 ```
 
-## Cuando el equipo decida la idea final
+## When the team decides on the final idea
 
-Lo que probablemente cambia:
-- Nuevos routers en `backend/app/routers/` para el dominio específico.
-- `services/insights.py` deja de ser un placeholder y llama a
-  Gemini/Claude de verdad.
-- `frontend/src/App.jsx` se reemplaza por las pantallas reales.
+What will probably change:
 
-Lo que probablemente NO cambia: `nessie/`, el CI, el patrón de config.
+* New routers in `backend/app/routers/` for the specific domain.
+* `services/insights.py` stops being a placeholder and actually calls Gemini/Claude.
+* `frontend/src/App.jsx` is replaced by the real screens.
+
+What will probably NOT change: `nessie/`, the CI, the config pattern.
