@@ -10,7 +10,7 @@ router = APIRouter(prefix="/accounts", tags=["accounts"])
 @router.get("/customer/{customer_id}", response_model=list[Account])
 async def list_customer_accounts(
     customer_id: str,
-    nessie: NessieClient = Depends(get_nessie_client),
+    nessie: NessieClient = Depends(get_nessie_client),  # noqa: B008
 ):
     raw_accounts = await nessie.list_accounts(customer_id)
     return [
@@ -27,7 +27,7 @@ async def list_customer_accounts(
 @router.get("/{account_id}", response_model=Account)
 async def get_account(
     account_id: str,
-    nessie: NessieClient = Depends(get_nessie_client),
+    nessie: NessieClient = Depends(get_nessie_client),  # noqa: B008
 ):
     try:
         a = await nessie.get_account(account_id)
