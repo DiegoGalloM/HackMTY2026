@@ -18,6 +18,14 @@ class Settings(BaseSettings):
 
     gemini_api_key: str = ""
     anthropic_api_key: str = ""
+    use_snowflake: bool = False
+    snowflake_account: str = ""
+    snowflake_user: str = ""
+    snowflake_password: str = ""
+    snowflake_warehouse: str = ""
+    snowflake_database: str = ""
+    snowflake_schema: str = ""
+    snowflake_role: str = ""
 
     cors_origins: str = "http://localhost:5173"
 
