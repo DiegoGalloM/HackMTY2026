@@ -21,3 +21,10 @@ class NewPurchase(BaseModel):
     merchant_id: str
     amount: float
     description: str = ""
+
+class BusinessProfile(BaseModel):
+    category: str
+    operating_days: list[str]
+    city: str
+    employees: str | None = None
+    answers: dict[str, bool]

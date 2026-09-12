@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { HashRouter } from "react-router-dom";
 import App from "./App";
 import "./index.css";
+import "./theme.css";
 
 // HashRouter y no BrowserRouter: el build usa `base: "./"` porque el mismo
 // bundle se sirve como web app Y se empaqueta como app de escritorio

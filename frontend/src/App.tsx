@@ -1,13 +1,17 @@
 import { Route, Routes, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
+import { useState } from "react";
 import BottomNav from "./components/BottomNav";
 import Cuenta from "./screens/Cuenta";
 import Mas from "./screens/Mas";
 import Pagos from "./screens/Pagos";
 import Retiros from "./screens/Retiros";
 import Transferencias from "./screens/Transferencias";
+import PhoneFrame from "./onboarding/PhoneFrame.jsx";
+import Logo from "./onboarding/Logo.jsx";
+import Onboarding from "./onboarding/Onboarding.jsx";
 
-export default function App() {
+function MainApp() {
   const location = useLocation();
 
   return (
@@ -29,5 +33,25 @@ export default function App() {
 
       <BottomNav />
     </div>
+  );
+}
+
+export default function App() {
+  // Encuesta de onboarding primero; al terminar (o si el usuario decide
+  // seguir tras un error de guardado) se muestra la app principal, ambas
+  // dentro del mismo mockup de celular (PhoneFrame).
+  const [onboardingDone, setOnboardingDone] = useState(false);
+
+  return (
+    <PhoneFrame>
+      {onboardingDone ? (
+        <MainApp />
+      ) : (
+        <>
+          <Logo />
+          <Onboarding onComplete={() => setOnboardingDone(true)} />
+        </>
+      )}
+    </PhoneFrame>
   );
 }

@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.routers import accounts, transactions
+from app.routers import accounts, business_profile, transactions
 
 settings = get_settings()
 
@@ -21,6 +21,7 @@ app.add_middleware(
 )
 
 app.include_router(accounts.router)
+app.include_router(business_profile.router)
 app.include_router(transactions.router)
 
 

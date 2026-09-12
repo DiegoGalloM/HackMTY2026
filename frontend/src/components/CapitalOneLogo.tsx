@@ -47,6 +47,11 @@ interface LogoProps {
    * tiene un swoosh grande de fondo (la tarjeta), para no repetirlo.
    */
   withSwoosh?: boolean;
+  /**
+   * Agrega "BUSINESS" en versalitas espaciadas debajo del wordmark, como en
+   * el logo oficial de Capital One Business (tarjetas, member center).
+   */
+  business?: boolean;
 }
 
 /**
@@ -56,12 +61,13 @@ interface LogoProps {
 export default function CapitalOneLogo({
   className = "",
   withSwoosh = true,
+  business = false,
 }: LogoProps) {
   return (
     <div
       className={`relative inline-block leading-none ${className}`}
       role="img"
-      aria-label="Capital One"
+      aria-label={business ? "Capital One Business" : "Capital One"}
     >
       {withSwoosh && (
         <Swoosh className="pointer-events-none absolute -top-[0.75em] -right-[0.5em] w-[120%] text-accent" />
@@ -69,6 +75,11 @@ export default function CapitalOneLogo({
       <span className="relative font-bold tracking-tight">
         Capital<span className="font-serif font-normal italic">One</span>
       </span>
+      {business && (
+        <div className="relative mt-0.5 text-[0.32em] font-semibold tracking-[0.35em] opacity-90">
+          BUSINESS
+        </div>
+      )}
     </div>
   );
 }
