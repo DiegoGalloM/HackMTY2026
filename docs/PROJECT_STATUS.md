@@ -8,7 +8,7 @@
 ## El proyecto en una línea
 
 **Capital One Business** — reto de Capital One, Track 2 (SMB Cash-Flow &
-Working Capital Intelligence). App para nano-empresas (1 a 5 personas) en
+Working Capital Intelligence). App para micro-empresas (1 a 5 personas) en
 Estados Unidos: perfila el negocio con una encuesta de 2 minutos, y desde
 ahí ofrece control de flujo de efectivo, inventario y educación financiera
 contextual — no cursos genéricos, sino "Cash Insights" que aparecen según
