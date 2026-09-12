@@ -89,6 +89,53 @@ transición entre preguntas con ui-ux-pro-max. NO generar/inventar un logo.
 | Error | Attempt | Resolution |
 |-------|---------|------------|
 
+### Fase 6 — Feedback de usuario tras revisión visual
+**Status:** complete
+- [x] Logo pegado al notch: se ajustó `margin-top` de `.c1b-logo-img` de 14px
+      a 36px en theme.css para que quede claro del notch virtual (26px).
+- [x] Categoría "Otro": nuevo paso `otro_detail` — al elegir "Otro" en las
+      burbujas, pide un input de texto libre ("¿A qué se dedica tu negocio?")
+      antes de pasar a las preguntas universales. Se guarda como
+      `category_detail` en el payload y en el schema del backend.
+- [x] Nueva sección "semana normal en el trabajo" (paso `week_description`,
+      justo después de las preguntas sí/no, antes de "días de operación"):
+      toggle Escribir/Narrar. Escribir = textarea. Narrar = botón de
+      micrófono circular con MediaRecorder real (grabar/detener con un solo
+      tap), anillo pulsante + barras de waveform animadas mientras graba,
+      reproductor de audio + "grabar de nuevo" al terminar. Todo con iconos
+      SVG propios (sin emoji, según buenas prácticas de ui-ux-pro-max),
+      respeta prefers-reduced-motion.
+- [x] **Bug real encontrado y arreglado durante la prueba visual**: al pasar
+      el mouse sobre CUALQUIER botón custom (mic, bubbles, continue), el
+      color se veía verde oscuro feo en vez del navy/rojo de marca. Causa
+      raíz: `frontend/src/index.css` (CSS residual del scaffold original,
+      previo al rediseño de onboarding) tenía una regla genérica
+      `button:hover { background: #0a4735 }` cuya especificidad CSS
+      (elemento + pseudo-clase) le ganaba a nuestras clases de una sola
+      clase (`.ob-mic-btn--recording`, `.bubble--selected`, etc.). No era
+      un bug del navegador, era CSS muerto conflictivo. Se eliminó
+      `index.css` (ya no se usaba en ningún componente) y su import en
+      main.jsx; además se agregó `button { appearance: none }` y
+      `color-scheme: light` en theme.css como refuerzo. Verificado con
+      Playwright real (mouse hover incluido) que el botón de grabación
+      ahora se ve rojo correctamente mientras graba.
+- [x] Backend: `BusinessProfile` en schemas.py ampliado con
+      `category_detail`, `week_description_mode`, `week_description_text`,
+      `week_description_audio_base64`, `week_description_audio_mime`.
+- [x] Probado end-to-end con Playwright (audio real grabado con dispositivo
+      falso de Chromium): flujo "Otro" + texto, y flujo categoría normal +
+      audio narrado — ambos guardan y se recuperan correctamente vía GET.
+- [x] `pytest -q` (4 passed) y `npm run build` verificados de nuevo tras
+      todos los cambios.
+
+## Next Step
+Todas las fases completas, incluyendo el feedback de la Fase 6. Rama lista
+para revisión/commit por el usuario (no se hizo commit de este trabajo — el
+usuario no lo pidió; nota: existe un commit previo "8911740 Primera
+iteración encuesta" hecho por el usuario mismo durante la sesión, fuera de
+este flujo). Pendiente explícito: nada bloqueante; el usuario preguntó dónde
+queda guardada la información — respondido en el chat (almacenamiento en
+memoria/RAM del backend, no persistente).
 ### Fase 7 — Merge con Pagina-inicio (compañero) + recuperación de trabajo huérfano
 **Status:** complete
 **Contexto:** el usuario cambió a la rama `Pagina-inicio` (página principal del

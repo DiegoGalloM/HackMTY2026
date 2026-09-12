@@ -29,7 +29,7 @@ button { appearance: none; -webkit-appearance: none; font-family: inherit; }
 .bubble--large { padding: 16px 24px; font-size: 16px; flex-direction: column; min-width: 96px; }
 .bubble__icon { font-size: 26px; }
 
-.ob-screen { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 32px 24px; text-align: center; overflow-y: auto; animation: ob-screen-in .32s cubic-bezier(.22,.61,.36,1) both; }
+.ob-screen { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 32px 24px; text-align: center; overflow-y: auto; animation: ob-screen-in .32s cubic-bezier(.22,.61,.36,1) both; }
 @keyframes ob-screen-in {
   from { opacity: 0; transform: translateX(18px); }
   to { opacity: 1; transform: translateX(0); }
@@ -42,17 +42,17 @@ button { appearance: none; -webkit-appearance: none; font-family: inherit; }
 .ob-question { font-size: 19px; font-weight: 600; min-height: 60px; display: flex; align-items: center; }
 .ob-continue { background: var(--c1-navy); color: var(--c1-white); border: none; border-radius: 999px; padding: 14px 28px; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; max-width: 280px; }
 .ob-continue:disabled { background: #b9c3ca; cursor: not-allowed; }
+.ob-back { position: absolute; left: 50%; bottom: 24px; width: 52px; height: 52px; display: inline-flex; align-items: center; justify-content: center; transform: translateX(-50%); background: var(--c1-navy); border: none; border-radius: 50%; color: var(--c1-white); font-size: 28px; line-height: 1; cursor: pointer; padding: 0 0 2px; transition: background .15s ease, transform .15s ease; }
+.ob-back:hover:not(:disabled) { background: #00395d; }
+.ob-back:active:not(:disabled) { transform: translateX(-50%) scale(0.94); }
+.ob-back:disabled { background: #b9c3ca; color: var(--c1-white); cursor: not-allowed; }
 .ob-input { border: 1.5px solid var(--c1-bubble-border); border-radius: 999px; padding: 12px 18px; font-size: 15px; width: 100%; max-width: 280px; text-align: center; }
 .ob-error { color: var(--c1-red); font-size: 13px; margin: 0; }
 .ob-progress-track { width: 100%; max-width: 280px; height: 6px; background: #ececec; border-radius: 999px; overflow: hidden; }
 .ob-progress-fill { height: 100%; background: var(--c1-red); transition: width .2s ease; }
 
-/* flex-shrink: 0 — es hijo directo de .phone-frame__screen (flex column).
-   Sin esto, cuando el contenido de la encuesta no cabe en el alto fijo del
-   mockup, el flexbox comprime esta imagen por debajo de su alto natural y
-   el navegador la recorta en vez de solo encogerla; el que debe ceder
-   espacio es .ob-screen (ya tiene overflow-y:auto para eso). */
-.c1b-logo-img { max-width: 140px; height: auto; margin: 16px auto 0; display: block; flex-shrink: 0; }
+/* flex-shrink: 0 keeps the logo visible when the survey content needs to scroll. */
+.c1b-logo-img { max-width: 140px; height: auto; margin: 36px auto 0; display: block; flex-shrink: 0; }
 
 .ob-mode-toggle { display: flex; background: #f0eeeb; border-radius: 999px; padding: 4px; gap: 4px; }
 .ob-mode-btn { border: none; background: transparent; padding: 8px 16px; border-radius: 999px; font-size: 14px; font-weight: 600; color: #6b6b6b; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: background .15s ease, color .15s ease; }
@@ -84,6 +84,11 @@ button { appearance: none; -webkit-appearance: none; font-family: inherit; }
 .ob-recorder-playback { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; }
 .ob-recorder-playback audio { width: 100%; max-width: 280px; }
 .ob-link-btn { background: none; border: none; color: var(--c1-navy); font-size: 13px; text-decoration: underline; cursor: pointer; padding: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ob-mic-btn__ring { animation: none; display: none; }
+  .ob-wave span { animation: none; height: 14px; }
+}
 
 .cash-insight-card { display: flex; gap: 12px; margin: 24px 20px 0; padding: 16px; border: 1px solid rgba(0,73,119,.16); border-left: 4px solid var(--c1-red); border-radius: 16px; background: var(--c1-white); box-shadow: 0 5px 14px rgba(0,73,119,.08); }
 .cash-insight-card__icon { display: grid; place-items: center; flex: 0 0 36px; width: 36px; height: 36px; border-radius: 50%; background: rgba(208,48,39,.12); color: var(--c1-red); font-size: 18px; }
@@ -138,8 +143,3 @@ button { appearance: none; -webkit-appearance: none; font-family: inherit; }
 .micro-lessons-result__amount--alert { color: var(--c1-red); }
 .micro-lessons-primary-button { width: 100%; min-height: 46px; margin-top: 16px; border: 0; border-radius: 999px; background: var(--c1-navy); color: var(--c1-white); cursor: pointer; font-size: 15px; font-weight: 700; }
 .micro-lessons-icon-button:focus-visible, .micro-lessons-option:focus-visible, .micro-lessons-choice:focus-visible, .micro-lessons-primary-button:focus-visible, .micro-lessons-field input:focus-visible { outline: 3px solid var(--c1-red); outline-offset: 3px; }
-
-@media (prefers-reduced-motion: reduce) {
-  .ob-mic-btn__ring { animation: none; display: none; }
-  .ob-wave span { animation: none; height: 14px; }
-}

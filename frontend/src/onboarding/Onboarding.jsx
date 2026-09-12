@@ -53,6 +53,10 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete }) {
     else goToStep("week_description");
   };
 
+  const goToPreviousQuestion = () => {
+    setQuestionIndex((index) => Math.max(0, index - 1));
+  };
+
   const toggleDay = (id) => setDays((prev) => (prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id]));
 
   const detectCity = () => {
@@ -186,6 +190,34 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete }) {
     </Screen>
   );
 
+  if (step === "otro_detail") return (
+    <Screen transitionKey="otro_detail">
+      <p className="ob-subtitle">Cuéntanos, ¿a qué se dedica tu negocio?</p>
+      <input
+        className="ob-input"
+        placeholder="Ej. Taller de bicicletas"
+        value={otroDetail}
+        onChange={(e) => setOtroDetail(e.target.value)}
+        autoFocus
+      />
+      <button className="ob-continue" disabled={!otroDetail.trim()} onClick={() => goToStep("questions")}>Continuar</button>
+    </Screen>
+  );
+
+  if (step === "otro_detail") return (
+    <Screen transitionKey="otro_detail">
+      <p className="ob-subtitle">Cuéntanos, ¿a qué se dedica tu negocio?</p>
+      <input
+        className="ob-input"
+        placeholder="Ej. Taller de bicicletas"
+        value={otroDetail}
+        onChange={(e) => setOtroDetail(e.target.value)}
+        autoFocus
+      />
+      <button className="ob-continue" disabled={!otroDetail.trim()} onClick={() => goToStep("questions")}>Continuar</button>
+    </Screen>
+  );
+
   if (step === "questions") {
     const q = questions[questionIndex];
     return (
@@ -193,12 +225,97 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete }) {
         <ProgressBar value={(questionIndex + 1) / questions.length} />
         <p className="ob-question">{q.text}</p>
         <BubbleGrid>
-          <Bubble label="No" variant="no" onClick={() => answerQuestion(false)} />
-          <Bubble label="Sí" variant="yes" onClick={() => answerQuestion(true)} />
+          <Bubble label="No" variant="no" selected={answers[q.id] === false} onClick={() => answerQuestion(false)} />
+          <Bubble label="Sí" variant="yes" selected={answers[q.id] === true} onClick={() => answerQuestion(true)} />
         </BubbleGrid>
+        <button
+          type="button"
+          className="ob-back"
+          aria-label="Volver a la pregunta anterior"
+          title="Volver a la pregunta anterior"
+          disabled={questionIndex === 0}
+          onClick={goToPreviousQuestion}
+        >
+          <BackArrowIcon />
+        </button>
       </Screen>
     );
   }
+
+  if (step === "week_description") return (
+    <Screen transitionKey="week_description">
+      <p className="ob-subtitle">Cuéntanos cómo es una semana normal en tu negocio</p>
+
+      <div className="ob-mode-toggle" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={weekMode === "text"}
+          className={`ob-mode-btn ${weekMode === "text" ? "ob-mode-btn--active" : ""}`}
+          onClick={() => setWeekMode("text")}
+        >
+          <PencilIcon /> Escribir
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={weekMode === "audio"}
+          className={`ob-mode-btn ${weekMode === "audio" ? "ob-mode-btn--active" : ""}`}
+          onClick={() => setWeekMode("audio")}
+        >
+          <MicIcon size={16} /> Narrar
+        </button>
+      </div>
+
+      {weekMode === "text" ? (
+        <textarea
+          className="ob-textarea"
+          placeholder="Ej. Los lunes recibo mercancía, entre semana atiendo el local de 9 a 6, los fines de semana es cuando más vendo…"
+          value={weekText}
+          onChange={(e) => setWeekText(e.target.value)}
+          rows={5}
+        />
+      ) : (
+        <div className="ob-recorder">
+          <button
+            type="button"
+            className={`ob-mic-btn ${recording ? "ob-mic-btn--recording" : ""}`}
+            onClick={toggleRecording}
+            aria-label={recording ? "Detener grabación" : "Iniciar grabación"}
+          >
+            {recording && <span className="ob-mic-btn__ring" aria-hidden="true" />}
+            {recording ? <StopIcon /> : <MicIcon size={28} />}
+          </button>
+
+          {recording && (
+            <div className="ob-wave" aria-hidden="true">
+              <span /><span /><span /><span /><span />
+            </div>
+          )}
+
+          <p className="ob-recorder-status">
+            {recording ? `Grabando… ${formatTime(recordSeconds)}` : audioUrl ? "Grabación lista" : "Toca para grabar"}
+          </p>
+          {recordError && <p className="ob-error">{recordError}</p>}
+
+          {audioUrl && !recording && (
+            <div className="ob-recorder-playback">
+              <audio controls src={audioUrl} />
+              <button type="button" className="ob-link-btn" onClick={resetRecording}>Grabar de nuevo</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      <button
+        className="ob-continue"
+        disabled={weekMode === "text" ? !weekText.trim() : !audioBlob}
+        onClick={() => goToStep("schedule")}
+      >
+        Continuar
+      </button>
+    </Screen>
+  );
 
   if (step === "week_description") return (
     <Screen transitionKey="week_description">
@@ -343,6 +460,15 @@ function PencilIcon() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M12 20h9" />
       <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  );
+}
+
+function BackArrowIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M19 12H5" />
+      <path d="m11 18-6-6 6-6" />
     </svg>
   );
 }
