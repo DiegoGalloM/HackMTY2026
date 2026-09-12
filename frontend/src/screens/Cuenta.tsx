@@ -3,12 +3,21 @@ import CreditCardTile from "../components/CreditCardTile";
 import QuickActionsGrid from "../components/QuickActionsGrid";
 import Screen from "../components/Screen";
 import { formatCurrency, formatDate, movements } from "../data/mock";
+import CashInsightCard from "../financial-literacy/CashInsightCard.jsx";
 
-export default function Cuenta() {
+interface CuentaProps {
+  profile: {
+    category: string | null;
+    answers: Record<string, boolean>;
+  } | null;
+}
+
+export default function Cuenta({ profile }: CuentaProps) {
   return (
     <Screen>
       <BalanceHeader />
       <CreditCardTile />
+      <CashInsightCard profile={profile} />
 
       <div className="mt-6">
         <QuickActionsGrid />

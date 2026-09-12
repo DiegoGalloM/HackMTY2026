@@ -80,6 +80,16 @@ button { appearance: none; -webkit-appearance: none; font-family: inherit; }
 .ob-recorder-playback audio { width: 100%; max-width: 280px; }
 .ob-link-btn { background: none; border: none; color: var(--c1-navy); font-size: 13px; text-decoration: underline; cursor: pointer; padding: 4px; }
 
+.cash-insight-card { display: flex; gap: 12px; margin: 24px 20px 0; padding: 16px; border: 1px solid rgba(0,73,119,.16); border-left: 4px solid var(--c1-red); border-radius: 16px; background: var(--c1-white); box-shadow: 0 5px 14px rgba(0,73,119,.08); }
+.cash-insight-card__icon { display: grid; place-items: center; flex: 0 0 36px; width: 36px; height: 36px; border-radius: 50%; background: rgba(208,48,39,.12); color: var(--c1-red); font-size: 18px; }
+.cash-insight-card__content { min-width: 0; }
+.cash-insight-card__title { color: var(--c1-navy); font-size: 22px; font-weight: 700; line-height: 1.18; margin: 0; text-wrap: balance; }
+.cash-insight-card__body { color: var(--c1-black); font-size: 16px; line-height: 1.45; margin: 8px 0 12px; }
+.cash-insight-card__action { min-height: 44px; border: 0; border-radius: 999px; background: var(--c1-navy); color: var(--c1-white); cursor: pointer; font-size: 15px; font-weight: 600; padding: 10px 16px; transition: background .15s ease, transform .12s ease; }
+.cash-insight-card__action:hover { background: var(--c1-red); }
+.cash-insight-card__action:active { transform: scale(.98); }
+.cash-insight-card__action:focus-visible { outline: 3px solid var(--c1-red); outline-offset: 3px; }
+
 @media (prefers-reduced-motion: reduce) {
   .ob-mic-btn__ring { animation: none; display: none; }
   .ob-wave span { animation: none; height: 14px; }

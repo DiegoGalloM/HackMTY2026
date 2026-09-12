@@ -300,7 +300,12 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete }) {
     <Screen transitionKey="done">
       <h2 className="ob-title">{submitted ? "¡Listo! 🎉" : "Algo salió mal, intenta de nuevo."}</h2>
       <p className="ob-subtitle">Tu perfil de negocio quedó guardado.</p>
-      <button className="ob-continue" onClick={() => onComplete?.()}>Ir a mi cuenta</button>
+      <button
+        className="ob-continue"
+        onClick={() => onComplete?.({ category, answers })}
+      >
+        Ir a mi cuenta
+      </button>
     </Screen>
   );
 }

@@ -11,7 +11,12 @@ import PhoneFrame from "./onboarding/PhoneFrame.jsx";
 import Logo from "./onboarding/Logo.jsx";
 import Onboarding from "./onboarding/Onboarding.jsx";
 
-function MainApp() {
+interface BusinessProfile {
+  category: string | null;
+  answers: Record<string, boolean>;
+}
+
+function MainApp({ profile }: { profile: BusinessProfile | null }) {
   const location = useLocation();
 
   return (
@@ -22,12 +27,12 @@ function MainApp() {
           La key es la ruta: sin ella AnimatePresence no detecta el cambio. */}
       <AnimatePresence mode="wait" initial={false}>
         <Routes location={location} key={location.pathname}>
-          <Route path="/" element={<Cuenta />} />
+          <Route path="/" element={<Cuenta profile={profile} />} />
           <Route path="/retiros" element={<Retiros />} />
           <Route path="/transferencias" element={<Transferencias />} />
           <Route path="/pagos" element={<Pagos />} />
           <Route path="/mas" element={<Mas />} />
-          <Route path="*" element={<Cuenta />} />
+          <Route path="*" element={<Cuenta profile={profile} />} />
         </Routes>
       </AnimatePresence>
 
@@ -41,15 +46,21 @@ export default function App() {
   // seguir tras un error de guardado) se muestra la app principal, ambas
   // dentro del mismo mockup de celular (PhoneFrame).
   const [onboardingDone, setOnboardingDone] = useState(false);
+  const [profile, setProfile] = useState<BusinessProfile | null>(null);
 
   return (
     <PhoneFrame>
       {onboardingDone ? (
-        <MainApp />
+        <MainApp profile={profile} />
       ) : (
         <>
           <Logo />
-          <Onboarding onComplete={() => setOnboardingDone(true)} />
+          <Onboarding
+            onComplete={(completedProfile: BusinessProfile) => {
+              setProfile(completedProfile);
+              setOnboardingDone(true);
+            }}
+          />
         </>
       )}
     </PhoneFrame>
