@@ -56,12 +56,33 @@ USE SCHEMA PUBLIC;
 CREATE TABLE IF NOT EXISTS business_profiles (
   owner_id STRING PRIMARY KEY,
   category STRING,
+  category_detail STRING,
   operating_days ARRAY,
   city STRING,
   employees STRING,
   answers VARIANT,
+  week_description_mode STRING,
+  week_description_text STRING,
+  week_description_audio_base64 STRING,
+  week_description_audio_mime STRING,
   created_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
 );
+```
+
+Las columnas tienen que cubrir **todos** los campos de `BusinessProfile`
+(`backend/app/models/schemas.py`). Si falta alguna, el POST responde
+`{"status":"ok"}` pero ese campo se pierde en silencio y el GET lo regresa
+como `null` — la grabación de voz de la semana es la que más duele.
+
+Si ya crearon la tabla con la versión corta de esta guía, no hace falta
+borrarla, solo agreguen lo que falta:
+
+```sql
+ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS category_detail STRING;
+ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS week_description_mode STRING;
+ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS week_description_text STRING;
+ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS week_description_audio_base64 STRING;
+ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS week_description_audio_mime STRING;
 ```
 
 Verifiquen que quedó creada:
@@ -107,10 +128,18 @@ credenciales entre ustedes, mándenlas por mensaje directo.
 
 ```bash
 cd backend
-source .venv/bin/activate   # o como tengan armado su entorno
+source .venv/bin/activate   # Windows (PowerShell): .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt   # ya incluye snowflake-connector-python
 uvicorn app.main:app --reload
 ```
+
+⚠️ `uvicorn` se corre **desde `backend/`**: `config.py` lee `env_file=".env"`
+relativo al directorio actual, así que desde la raíz del repo no encuentra
+sus credenciales y se va silenciosamente a memoria.
+
+⚠️ En Python 3.13+ hace falta `snowflake-connector-python>=4.x` (el pin del
+repo ya es `4.7.3`). Con el pin viejo `3.12.3` pip intenta compilar `cffi`
+desde cero y truena con `fatal error C1083: Cannot open include file: 'io.h'`.
 
 En otra terminal:
 
