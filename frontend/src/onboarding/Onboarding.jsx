@@ -1,16 +1,24 @@
 // frontend/src/onboarding/Onboarding.jsx
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Bubble, BubbleGrid } from "./Bubble.jsx";
 import { CATEGORIES, UNIVERSAL_QUESTIONS, CATEGORY_QUESTIONS, WEEKDAYS, EMPLOYEE_OPTIONS } from "./questions.js";
 
 const API_BASE = "http://localhost:8000";
-const STEPS = ["welcome", "questions", "schedule", "employees", "city", "done"];
+const STEPS = ["welcome", "otro_detail", "questions", "week_description", "schedule", "employees", "city", "done"];
 
 export default function Onboarding({ ownerId = "demo-owner" }) {
   const [stepIndex, setStepIndex] = useState(0);
   const [category, setCategory] = useState(null);
+  const [otroDetail, setOtroDetail] = useState("");
   const [answers, setAnswers] = useState({});
   const [questionIndex, setQuestionIndex] = useState(0);
+  const [weekMode, setWeekMode] = useState("text");
+  const [weekText, setWeekText] = useState("");
+  const [recording, setRecording] = useState(false);
+  const [recordSeconds, setRecordSeconds] = useState(0);
+  const [recordError, setRecordError] = useState(null);
+  const [audioBlob, setAudioBlob] = useState(null);
+  const [audioUrl, setAudioUrl] = useState(null);
   const [days, setDays] = useState([]);
   const [employees, setEmployees] = useState(null);
   const [city, setCity] = useState("");
@@ -18,6 +26,11 @@ export default function Onboarding({ ownerId = "demo-owner" }) {
   const [locationError, setLocationError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
+  const streamRef = useRef(null);
+  const timerRef = useRef(null);
 
   const step = STEPS[stepIndex];
   const questions = useMemo(() => {
@@ -27,13 +40,17 @@ export default function Onboarding({ ownerId = "demo-owner" }) {
 
   const goToStep = useCallback((name) => setStepIndex(STEPS.indexOf(name)), []);
 
-  const pickCategory = (id) => { setCategory(id); setQuestionIndex(0); goToStep("questions"); };
+  const pickCategory = (id) => {
+    setCategory(id);
+    setQuestionIndex(0);
+    goToStep(id === "otro" ? "otro_detail" : "questions");
+  };
 
   const answerQuestion = (value) => {
     const q = questions[questionIndex];
     setAnswers((prev) => ({ ...prev, [q.id]: value }));
     if (questionIndex + 1 < questions.length) setQuestionIndex((i) => i + 1);
-    else goToStep("schedule");
+    else goToStep("week_description");
   };
 
   const toggleDay = (id) => setDays((prev) => (prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id]));
@@ -55,12 +72,82 @@ export default function Onboarding({ ownerId = "demo-owner" }) {
     );
   };
 
+  const resetRecording = () => {
+    setAudioBlob(null);
+    setAudioUrl(null);
+    setRecordSeconds(0);
+    setRecordError(null);
+  };
+
+  const startRecording = async () => {
+    setRecordError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      chunksRef.current = [];
+      const mr = new MediaRecorder(stream);
+      mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      mr.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" });
+        setAudioBlob(blob);
+        setAudioUrl(URL.createObjectURL(blob));
+        streamRef.current?.getTracks().forEach((t) => t.stop());
+      };
+      mediaRecorderRef.current = mr;
+      mr.start();
+      setRecording(true);
+      setRecordSeconds(0);
+      timerRef.current = setInterval(() => setRecordSeconds((s) => s + 1), 1000);
+    } catch {
+      setRecordError("No pudimos acceder al micrófono. Revisa los permisos o escribe tu respuesta.");
+    }
+  };
+
+  const stopRecording = () => {
+    mediaRecorderRef.current?.stop();
+    setRecording(false);
+    clearInterval(timerRef.current);
+  };
+
+  const toggleRecording = () => (recording ? stopRecording() : startRecording());
+
+  useEffect(() => {
+    if (weekMode !== "audio" && recording) stopRecording();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekMode]);
+
+  useEffect(() => () => {
+    clearInterval(timerRef.current);
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+  }, []);
+
+  const formatTime = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+
+  const blobToBase64 = (blob) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(String(reader.result).split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+
   const submit = async () => {
     setSubmitting(true);
     try {
+      const audioBase64 = weekMode === "audio" && audioBlob ? await blobToBase64(audioBlob) : null;
       await fetch(`${API_BASE}/business-profile/${ownerId}`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category, operating_days: days, city, employees, answers }),
+        body: JSON.stringify({
+          category,
+          category_detail: category === "otro" ? otroDetail : null,
+          operating_days: days,
+          city,
+          employees,
+          answers,
+          week_description_mode: weekMode,
+          week_description_text: weekMode === "text" ? weekText : null,
+          week_description_audio_base64: audioBase64,
+          week_description_audio_mime: audioBlob?.type ?? null,
+        }),
       });
       setSubmitted(true);
     } catch {
@@ -81,6 +168,20 @@ export default function Onboarding({ ownerId = "demo-owner" }) {
     </Screen>
   );
 
+  if (step === "otro_detail") return (
+    <Screen transitionKey="otro_detail">
+      <p className="ob-subtitle">Cuéntanos, ¿a qué se dedica tu negocio?</p>
+      <input
+        className="ob-input"
+        placeholder="Ej. Taller de bicicletas"
+        value={otroDetail}
+        onChange={(e) => setOtroDetail(e.target.value)}
+        autoFocus
+      />
+      <button className="ob-continue" disabled={!otroDetail.trim()} onClick={() => goToStep("questions")}>Continuar</button>
+    </Screen>
+  );
+
   if (step === "questions") {
     const q = questions[questionIndex];
     return (
@@ -94,6 +195,81 @@ export default function Onboarding({ ownerId = "demo-owner" }) {
       </Screen>
     );
   }
+
+  if (step === "week_description") return (
+    <Screen transitionKey="week_description">
+      <p className="ob-subtitle">Cuéntanos cómo es una semana normal en tu negocio</p>
+
+      <div className="ob-mode-toggle" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={weekMode === "text"}
+          className={`ob-mode-btn ${weekMode === "text" ? "ob-mode-btn--active" : ""}`}
+          onClick={() => setWeekMode("text")}
+        >
+          <PencilIcon /> Escribir
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={weekMode === "audio"}
+          className={`ob-mode-btn ${weekMode === "audio" ? "ob-mode-btn--active" : ""}`}
+          onClick={() => setWeekMode("audio")}
+        >
+          <MicIcon size={16} /> Narrar
+        </button>
+      </div>
+
+      {weekMode === "text" ? (
+        <textarea
+          className="ob-textarea"
+          placeholder="Ej. Los lunes recibo mercancía, entre semana atiendo el local de 9 a 6, los fines de semana es cuando más vendo…"
+          value={weekText}
+          onChange={(e) => setWeekText(e.target.value)}
+          rows={5}
+        />
+      ) : (
+        <div className="ob-recorder">
+          <button
+            type="button"
+            className={`ob-mic-btn ${recording ? "ob-mic-btn--recording" : ""}`}
+            onClick={toggleRecording}
+            aria-label={recording ? "Detener grabación" : "Iniciar grabación"}
+          >
+            {recording && <span className="ob-mic-btn__ring" aria-hidden="true" />}
+            {recording ? <StopIcon /> : <MicIcon size={28} />}
+          </button>
+
+          {recording && (
+            <div className="ob-wave" aria-hidden="true">
+              <span /><span /><span /><span /><span />
+            </div>
+          )}
+
+          <p className="ob-recorder-status">
+            {recording ? `Grabando… ${formatTime(recordSeconds)}` : audioUrl ? "Grabación lista" : "Toca para grabar"}
+          </p>
+          {recordError && <p className="ob-error">{recordError}</p>}
+
+          {audioUrl && !recording && (
+            <div className="ob-recorder-playback">
+              <audio controls src={audioUrl} />
+              <button type="button" className="ob-link-btn" onClick={resetRecording}>Grabar de nuevo</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      <button
+        className="ob-continue"
+        disabled={weekMode === "text" ? !weekText.trim() : !audioBlob}
+        onClick={() => goToStep("schedule")}
+      >
+        Continuar
+      </button>
+    </Screen>
+  );
 
   if (step === "schedule") return (
     <Screen transitionKey="schedule">
@@ -132,3 +308,31 @@ function Screen({ children, transitionKey }) {
   return <div className="ob-screen" key={transitionKey}>{children}</div>;
 }
 function ProgressBar({ value }) { return <div className="ob-progress-track"><div className="ob-progress-fill" style={{ width: `${Math.round(value * 100)}%` }} /></div>; }
+
+function MicIcon({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="9" y="2" width="6" height="12" rx="3" />
+      <path d="M5 11a7 7 0 0 0 14 0" />
+      <line x1="12" y1="18" x2="12" y2="22" />
+      <line x1="8" y1="22" x2="16" y2="22" />
+    </svg>
+  );
+}
+
+function StopIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <rect x="6" y="6" width="12" height="12" rx="2" />
+    </svg>
+  );
+}
+
+function PencilIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  );
+}
