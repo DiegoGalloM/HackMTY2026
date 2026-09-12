@@ -10,7 +10,7 @@ router = APIRouter(prefix="/accounts/{account_id}/transactions", tags=["transact
 @router.get("", response_model=list[Transaction])
 async def list_transactions(
     account_id: str,
-    nessie: NessieClient = Depends(get_nessie_client),
+    nessie: NessieClient = Depends(get_nessie_client),  # noqa: B008
 ):
     raw = await nessie.list_transactions(account_id)
     return [Transaction(**tx) for tx in raw]
@@ -20,7 +20,7 @@ async def list_transactions(
 async def simulate_purchase(
     account_id: str,
     purchase: NewPurchase,
-    nessie: NessieClient = Depends(get_nessie_client),
+    nessie: NessieClient = Depends(get_nessie_client),  # noqa: B008
 ):
     """
     Crea una compra nueva ahora mismo. Pensado para un botón de "generar
