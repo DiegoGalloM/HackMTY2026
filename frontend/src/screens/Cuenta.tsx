@@ -3,7 +3,6 @@ import CreditCardTile from "../components/CreditCardTile";
 import QuickActionsGrid from "../components/QuickActionsGrid";
 import Screen from "../components/Screen";
 import { formatCurrency, formatDate, movements } from "../data/mock";
-import CashInsightCard from "../financial-literacy/CashInsightCard.jsx";
 
 interface CuentaProps {
   profile: {
@@ -12,12 +11,11 @@ interface CuentaProps {
   } | null;
 }
 
-export default function Cuenta({ profile }: CuentaProps) {
+export default function Cuenta({ profile: _profile }: CuentaProps) {
   return (
     <Screen>
       <BalanceHeader />
       <CreditCardTile />
-      <CashInsightCard profile={profile} />
 
       <div className="mt-6">
         <QuickActionsGrid />

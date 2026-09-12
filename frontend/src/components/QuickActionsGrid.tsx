@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Phone, QrCode, Receipt, Send } from "lucide-react";
+import { GraduationCap, QrCode, Receipt, Send } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { quickActions } from "../data/mock";
 import type { QuickAction } from "../data/types";
@@ -8,7 +8,7 @@ import type { QuickAction } from "../data/types";
 const icons: Record<QuickAction["icon"], LucideIcon> = {
   send: Send,
   qr: QrCode,
-  phone: Phone,
+  education: GraduationCap,
   receipt: Receipt,
 };
 
