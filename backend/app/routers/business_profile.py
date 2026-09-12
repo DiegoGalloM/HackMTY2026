@@ -1,5 +1,6 @@
 # backend/app/routers/business_profile.py
 from fastapi import APIRouter
+
 from app.models.schemas import BusinessProfile
 
 router = APIRouter(prefix="/business-profile", tags=["business-profile"])
