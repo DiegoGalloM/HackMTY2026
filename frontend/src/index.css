@@ -32,8 +32,13 @@
 html,
 body,
 #root {
-  /* 100dvh: la barra de URL móvil no recorta el layout al hacer scroll. */
-  height: 100dvh;
+  /* min-height y NO height: la app ya no ocupa la ventana completa, vive
+     dentro del mockup de celular (.phone-frame, 844px de alto fijo). Con
+     `height: 100dvh` la página no podía crecer, así que en una ventana más
+     bajita que el mockup el celular se salía y la parte de arriba quedaba
+     cortada sin forma de hacer scroll hasta ella.
+     El 100dvh que importa para el layout interno lo da .phone-frame. */
+  min-height: 100dvh;
 }
 
 body {
