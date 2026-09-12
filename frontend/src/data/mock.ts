@@ -26,9 +26,9 @@ export const account: Account = {
 
 export const creditCard: CreditCard = {
   id: "card_1",
-  holder: "Monito",
+  holder: "CARLOS TABARES",
   brand: "visa",
-  issuer: "BBVA",
+  issuer: "Capital One",
   last4: "4021",
   expiry: "09/29",
   contactless: true,

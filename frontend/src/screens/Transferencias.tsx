@@ -18,7 +18,7 @@ export default function Transferencias() {
       <section className="px-5">
         <button
           type="button"
-          className="flex w-full items-center gap-3 rounded-2xl bg-accent px-4 py-4 text-left text-white transition-transform active:scale-[0.98]"
+          className="flex w-full items-center gap-3 rounded-2xl bg-brand px-4 py-4 text-left text-white transition-transform active:scale-[0.98]"
         >
           <span className="flex size-9 items-center justify-center rounded-full bg-white/20">
             <Plus size={18} aria-hidden />
@@ -37,7 +37,7 @@ export default function Transferencias() {
         <ul className="divide-y divide-black/5 overflow-hidden rounded-2xl bg-white">
           {contacts.map((contact) => (
             <li key={contact.id} className="flex items-center gap-3 px-4 py-3">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand/15 text-xs font-semibold text-brand-deep">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand/10 text-xs font-semibold text-brand">
                 {initials(contact.name)}
               </span>
               <div className="min-w-0 flex-1">

@@ -26,7 +26,7 @@ export default function Pagos() {
                 </p>
                 <button
                   type="button"
-                  className="mt-1 rounded-full bg-accent px-3 py-1 text-xs font-medium text-white transition-transform active:scale-95"
+                  className="mt-1 rounded-full bg-brand px-3 py-1 text-xs font-medium text-white transition-transform active:scale-95"
                 >
                   Pagar
                 </button>

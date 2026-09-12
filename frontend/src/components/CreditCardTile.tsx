@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import CapitalOneLogo, { Swoosh } from "./CapitalOneLogo";
 import { creditCard } from "../data/mock";
 
 /** Logo de la marca. Texto con tracking, no imagen — así escala sin assets. */
@@ -40,25 +41,43 @@ function ContactlessIcon() {
   );
 }
 
+/** Chip EMV dorado. */
+function Chip() {
+  return (
+    <span
+      aria-hidden
+      className="block h-7 w-9 rounded-md bg-linear-140 from-[#e8c877] to-[#b08d3c] ring-1 ring-black/10"
+    >
+      <span className="mx-auto block h-full w-px bg-black/15" />
+    </span>
+  );
+}
+
 export default function CreditCardTile() {
   return (
     <motion.div
       whileTap={{ scale: 0.98 }}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
-      className="relative mx-5 aspect-[1.62/1] overflow-hidden rounded-3xl bg-linear-120 from-brand via-brand to-brand-deep p-5 text-white shadow-lg shadow-brand/25"
+      className="relative mx-5 aspect-[1.62/1] overflow-hidden rounded-3xl bg-linear-140 from-brand via-navy to-navy p-5 text-white shadow-lg shadow-navy/30"
     >
-      {/* Brillo diagonal que cruza la tarjeta, como en la maqueta. */}
+      {/* El swoosh cruza la tarjeta de lado a lado, sangrado por la derecha —
+          es el elemento de diseño del plástico de Capital One. */}
+      <Swoosh
+        className="pointer-events-none absolute -top-2 -right-14 w-[115%] text-accent-bright/90"
+      />
+      {/* Velo oscuro sobre el swoosh para que el texto encima siga legible. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-1/3 -right-1/4 h-[180%] w-2/3 rotate-25 bg-white/10 blur-2xl"
+        className="pointer-events-none absolute inset-0 bg-linear-to-t from-navy/70 via-navy/10 to-transparent"
       />
 
       <div className="relative flex h-full flex-col justify-between">
-        <span className="text-xl font-bold tracking-tight">
-          {creditCard.issuer}
-        </span>
+        <div className="flex items-start justify-between">
+          <CapitalOneLogo className="text-lg" withSwoosh={false} />
+          {creditCard.contactless && <ContactlessIcon />}
+        </div>
 
-        {creditCard.contactless && <ContactlessIcon />}
+        <Chip />
 
         <div className="flex items-end justify-between">
           <div className="min-w-0">

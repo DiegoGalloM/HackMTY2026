@@ -23,7 +23,7 @@ export default function Mas() {
     <Screen title="Más">
       <section className="px-5">
         <div className="mb-6 flex items-center gap-3 rounded-2xl bg-white px-4 py-4">
-          <span className="flex size-12 items-center justify-center rounded-full bg-brand/15 text-sm font-semibold text-brand-deep">
+          <span className="flex size-12 items-center justify-center rounded-full bg-brand/10 text-sm font-semibold text-brand">
             {user.firstName[0]}
             {user.lastName[0]}
           </span>

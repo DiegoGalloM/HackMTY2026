@@ -29,7 +29,7 @@ export default function Cuenta() {
               </div>
               <span
                 className={`shrink-0 text-sm font-semibold tabular-nums ${
-                  m.amount > 0 ? "text-brand-deep" : "text-ink"
+                  m.amount > 0 ? "text-positive" : "text-ink"
                 }`}
               >
                 {m.amount > 0 ? "+" : ""}

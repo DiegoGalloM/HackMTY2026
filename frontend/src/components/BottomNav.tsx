@@ -53,7 +53,11 @@ export default function BottomNav() {
                     >
                       <Icon size={22} aria-hidden />
                     </span>
-                    <span className="text-[10px] leading-none font-medium text-accent">
+                    <span
+                      className={`text-[10px] leading-none font-medium ${
+                        isActive ? "text-accent" : "text-muted"
+                      }`}
+                    >
                       {label}
                     </span>
                   </>
@@ -62,11 +66,11 @@ export default function BottomNav() {
                     <Icon
                       size={20}
                       aria-hidden
-                      className={isActive ? "text-accent" : "text-muted"}
+                      className={isActive ? "text-brand" : "text-muted"}
                     />
                     <span
                       className={`text-[10px] leading-none ${
-                        isActive ? "font-medium text-accent" : "text-muted"
+                        isActive ? "font-medium text-brand" : "text-muted"
                       }`}
                     >
                       {label}
