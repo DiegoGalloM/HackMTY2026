@@ -27,8 +27,8 @@ export default function BottomNav() {
   return (
     <nav
       aria-label="Navegación principal"
-      // absolute (no fixed) para quedarse dentro del shell de max-w-md en
-      // desktop; el shell mide 100dvh, así que el efecto en móvil es el mismo.
+      // absolute (no fixed) para quedarse dentro del shell de la app, que vive
+      // dentro del mockup de celular; el efecto en móvil es el mismo.
       // pb con env(safe-area-inset-bottom) para que la home indicator de iOS
       // no se encime con los íconos.
       className="absolute inset-x-0 bottom-0 z-20 border-t border-black/5 bg-white/95 backdrop-blur-md pb-[var(--safe-bottom)]"

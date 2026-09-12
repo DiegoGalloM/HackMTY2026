@@ -15,9 +15,14 @@ function MainApp() {
   const location = useLocation();
 
   return (
-    // El shell ocupa 100dvh y no scrollea; el scroll vive dentro de cada
-    // pantalla (ver Screen.tsx), así la barra inferior nunca se mueve.
-    <div className="relative mx-auto flex h-full max-w-md flex-col overflow-hidden bg-surface">
+    // w-full y NO `mx-auto max-w-md`: el ancho ya lo fija el mockup de celular
+    // (.phone-frame__screen). Además ese contenedor es un flex column, y un
+    // margen lateral `auto` en un flex item cancela el stretch del eje cruzado
+    // — el shell se encogía a fit-content y quedaba centrado con huecos a los
+    // lados, de ancho distinto en cada pantalla según su contenido.
+    // El shell no scrollea; el scroll vive dentro de cada pantalla
+    // (ver Screen.tsx), así la barra inferior nunca se mueve.
+    <div className="relative flex h-full w-full flex-col overflow-hidden bg-surface">
       {/* mode="wait" evita que dos pantallas se solapen durante la transición.
           La key es la ruta: sin ella AnimatePresence no detecta el cambio. */}
       <AnimatePresence mode="wait" initial={false}>

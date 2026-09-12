@@ -7,7 +7,7 @@ export default function BalanceHeader() {
   const [visible, setVisible] = useState(true);
 
   return (
-    <header className="flex items-start justify-between gap-4 px-5 pt-4 pb-5">
+    <header className="flex items-start justify-between gap-4 px-5 pt-12 pb-5">
       <div className="min-w-0">
         <div className="flex items-center gap-2">
           <h1 className="truncate text-4xl font-semibold tracking-tight tabular-nums">
