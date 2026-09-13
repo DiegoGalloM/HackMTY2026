@@ -26,7 +26,7 @@ export class OnboardingPage {
     await this.page.getByRole("button", { name: "Empezar" }).click();
     await this.page.getByRole("button", { name: "Registrarme", exact: true }).click();
     await this.page.getByRole("button", { name: "Comenzar mi encuesta" }).click();
-    await expect(this.page.getByText("Selecciona tu modelo de negocio")).toBeVisible();
+    await expect(this.page.getByRole("heading", { name: "Selecciona tu modelo de negocio" })).toBeVisible();
   }
 
   async pickCategory(label: string) {
