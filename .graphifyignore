@@ -1,0 +1,4 @@
+# Tooling and build output — keep the graph focused on app code
+.claude/
+frontend/dev-dist/
+graphify-out/
