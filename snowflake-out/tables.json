@@ -1,0 +1,26 @@
+[
+  {
+    "TABLE_SCHEMA": "PUBLIC",
+    "TABLE_NAME": "BUSINESS_PROFILES",
+    "TABLE_TYPE": "BASE TABLE",
+    "ROW_COUNT": 5,
+    "BYTES": 23040,
+    "COMMENT": null
+  },
+  {
+    "TABLE_SCHEMA": "PUBLIC",
+    "TABLE_NAME": "SCHEMA_MIGRATIONS",
+    "TABLE_TYPE": "BASE TABLE",
+    "ROW_COUNT": 2,
+    "BYTES": 1024,
+    "COMMENT": null
+  },
+  {
+    "TABLE_SCHEMA": "PUBLIC",
+    "TABLE_NAME": "USERS",
+    "TABLE_TYPE": "BASE TABLE",
+    "ROW_COUNT": 8,
+    "BYTES": 2048,
+    "COMMENT": null
+  }
+]

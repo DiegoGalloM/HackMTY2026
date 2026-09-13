@@ -1,0 +1,212 @@
+[
+  {
+    "TABLE_SCHEMA": "PUBLIC",
+    "TABLE_NAME": "BUSINESS_PROFILES",
+    "COLUMN_NAME": "OWNER_ID",
+    "ORDINAL_POSITION": 1,
+    "DATA_TYPE": "TEXT",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COMMENT": null
+  },
+  {
+    "TABLE_SCHEMA": "PUBLIC",
+    "TABLE_NAME": "BUSINESS_PROFILES",
+    "COLUMN_NAME": "CATEGORY",
+    "ORDINAL_POSITION": 2,
+    "DATA_TYPE": "TEXT",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COMMENT": null
+  },
+  {
+    "TABLE_SCHEMA": "PUBLIC",
+    "TABLE_NAME": "BUSINESS_PROFILES",
+    "COLUMN_NAME": "OPERATING_DAYS",
+    "ORDINAL_POSITION": 3,
+    "DATA_TYPE": "ARRAY",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COMMENT": null
+  },
+  {
+    "TABLE_SCHEMA": "PUBLIC",
+    "TABLE_NAME": "BUSINESS_PROFILES",
+    "COLUMN_NAME": "CITY",
+    "ORDINAL_POSITION": 4,
+    "DATA_TYPE": "TEXT",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COMMENT": null
+  },
+  {
+    "TABLE_SCHEMA": "PUBLIC",
+    "TABLE_NAME": "BUSINESS_PROFILES",
+    "COLUMN_NAME": "EMPLOYEES",
+    "ORDINAL_POSITION": 5,
+    "DATA_TYPE": "TEXT",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COMMENT": null
+  },
+  {
+    "TABLE_SCHEMA": "PUBLIC",
+    "TABLE_NAME": "BUSINESS_PROFILES",
+    "COLUMN_NAME": "ANSWERS",
+    "ORDINAL_POSITION": 6,
+    "DATA_TYPE": "VARIANT",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COMMENT": null
+  },
+  {
+    "TABLE_SCHEMA": "PUBLIC",
+    "TABLE_NAME": "BUSINESS_PROFILES",
+    "COLUMN_NAME": "CREATED_AT",
+    "ORDINAL_POSITION": 7,
+    "DATA_TYPE": "TIMESTAMP_NTZ",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP()",
+    "COMMENT": null
+  },
+  {
+    "TABLE_SCHEMA": "PUBLIC",
+    "TABLE_NAME": "BUSINESS_PROFILES",
+    "COLUMN_NAME": "CATEGORY_DETAIL",
+    "ORDINAL_POSITION": 8,
+    "DATA_TYPE": "TEXT",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COMMENT": null
+  },
+  {
+    "TABLE_SCHEMA": "PUBLIC",
+    "TABLE_NAME": "BUSINESS_PROFILES",
+    "COLUMN_NAME": "WEEK_DESCRIPTION_MODE",
+    "ORDINAL_POSITION": 9,
+    "DATA_TYPE": "TEXT",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COMMENT": null
+  },
+  {
+    "TABLE_SCHEMA": "PUBLIC",
+    "TABLE_NAME": "BUSINESS_PROFILES",
+    "COLUMN_NAME": "WEEK_DESCRIPTION_TEXT",
+    "ORDINAL_POSITION": 10,
+    "DATA_TYPE": "TEXT",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COMMENT": null
+  },
+  {
+    "TABLE_SCHEMA": "PUBLIC",
+    "TABLE_NAME": "BUSINESS_PROFILES",
+    "COLUMN_NAME": "WEEK_DESCRIPTION_AUDIO_BASE64",
+    "ORDINAL_POSITION": 11,
+    "DATA_TYPE": "TEXT",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COMMENT": null
+  },
+  {
+    "TABLE_SCHEMA": "PUBLIC",
+    "TABLE_NAME": "BUSINESS_PROFILES",
+    "COLUMN_NAME": "WEEK_DESCRIPTION_AUDIO_MIME",
+    "ORDINAL_POSITION": 12,
+    "DATA_TYPE": "TEXT",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COMMENT": null
+  },
+  {
+    "TABLE_SCHEMA": "PUBLIC",
+    "TABLE_NAME": "SCHEMA_MIGRATIONS",
+    "COLUMN_NAME": "FILENAME",
+    "ORDINAL_POSITION": 1,
+    "DATA_TYPE": "TEXT",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COMMENT": null
+  },
+  {
+    "TABLE_SCHEMA": "PUBLIC",
+    "TABLE_NAME": "SCHEMA_MIGRATIONS",
+    "COLUMN_NAME": "APPLIED_AT",
+    "ORDINAL_POSITION": 2,
+    "DATA_TYPE": "TIMESTAMP_NTZ",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP()",
+    "COMMENT": null
+  },
+  {
+    "TABLE_SCHEMA": "PUBLIC",
+    "TABLE_NAME": "USERS",
+    "COLUMN_NAME": "USER_ID",
+    "ORDINAL_POSITION": 1,
+    "DATA_TYPE": "TEXT",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COMMENT": null
+  },
+  {
+    "TABLE_SCHEMA": "PUBLIC",
+    "TABLE_NAME": "USERS",
+    "COLUMN_NAME": "USERNAME",
+    "ORDINAL_POSITION": 2,
+    "DATA_TYPE": "TEXT",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COMMENT": null
+  },
+  {
+    "TABLE_SCHEMA": "PUBLIC",
+    "TABLE_NAME": "USERS",
+    "COLUMN_NAME": "BUSINESS_NAME",
+    "ORDINAL_POSITION": 3,
+    "DATA_TYPE": "TEXT",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COMMENT": null
+  },
+  {
+    "TABLE_SCHEMA": "PUBLIC",
+    "TABLE_NAME": "USERS",
+    "COLUMN_NAME": "FULL_NAME",
+    "ORDINAL_POSITION": 4,
+    "DATA_TYPE": "TEXT",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COMMENT": null
+  },
+  {
+    "TABLE_SCHEMA": "PUBLIC",
+    "TABLE_NAME": "USERS",
+    "COLUMN_NAME": "BIRTHDATE",
+    "ORDINAL_POSITION": 5,
+    "DATA_TYPE": "DATE",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COMMENT": null
+  },
+  {
+    "TABLE_SCHEMA": "PUBLIC",
+    "TABLE_NAME": "USERS",
+    "COLUMN_NAME": "PASSWORD_HASH",
+    "ORDINAL_POSITION": 6,
+    "DATA_TYPE": "TEXT",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COMMENT": null
+  },
+  {
+    "TABLE_SCHEMA": "PUBLIC",
+    "TABLE_NAME": "USERS",
+    "COLUMN_NAME": "CREATED_AT",
+    "ORDINAL_POSITION": 7,
+    "DATA_TYPE": "TIMESTAMP_NTZ",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP()",
+    "COMMENT": null
+  }
+]
