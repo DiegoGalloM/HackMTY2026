@@ -14,14 +14,14 @@ import type {
 export const user: User = {
   firstName: "Carlos",
   lastName: "Tabares",
-  greeting: "Hola Carlos!",
 };
 
 export const account: Account = {
   id: "acc_1",
-  balance: 3000,
+  balance: 0,
   currency: "MXN",
   label: "Cuenta Monito",
+  clabe: "012180015739024615",
 };
 
 export const creditCard: CreditCard = {
@@ -57,11 +57,11 @@ export const quickActions: QuickAction[] = [
     to: "/educacion",
   },
   {
-    id: "qa_bills",
-    label: "Servicios",
-    caption: "Luz, agua, internet",
-    icon: "receipt",
-    to: "/pagos",
+    id: "qa_cash",
+    label: "Cobro en efectivo",
+    caption: "Registra billetes",
+    icon: "cash",
+    to: "/cobro-efectivo",
   },
 ];
 

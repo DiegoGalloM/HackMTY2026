@@ -1,9 +1,14 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { account, formatBalance, user } from "../data/mock";
+import { account, formatBalance } from "../data/mock";
+
+interface BalanceHeaderProps {
+  /** Nombre capturado en la encuesta, o "Usuario" si se la saltó. */
+  firstName: string;
+}
 
 /** Saldo grande a la izquierda, saludo a la derecha. */
-export default function BalanceHeader() {
+export default function BalanceHeader({ firstName }: BalanceHeaderProps) {
   const [visible, setVisible] = useState(true);
 
   return (
@@ -26,7 +31,7 @@ export default function BalanceHeader() {
         <p className="mt-1 text-sm text-muted">{account.label}</p>
       </div>
 
-      <p className="shrink-0 pt-2 text-base font-semibold">{user.greeting}</p>
+      <p className="shrink-0 pt-2 text-base font-semibold">Hola {firstName}!</p>
     </header>
   );
 }
