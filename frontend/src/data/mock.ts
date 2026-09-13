@@ -29,8 +29,7 @@ export const creditCard: CreditCard = {
   holder: "CARLOS TABARES",
   brand: "visa",
   issuer: "Capital One",
-  number: "4147209388431234",
-  last4: "1234",
+  last4: "4021",
   expiry: "09/29",
   contactless: true,
 };
@@ -161,11 +160,6 @@ export function formatBalance(amount: number): string {
     minimumFractionDigits: hasCents ? 2 : 0,
     maximumFractionDigits: hasCents ? 2 : 0,
   }).format(amount);
-}
-
-/** Agrupa los dígitos de 4 en 4, como vienen impresos en el plástico. */
-export function formatCardNumber(number: string): string {
-  return number.replace(/\D/g, "").replace(/(.{4})(?=.)/g, "$1 ");
 }
 
 export function formatDate(iso: string): string {

@@ -19,8 +19,6 @@ export interface CreditCard {
   holder: string;
   brand: "visa" | "mastercard";
   issuer: string;
-  /** Los 16 dígitos sin separadores; se formatea con formatCardNumber. */
-  number: string;
   last4: string;
   expiry: string;
   contactless: boolean;

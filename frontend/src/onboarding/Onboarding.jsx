@@ -13,7 +13,6 @@ const STEPS = ["name", "welcome", "otro_detail", "questions", "week_description"
 export default function Onboarding({ ownerId = "demo-owner", onComplete, onExit, active = true }) {
   const [stepIndex, setStepIndex] = useState(1); // Start at "welcome" step (skip "name" in demo)
   const [name, setName] = useState("");
-  const [lastName, setLastName] = useState("");
   const [category, setCategory] = useState(null);
   const [otroDetail, setOtroDetail] = useState("");
   const [answers, setAnswers] = useState({});
@@ -216,22 +215,18 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete, onExit,
     </div>
   );
 
-  // El nombre se queda en el cliente: solo alimenta el saludo de la app y el
-  // reverso de la tarjeta. No viaja en el POST porque el esquema del backend
-  // (y las columnas de Snowflake) no tienen dónde guardarlo todavía.
-  // Los espacios de sobra se colapsan: "Ana  María" es un nombre, no dos.
-  const trimmedName = name.trim().replace(/\s+/g, " ");
-  const trimmedLastName = lastName.trim().replace(/\s+/g, " ");
-  const identity = { name: trimmedName, lastName: trimmedLastName };
+  // El nombre se queda en el cliente: solo alimenta el saludo de la app. No
+  // viaja en el POST porque el esquema del backend (y las columnas de
+  // Snowflake) no tienen dónde guardarlo todavía.
+  const trimmedName = name.trim();
 
   let title, description, kicker, content;
   if (step === "name") {
     title = "¿Cómo te llamas?";
-    description = "Así sabemos cómo saludarte dentro de la app y qué nombre va en tu tarjeta.";
+    description = "Así sabemos cómo saludarte dentro de la app.";
     kicker = "01 / Mucho gusto";
     content = <>
-      <label className="survey-field">Tu nombre (o nombres)<input placeholder="Ej. Carlos Alberto" autoComplete="given-name" value={name} onChange={(event) => setName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && trimmedName) goToStep("welcome"); }} /></label>
-      <label className="survey-field">Tus apellidos<input placeholder="Ej. Tabares Quiroz" autoComplete="family-name" value={lastName} onChange={(event) => setLastName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && trimmedName) goToStep("welcome"); }} /></label>
+      <label className="survey-field">Tu nombre<input placeholder="Ej. Carlos" autoComplete="given-name" value={name} onChange={(event) => setName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && trimmedName) goToStep("welcome"); }} /></label>
       {controls(() => goToStep("welcome"), "Continuar", !trimmedName)}
     </>;
   } else if (step === "welcome") {
@@ -245,7 +240,7 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete, onExit,
           return <button key={item.id} className="survey-category" aria-pressed={category === item.id} onClick={() => pickCategory(item.id)}><Icon size={23} aria-hidden /><span>{item.label}</span></button>;
         })}
       </div>
-      <div className="survey-controls"><button className="entry-back" onClick={onExit}><ArrowLeft size={16} aria-hidden /> Inicio</button><button className="ob-link-btn" onClick={() => onComplete?.({ category: null, answers: {}, ...identity })}>Saltar encuesta</button></div>
+      <div className="survey-controls"><button className="entry-back" onClick={onExit}><ArrowLeft size={16} aria-hidden /> Inicio</button><button className="ob-link-btn" onClick={() => onComplete?.({ category: null, answers: {}, name: trimmedName })}>Saltar encuesta</button></div>
     </>;
   } else if (step === "otro_detail") {
     title = "Cuéntanos, ¿a qué se dedica tu negocio?";
@@ -329,7 +324,7 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete, onExit,
       {!submitted && submitError && <p className="ob-error" role="alert">{submitError}</p>}
       {submitted && <dl className="survey-summary"><div><dt>Tu negocio</dt><dd>{categoryLabel}</dd></div><div><dt>Ciudad</dt><dd>{city.trim()}</dd></div><div><dt>Días de operación</dt><dd>{days.length} a la semana</dd></div></dl>}
       {submitted
-        ? <button className="entry-primary" onClick={() => onComplete?.({ category, answers, ...identity })}>Ir a mi cuenta<ArrowRight size={16} aria-hidden /></button>
+        ? <button className="entry-primary" onClick={() => onComplete?.({ category, answers, name: trimmedName })}>Ir a mi cuenta<ArrowRight size={16} aria-hidden /></button>
         : controls(submit, submitting ? "Guardando…" : "Reintentar")}
     </>;
   }

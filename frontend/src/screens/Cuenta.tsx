@@ -9,30 +9,18 @@ interface CuentaProps {
     category: string | null;
     answers: Record<string, boolean>;
     name?: string;
-    lastName?: string;
   } | null;
 }
 
 export default function Cuenta({ profile }: CuentaProps) {
-  // El saludo se queda con el PRIMER nombre aunque la persona haya escrito
-  // dos: "Hola Carlos!" y no "Hola Carlos Alberto!".
   // "Usuario" cubre los dos casos sin nombre: encuesta saltada desde el primer
   // paso, o perfil viejo guardado antes de que existiera la pregunta.
-  const firstName = profile?.name?.trim().split(" ")[0] || "Usuario";
-
-  // La tarjeta sí lleva el nombre completo, como el plástico de verdad, y en
-  // mayúsculas como viene impreso. Sin nombre dice USUARIO, igual que el
-  // saludo de arriba.
-  const fullName = [profile?.name, profile?.lastName]
-    .map((part) => part?.trim())
-    .filter(Boolean)
-    .join(" ");
-  const holder = fullName ? fullName.toUpperCase() : "USUARIO";
+  const firstName = profile?.name?.trim() || "Usuario";
 
   return (
     <Screen>
       <BalanceHeader firstName={firstName} />
-      <CreditCardTile flippable holder={holder} />
+      <CreditCardTile />
 
       <div className="mt-6">
         <QuickActionsGrid />
