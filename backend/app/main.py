@@ -5,14 +5,26 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import get_settings
-from app.routers import accounts, auth, business_profile, transactions
+from app.routers import (
+    accounts,
+    auth,
+    business_profile,
+    checkout,
+    demo,
+    finance,
+    transactions,
+)
 
 settings = get_settings()
 
 app = FastAPI(
-    title="HackMTY 2026 — Capital One",
-    description="Backend base: envuelve la API de Nessie (o el mock) detrás de una sola interfaz.",
-    version="0.1.0",
+    title="Capital One Business — HackMTY 2026",
+    description=(
+        "Inteligencia de flujo de efectivo y capital de trabajo para micro-negocios: "
+        "ventas por QR, inventario con recetas, contabilidad de partida doble, estados "
+        "financieros, razones y un asistente que responde con los datos reales del negocio."
+    ),
+    version="0.2.0",
 )
 
 app.add_middleware(
@@ -45,6 +57,10 @@ app.include_router(auth.router)
 app.include_router(business_profile.public_router)
 app.include_router(business_profile.router)
 app.include_router(transactions.router)
+app.include_router(finance.router)
+app.include_router(checkout.router)
+app.include_router(demo.public_router)
+app.include_router(demo.router)
 
 
 @app.get("/health")
@@ -52,4 +68,7 @@ async def health():
     return {
         "status": "ok",
         "nessie_mode": "mock" if settings.use_mock_nessie or not settings.nessie_api_key else "real",
+        "storage": "snowflake" if settings.use_snowflake and settings.snowflake_account else "memory",
+        "payment_provider": settings.payment_provider,
+        "transaction_provider": settings.transaction_provider,
     }

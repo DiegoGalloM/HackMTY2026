@@ -1,3 +1,4 @@
+import { formatBalance, formatMoney } from "../api/format";
 import type {
   Account,
   Contact,
@@ -19,8 +20,8 @@ export const user: User = {
 export const account: Account = {
   id: "acc_1",
   balance: 0,
-  currency: "MXN",
-  label: "Cuenta Monito",
+  currency: "USD",
+  label: "Cuenta de negocio",
   clabe: "012180015739024615",
 };
 
@@ -37,18 +38,25 @@ export const creditCard: CreditCard = {
 
 export const quickActions: QuickAction[] = [
   {
-    id: "qa_transfer",
-    label: "Transferir",
-    caption: "A cualquier banco",
-    icon: "send",
-    to: "/transferencias",
-  },
-  {
     id: "qa_qr",
     label: "Cobrar con QR",
-    caption: "Recibe al instante",
+    caption: "Vende y se registra solo",
     icon: "qr",
-    to: "/transferencias",
+    to: "/vender",
+  },
+  {
+    id: "qa_inventory",
+    label: "Inventario",
+    caption: "Lo que tienes y lo que falta",
+    icon: "inventory",
+    to: "/inventario",
+  },
+  {
+    id: "qa_assistant",
+    label: "Asistente",
+    caption: "Pregúntale a tu negocio",
+    icon: "assistant",
+    to: "/asistente",
   },
   {
     id: "qa_education",
@@ -56,13 +64,6 @@ export const quickActions: QuickAction[] = [
     caption: "Ideas para tu negocio",
     icon: "education",
     to: "/educacion",
-  },
-  {
-    id: "qa_cash",
-    label: "Cobro en efectivo",
-    caption: "Registra billetes",
-    icon: "cash",
-    to: "/cobro-efectivo",
   },
 ];
 
@@ -142,26 +143,10 @@ export const atms = [
   { id: "atm_3", name: "Plaza Fiesta San Agustín", distance: "2.8 km", fee: 0 },
 ];
 
-const currencyFormat = new Intl.NumberFormat("es-MX", {
-  style: "currency",
-  currency: "MXN",
-  minimumFractionDigits: 2,
-});
-
-export function formatCurrency(amount: number): string {
-  return currencyFormat.format(amount);
-}
-
-/** Saldo del header: entero cuando no hay centavos, como en la maqueta. */
-export function formatBalance(amount: number): string {
-  const hasCents = amount % 1 !== 0;
-  return new Intl.NumberFormat("es-MX", {
-    style: "currency",
-    currency: "MXN",
-    minimumFractionDigits: hasCents ? 2 : 0,
-    maximumFractionDigits: hasCents ? 2 : 0,
-  }).format(amount);
-}
+// El formato de dinero vive en api/format.ts (USD, un solo lugar); estos
+// alias se conservan para las pantallas de demo que ya los importaban.
+export const formatCurrency = formatMoney;
+export { formatBalance };
 
 /** Agrupa los dígitos de 4 en 4, como vienen impresos en el plástico. */
 export function formatCardNumber(number: string): string {

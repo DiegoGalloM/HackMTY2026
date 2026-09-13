@@ -23,6 +23,16 @@ services:
         value: "true"
       - key: USE_SNOWFLAKE
         value: "true"
+      # Núcleo financiero: pagos y transacciones de tarjeta en modo demo
+      # (sin servicios externos); el asistente redacta con Snowflake Cortex.
+      - key: PAYMENT_PROVIDER
+        value: demo
+      - key: TRANSACTION_PROVIDER
+        value: demo
+      - key: LLM_PROVIDER
+        value: auto
+      - key: CORTEX_MODEL
+        value: claude-sonnet-4-5
       # Origen exacto del frontend desplegado, sin diagonal final.
       # Ej: https://hackmty2026-web.onrender.com,http://localhost:5173
       - key: CORS_ORIGINS

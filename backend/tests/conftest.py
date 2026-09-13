@@ -13,6 +13,8 @@ import asyncio
 
 import pytest
 
+from app.db import get_db
+from app.db.sqlite_db import SqliteDatabase
 from app.main import app
 from app.models.schemas import StoredUser
 from app.security import create_access_token, hash_password
@@ -29,6 +31,15 @@ app.dependency_overrides[get_user_store] = lambda: _USER_STORE
 # ensuciar los datos de la demo, esas filas salían por /business-profile/stats,
 # que es público. Los tests nunca deben tocar Snowflake.
 app.dependency_overrides[get_store] = lambda: _PROFILE_STORE
+# Mismo criterio para el núcleo financiero: sqlite en memoria, nunca Snowflake.
+_DB = SqliteDatabase(":memory:")
+_DB.ensure_schema()
+app.dependency_overrides[get_db] = lambda: _DB
+
+
+@pytest.fixture
+def db() -> SqliteDatabase:
+    return _DB
 
 
 @pytest.fixture

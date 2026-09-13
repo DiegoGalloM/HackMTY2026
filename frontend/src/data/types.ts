@@ -32,7 +32,7 @@ export interface QuickAction {
   label: string;
   caption: string;
   /** Nombre del ícono de lucide-react, resuelto en QuickActionsGrid. */
-  icon: "send" | "qr" | "education" | "cash";
+  icon: "send" | "qr" | "education" | "cash" | "inventory" | "assistant";
   to: string;
 }
 

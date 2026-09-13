@@ -4,10 +4,8 @@ import { ArrowLeft, ArrowRight, Check, CircleAlert, MapPin, Mic, Pencil, Scissor
 import SurveyLayout from "./SurveyLayout.jsx";
 import { CATEGORIES, UNIVERSAL_QUESTIONS, CATEGORY_QUESTIONS, WEEKDAYS, EMPLOYEE_OPTIONS } from "./questions.js";
 
-// Por default apunta al backend local de cada quien. Para usar un backend
-// compartido (o el desplegado), pongan VITE_API_URL en frontend/.env.local
-// — no hace falta tocar este archivo ni recompilar nada mas.
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+// La URL del backend vive en api/config.ts (VITE_API_URL o el local de cada quien).
+import { API_BASE } from "../api/config";
 const STEPS = ["name", "welcome", "otro_detail", "questions", "week_description", "schedule", "employees", "city", "done"];
 
 // token = "" y no null: TS infiere los tipos de este .jsx y con null el prop

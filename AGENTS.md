@@ -4,7 +4,12 @@
 
 Base repo for the Capital One challenge at HackMTY 2026. FastAPI backend that wraps the Nessie API (simulated banking) behind a common interface, so we can switch between real and mock data without touching the rest of the code. React/Vite frontend designed to be served as a web app AND packaged as a desktop app (Tauri or Electron, see `desktop/`).
 
-**The product idea is not yet defined** — this repo is the plumbing (auth-less, without a business domain yet), not the final product.
+**The product is Capital One Business**: SMB cash-flow and working-capital
+intelligence for nano/micro-businesses. The owner sells with a QR and pays with
+the business card; the app keeps inventory, double-entry books, statements,
+ratios and a natural-language assistant underneath. Read
+`docs/FINANCIAL_CORE.md` (architecture + invariants) and `docs/DEMO.md` (judge
+script) before touching the financial core.
 
 ## Structure
 
@@ -17,18 +22,26 @@ backend/app/
     real_client.py   # Real client against api.nessieisreal.com
     mock_client.py   # In-memory mock client (same methods)
     __init__.py      # get_nessie_client() -> real or mock based on .env
+  db/                # Database abstraction: sqlite (local/tests) | Snowflake (pooled)
+  finance/           # accounting, inventory, catalog, sales, payments, purchases,
+                     # analytics, assistant, knowledge, llm, demo seed (see docs/FINANCIAL_CORE.md)
   routers/
-    accounts.py
-    transactions.py
-  models/schemas.py  # Pydantic response models
-  services/insights.py  # placeholder for the AI/analytics layer
+    accounts.py, transactions.py   # Nessie passthrough (legacy)
+    auth.py, business_profile.py   # session + onboarding profile
+    finance.py         # /business/{owner_id}/... owner-scoped financial API
+    checkout.py        # /pay/{token} public customer checkout (QR)
+    demo.py            # /demo/session + /business/{owner_id}/demo/seed
+  models/schemas.py, models/finance.py  # Pydantic contracts
+sql/003_financial_core.sql, 004_financial_views.sql  # portable migrations (sqlite + Snowflake)
 frontend/src/            # Vite + React + TS + Tailwind v4, mobile-first PWA
   App.tsx                # rutas (HashRouter) + AnimatePresence + BottomNav
   components/            # BalanceHeader, CreditCardTile, QuickActionsGrid,
                          # BottomNav, Screen (wrapper de transición + padding)
-  screens/               # Cuenta, Retiros, Transferencias, Pagos, Mas
-  data/mock.ts           # datos de demo + formatters (sin backend todavía)
-  data/types.ts          # tipos compartidos, alineados con schemas.py
+  screens/               # Cuenta, Vender (QR), Inventario, Compras, Analisis, Libros,
+                         # Asistente, Educacion, Pay (public checkout), Retiros, Transferencias, Pagos, Mas
+  api/                   # config (API_BASE), client, types (API contracts), finance (typed endpoints), format (USD)
+  business/              # BusinessContext (session + api + refresh) and useBusinessQuery
+  data/mock.ts           # demo data for the legacy banking screens only
 desktop/README.md     # how to package frontend/ as a native app
 
 ```
@@ -57,6 +70,16 @@ cd frontend && npm install && npm run dev   # http://localhost:5173
 npm run build
 
 ```
+
+## Financial core rules
+
+* Numbers come from the backend (journal → derived views → analytics). Never
+  compute a financial figure in React, and never let the LLM produce one.
+* Every domain query goes through `Repo` (bound to one `business_id`);
+  routers under `/business/{owner_id}` are guarded by `require_owner`.
+* New tables = new numbered migration in `backend/sql/` in the portable SQL
+  subset (runs on sqlite and Snowflake). Tests never touch Snowflake.
+* Only a `PaymentEvent` with status SUCCEEDED changes books/inventory.
 
 ## When the team decides on the final idea
 

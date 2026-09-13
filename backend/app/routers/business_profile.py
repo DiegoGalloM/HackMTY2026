@@ -1,7 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, Path, status
+import asyncio
 
-from app.models.schemas import BusinessProfile, StoredUser
-from app.routers.auth import get_current_user
+from fastapi import APIRouter, Depends
+
+from app.db import get_db
+from app.db.base import Database
+from app.finance import cache
+from app.finance.accounting import AccountingService
+from app.finance.repo import Repo
+from app.models.schemas import BusinessProfile
+from app.routers.deps import require_owner
 from app.storage import get_store
 from app.storage.base import ProfileStore
 
@@ -13,20 +20,9 @@ from app.storage.base import ProfileStore
 MIN_COHORT = 5
 
 
-async def require_owner(
-    owner_id: str = Path(...),
-    current_user: StoredUser = Depends(get_current_user),  # noqa: B008
-) -> StoredUser:
-    """El perfil de un negocio solo lo toca su dueño.
-
-    `owner_id` se declara con `Path(...)` a propósito: sin eso FastAPI lo
-    resolvería como query param en cualquier ruta que no tenga un `{owner_id}`
-    en su path, y entonces `?owner_id=<el mío>` pasaría el check mientras la
-    ruta opera sobre el perfil de otro.
-    """
-    if current_user.user_id != owner_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="forbidden_owner")
-    return current_user
+# `require_owner` se importa de routers/deps.py y se re-exporta desde aquí:
+# es la misma guardia para el perfil y para toda la API financiera.
+__all__ = ["MIN_COHORT", "public_router", "require_owner", "router"]
 
 
 # Dos routers en vez de uno: la autorización va en el prefijo `{owner_id}`, así
@@ -47,8 +43,15 @@ async def save_profile(
     owner_id: str,
     profile: BusinessProfile,
     store: ProfileStore = Depends(get_store),  # noqa: B008
+    db: Database = Depends(get_db),  # noqa: B008
 ):
     await store.save_profile(owner_id, profile)
+    cache.invalidate(("profile", id(store), owner_id))
+    # El onboarding no es una encuesta aislada: con la categoría se inicializa
+    # el catálogo de cuentas del negocio (idempotente si ya existía).
+    await asyncio.to_thread(
+        lambda: AccountingService(Repo(db, owner_id)).ensure_chart_of_accounts(profile.category)
+    )
     return {"status": "ok"}
 
 
