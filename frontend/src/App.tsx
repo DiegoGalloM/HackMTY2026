@@ -19,8 +19,10 @@ import { readSession, saveSession, type Session } from "./auth/session";
 interface BusinessProfile {
   category: string | null;
   answers: Record<string, boolean>;
-  /** Lo que el usuario escribió en el primer paso de la encuesta. */
+  /** Nombre(s) que el usuario escribió en el primer paso de la encuesta. */
   name?: string;
+  /** Apellidos del mismo paso. Opcional: se puede continuar sin ellos. */
+  lastName?: string;
 }
 
 function MainApp({ profile }: { profile: BusinessProfile | null }) {

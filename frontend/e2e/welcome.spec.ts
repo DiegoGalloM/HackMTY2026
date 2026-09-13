@@ -12,14 +12,17 @@ test("la bienvenida aparece tras la landing y ambos accesos llevan a la encuesta
   const onboarding = new OnboardingPage(page);
   await page.goto("/");
   await page.getByRole("button", { name: "Empezar" }).click();
-  await expect(page.getByRole("heading", { name: /Tu negocio. Tu esfuerzo./ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Tu negocio en tus manos/ })).toBeVisible();
   await expect(page.getByRole("img", { name: /NEGOCIO DEMO/ })).toBeVisible();
   await expect(page.getByText("Selecciona tu modelo de negocio")).toHaveCount(0);
 
   await page.getByRole("button", { name: "Iniciar sesión", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Qué bueno verte de nuevo." })).toBeFocused();
   await onboarding.login();
-  await expect(page.getByRole("heading", { name: "Selecciona tu modelo de negocio" })).toBeFocused();
+  // La encuesta empieza pidiendo el nombre; el modelo de negocio viene después.
+  await expect(page.getByRole("heading", { name: "¿Cómo te llamas?" })).toBeFocused();
+  await onboarding.fillName();
+  await expect(page.getByRole("heading", { name: "Selecciona tu modelo de negocio" })).toBeVisible();
 
   await page.getByRole("button", { name: "Ir al inicio" }).click();
   await onboarding.register();
@@ -76,6 +79,7 @@ test("tarjeta, registro y encuesta caben en pantallas pequeñas y a 200% de text
   await onboarding.registerSubmit.click();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
   expect(overflow).toBe(false);
+  await new OnboardingPage(page).fillName();
   await page.addStyleTag({ content: ".survey-step-body h1 { font-size: 50px; }" });
   await expect(page.getByRole("button", { name: "Otro", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Otro", exact: true }).click();

@@ -1,19 +1,184 @@
 .business-card-stage {
   margin-inline: 20px;
   padding: 18px 8px;
-  perspective: 900px;
+  /* El reverso escala su texto con el ancho real de la tarjeta (cqw), que
+     cambia entre el mockup de 390px y un celular de 320px. */
+  container-type: inline-size;
 }
 
 /* Keep the static angle separate from the existing pointer-driven 3D tilt. */
 .business-card-angle {
   transform: rotate(-4deg);
+  /* La perspectiva va aquí, en el PADRE de lo que rota: así el giro se
+     levanta hacia el espectador en vez de verse plano. Y se queda en `flat`
+     a propósito: con preserve-3d sobre el mismo elemento que lleva este
+     rotate(-4deg), Chrome calcula mal el hit-testing de lo que está adentro
+     y los clics caían ~20px arriba de lo que se ve. */
+  perspective: 900px;
 }
 
 .business-card-surface {
   position: relative;
-  overflow: hidden;
+}
+
+/* El redondeo y el recorte viven en cada cara y no en el contenedor que gira:
+   así el reverso se recorta igual que el frente. */
+.business-card-face {
+  position: relative;
   border-radius: 4.25% / 7%;
+  overflow: hidden;
   box-shadow: 0 12px 22px -8px rgb(0 0 0 / 35%);
+}
+
+.business-card-face--back {
+  position: absolute;
+  inset: 0;
+}
+
+/* Solo se pinta una cara a la vez: el cambio ocurre a 90°, de canto, donde no
+   se ve nada. Así ninguna cara vive espejeada con rotateY(180deg) — Chrome
+   calcula mal el hit-testing de un elemento espejeado cuando un ancestro
+   también está rotado, y los botones del reverso no recibían los clics. */
+.business-card-face--hidden {
+  visibility: hidden;
+}
+
+/* Capa transparente sobre el frente: toda la tarjeta es el botón que voltea. */
+.business-card-flip-trigger {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  border-radius: inherit;
+  cursor: pointer;
+}
+
+.business-card-flip-trigger:focus-visible {
+  outline: 3px solid var(--color-brand, #004977);
+  outline-offset: 3px;
+}
+
+/* ---- Reverso: datos de la tarjeta ---- */
+
+/* Tocar cualquier parte del reverso la voltea (ver CreditCardTile). */
+.card-back {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(150deg, #0b3a5d 0%, #06263d 55%, #041a2b 100%);
+  color: #fff;
+  font-size: clamp(10px, 4.2cqw, 15px);
+  user-select: none;
+}
+
+.card-back__stripe {
+  height: 2.1em;
+  margin-top: 0.7em;
+  background: linear-gradient(#0a1a2a, #050f1b);
+}
+
+.card-back__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.45em;
+  padding: 0.6em 1.1em 0.7em;
+}
+
+.card-back__field {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0 0.6em;
+  width: 100%;
+  padding: 0.4em 0.7em;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 0.7em;
+  background: rgb(255 255 255 / 7%);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.card-back__field:hover {
+  background: rgb(255 255 255 / 14%);
+  border-color: rgb(255 255 255 / 30%);
+}
+
+.card-back__field:active {
+  background: rgb(255 255 255 / 20%);
+}
+
+.card-back__field:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.card-back__label {
+  grid-column: 1;
+  font-size: 0.7em;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 65%);
+}
+
+.card-back__label--ok {
+  color: #7ee0a8;
+}
+
+.card-back__label--fail {
+  color: #ffb3ac;
+}
+
+.card-back__value {
+  grid-column: 1;
+  font-size: 1.02em;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  /* Un nombre completo largo baja de renglón en vez de salirse del plástico. */
+  overflow-wrap: anywhere;
+}
+
+.card-back__value--mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.09em;
+}
+
+.card-back__copy {
+  display: inline-flex;
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  color: rgb(255 255 255 / 80%);
+}
+
+.card-back__flip {
+  display: inline-flex;
+  align-self: flex-end;
+  align-items: center;
+  gap: 0.35em;
+  margin-top: 0.1em;
+  padding: 0.3em 0.7em;
+  border: 1px solid rgb(255 255 255 / 22%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 10%);
+  color: #fff;
+  font: inherit;
+  font-size: 0.76em;
+  cursor: pointer;
+}
+
+.card-back__flip:hover {
+  background: rgb(255 255 255 / 18%);
+}
+
+.card-back__flip:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
 }
 
 .business-card {
