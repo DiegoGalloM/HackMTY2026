@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { OnboardingPage, stubAuth } from "./pages/OnboardingPage";
 
 /** La app abre en el landing animado; de ahí se pasa a la bienvenida. */
 async function goToWelcome(page: import("@playwright/test").Page) {
@@ -11,12 +12,11 @@ async function goToAccount(
   page: import("@playwright/test").Page,
   { name = "Carlos Alberto", lastName = "Tabares Quiroz" } = {},
 ) {
+  await stubAuth(page);
+  const onboarding = new OnboardingPage(page);
   await goToWelcome(page);
-  await page.getByRole("button", { name: "Registrarme", exact: true }).click();
-  await page.getByRole("button", { name: "Comenzar mi encuesta" }).click();
-  await page.getByRole("textbox", { name: /Tu nombre/ }).fill(name);
-  await page.getByRole("textbox", { name: /Tus apellidos/ }).fill(lastName);
-  await page.getByRole("button", { name: "Continuar" }).click();
+  await onboarding.register();
+  await onboarding.fillName({ name, lastName });
   await page.getByRole("button", { name: "Saltar encuesta" }).click();
   await expect(page.locator(".business-card-surface")).toBeVisible();
 }

@@ -114,8 +114,9 @@ export class OnboardingPage {
    * impresos en el reverso de la tarjeta.
    */
   async fillName({ name = "Carlos Alberto", lastName = "Tabares Quiroz" } = {}) {
-    await this.page.getByRole("textbox", { name: /Tu nombre/ }).fill(name);
-    await this.page.getByRole("textbox", { name: /Tus apellidos/ }).fill(lastName);
+    await expect(this.page.getByRole("heading", { name: "¿Cómo te llamas?" })).toBeVisible();
+    await this.page.getByRole("textbox", { name: "Tu nombre (o nombres)" }).fill(name);
+    await this.page.getByRole("textbox", { name: "Tus apellidos" }).fill(lastName);
     await this.page.getByRole("button", { name: "Continuar" }).click();
   }
 

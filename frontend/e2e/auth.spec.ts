@@ -10,7 +10,7 @@ const PROFILE_ENDPOINT = "**/business-profile/**";
 async function openWelcome(page: Page) {
   await page.goto("/");
   await page.getByRole("button", { name: "Empezar" }).click();
-  await expect(page.getByRole("heading", { name: /Tu negocio. Tu esfuerzo./ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Tu negocio.*en tus manos/i })).toBeVisible();
 }
 
 /** Cuenta cuántas veces se llamó de verdad a /auth/* y responde el status dado. */
@@ -35,7 +35,7 @@ test.describe("Registro e inicio de sesión", () => {
     await openWelcome(page);
     await onboarding.register();
 
-    await expect(page.getByRole("heading", { name: "Selecciona tu modelo de negocio" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "¿Cómo te llamas?" })).toBeVisible();
 
     // El contrato de POST /auth/register: estos son los campos que valida el
     // backend. El usuario viaja en minúsculas y sin espacios.
@@ -65,6 +65,7 @@ test.describe("Registro e inicio de sesión", () => {
 
     await expect(page.getByRole("alert")).toContainText(/usuario ya está registrado/i);
     // Sigue en el formulario, con todo lo que escribió intacto.
+    await expect(page.getByRole("heading", { name: "¿Cómo te llamas?" })).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Selecciona tu modelo de negocio" })).toHaveCount(0);
     await expect(page.getByLabel("Nombre de tu negocio")).toHaveValue(AUTH_USER.business_name);
     await expect(page.getByLabel("Contraseña", { exact: true })).toHaveValue(AUTH_PASSWORD);
@@ -82,6 +83,7 @@ test.describe("Registro e inicio de sesión", () => {
     await expect(
       page.getByText(new RegExp(`al menos ${MIN_PASSWORD_LENGTH} caracteres`, "i")).first(),
     ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "¿Cómo te llamas?" })).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Selecciona tu modelo de negocio" })).toHaveCount(0);
     // Lo importante: la política del servidor se espeja en el cliente, así que
     // una contraseña que el backend rechazaría nunca sale del navegador.
@@ -99,6 +101,7 @@ test.describe("Registro e inicio de sesión", () => {
     await onboarding.login({ password: "otraCosa123" });
 
     await expect(page.getByRole("alert")).toContainText(/Usuario o contraseña incorrectos/i);
+    await expect(page.getByRole("heading", { name: "¿Cómo te llamas?" })).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Selecciona tu modelo de negocio" })).toHaveCount(0);
     await expect(page.getByLabel("Usuario", { exact: true })).toHaveValue(AUTH_USER.username);
   });
@@ -122,7 +125,7 @@ test.describe("Registro e inicio de sesión", () => {
     await page.getByRole("button", { name: "Iniciar sesión", exact: true }).click();
     await onboarding.login();
 
-    await expect(page.getByRole("heading", { name: "Selecciona tu modelo de negocio" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "¿Cómo te llamas?" })).toBeVisible();
   });
 
   test("el POST de la encuesta viaja con el token de la respuesta de auth", async ({ page }) => {
