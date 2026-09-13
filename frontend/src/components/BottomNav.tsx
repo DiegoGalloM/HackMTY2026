@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { ArrowLeftRight, Banknote, LayoutGrid, Landmark, Receipt } from "lucide-react";
+import { Banknote, ChartColumn, LayoutGrid, Landmark, Receipt } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 interface NavItem {
@@ -14,9 +14,9 @@ const items: NavItem[] = [
   { to: "/", label: "Cuenta", icon: Landmark },
   { to: "/retiros", label: "Retiros", icon: Banknote },
   {
-    to: "/transferencias",
-    label: "Transferencias",
-    icon: ArrowLeftRight,
+    to: "/analisis",
+    label: "Análisis",
+    icon: ChartColumn,
     raised: true,
   },
   { to: "/pagos", label: "Pagos", icon: Receipt },
@@ -47,15 +47,15 @@ export default function BottomNav() {
                     <span
                       className={`-mt-8 flex size-14 items-center justify-center rounded-full text-white shadow-lg ring-4 ring-white transition-transform group-active:scale-95 ${
                         isActive
-                          ? "bg-accent shadow-accent/40"
-                          : "bg-accent/90 shadow-accent/25"
+                          ? "bg-brand shadow-brand/40"
+                          : "bg-brand/90 shadow-brand/25"
                       }`}
                     >
                       <Icon size={22} aria-hidden />
                     </span>
                     <span
                       className={`text-[10px] leading-none font-medium ${
-                        isActive ? "text-accent" : "text-muted"
+                        isActive ? "text-brand" : "text-muted"
                       }`}
                     >
                       {label}

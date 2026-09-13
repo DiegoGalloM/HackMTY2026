@@ -58,7 +58,14 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete }) {
   };
 
   const goToPreviousQuestion = () => {
-    setQuestionIndex((index) => Math.max(0, index - 1));
+    // Antes de la primera pregunta viene "elige tu categoría" (o el detalle
+    // de "otro" si el negocio no encajaba en ninguna). Regresar ahí en vez
+    // de quedarse atorado es lo que se esperaría de un botón "atrás".
+    if (questionIndex === 0) {
+      goToStep(category === "otro" ? "otro_detail" : "welcome");
+      return;
+    }
+    setQuestionIndex((index) => index - 1);
   };
 
   const toggleDay = (id) => setDays((prev) => (prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id]));
@@ -246,7 +253,6 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete }) {
           className="ob-back"
           aria-label="Volver a la pregunta anterior"
           title="Volver a la pregunta anterior"
-          disabled={questionIndex === 0}
           onClick={goToPreviousQuestion}
         >
           <BackArrowIcon />
