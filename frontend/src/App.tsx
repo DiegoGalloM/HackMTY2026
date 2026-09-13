@@ -17,6 +17,8 @@ import Welcome from "./onboarding/Welcome";
 interface BusinessProfile {
   category: string | null;
   answers: Record<string, boolean>;
+  /** Lo que el usuario escribió en el primer paso de la encuesta. */
+  name?: string;
 }
 
 function MainApp({ profile }: { profile: BusinessProfile | null }) {

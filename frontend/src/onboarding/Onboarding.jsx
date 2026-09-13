@@ -8,10 +8,11 @@ import { CATEGORIES, UNIVERSAL_QUESTIONS, CATEGORY_QUESTIONS, WEEKDAYS, EMPLOYEE
 // compartido (o el desplegado), pongan VITE_API_URL en frontend/.env.local
 // — no hace falta tocar este archivo ni recompilar nada mas.
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
-const STEPS = ["welcome", "otro_detail", "questions", "week_description", "schedule", "employees", "city", "done"];
+const STEPS = ["name", "welcome", "otro_detail", "questions", "week_description", "schedule", "employees", "city", "done"];
 
 export default function Onboarding({ ownerId = "demo-owner", onComplete, onExit, active = true }) {
   const [stepIndex, setStepIndex] = useState(0);
+  const [name, setName] = useState("");
   const [category, setCategory] = useState(null);
   const [otroDetail, setOtroDetail] = useState("");
   const [answers, setAnswers] = useState({});
@@ -43,7 +44,9 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete, onExit,
     return [...UNIVERSAL_QUESTIONS, ...(CATEGORY_QUESTIONS[category] ?? [])];
   }, [category]);
 
-  const goToStep = useCallback((name) => setStepIndex(STEPS.indexOf(name)), []);
+  // El parametro se llama stepName y no name para no tapar el estado del
+  // nombre del usuario, que vive en este mismo scope.
+  const goToStep = useCallback((stepName) => setStepIndex(STEPS.indexOf(stepName)), []);
 
   const pickCategory = (id) => {
     if (id !== category) setAnswers({});
@@ -184,12 +187,13 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete, onExit,
   const categoryLabel = CATEGORIES.find((item) => item.id === category)?.label;
   const categoryIcons = { comida: Utensils, retail: Store, servicios: Wrench, belleza: Scissors, construccion: HardHat, transporte: Truck, otro: Sparkles };
   const dayNames = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
-  const completedSteps = step === "welcome" ? 0 : step === "otro_detail" ? 0.5 : step === "questions" ? 1 + questionIndex : questions.length + ({ week_description: 1, schedule: 2, employees: 3, city: 4, done: submitted ? 5 : 4 }[step] ?? 0);
-  const progress = completedSteps / (questions.length + 5);
-  const section = ["welcome", "otro_detail", "questions"].includes(step) ? 0 : ["week_description", "schedule", "employees"].includes(step) ? 1 : 2;
+  const completedSteps = step === "name" ? 0 : step === "welcome" ? 1 : step === "otro_detail" ? 1.5 : step === "questions" ? 2 + questionIndex : questions.length + 2 + ({ week_description: 0, schedule: 1, employees: 2, city: 3, done: submitted ? 4 : 3 }[step] ?? 0);
+  const progress = completedSteps / (questions.length + 6);
+  const section = ["name", "welcome", "otro_detail", "questions"].includes(step) ? 0 : ["week_description", "schedule", "employees"].includes(step) ? 1 : 2;
 
   const goBack = () => {
-    if (step === "welcome") return onExit?.();
+    if (step === "name") return onExit?.();
+    if (step === "welcome") return goToStep("name");
     if (step === "questions") {
       if (questionIndex > 0) setQuestionIndex((index) => index - 1);
       else goToStep(category === "otro" ? "otro_detail" : "welcome");
@@ -211,8 +215,21 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete, onExit,
     </div>
   );
 
+  // El nombre se queda en el cliente: solo alimenta el saludo de la app. No
+  // viaja en el POST porque el esquema del backend (y las columnas de
+  // Snowflake) no tienen dónde guardarlo todavía.
+  const trimmedName = name.trim();
+
   let title, description, kicker, content;
-  if (step === "welcome") {
+  if (step === "name") {
+    title = "¿Cómo te llamas?";
+    description = "Así sabemos cómo saludarte dentro de la app.";
+    kicker = "01 / Mucho gusto";
+    content = <>
+      <label className="survey-field">Tu nombre<input placeholder="Ej. Carlos" autoComplete="given-name" value={name} onChange={(event) => setName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && trimmedName) goToStep("welcome"); }} /></label>
+      {controls(() => goToStep("welcome"), "Continuar", !trimmedName)}
+    </>;
+  } else if (step === "welcome") {
     title = "Selecciona tu modelo de negocio";
     description = "Elige la opción que mejor describe lo que haces. A partir de aquí, la encuesta se adapta a ti.";
     kicker = "01 / Empecemos por lo tuyo";
@@ -223,7 +240,7 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete, onExit,
           return <button key={item.id} className="survey-category" aria-pressed={category === item.id} onClick={() => pickCategory(item.id)}><Icon size={23} aria-hidden /><span>{item.label}</span></button>;
         })}
       </div>
-      <div className="survey-controls"><button className="entry-back" onClick={onExit}><ArrowLeft size={16} aria-hidden /> Inicio</button><button className="ob-link-btn" onClick={() => onComplete?.()}>Saltar encuesta</button></div>
+      <div className="survey-controls"><button className="entry-back" onClick={onExit}><ArrowLeft size={16} aria-hidden /> Inicio</button><button className="ob-link-btn" onClick={() => onComplete?.({ category: null, answers: {}, name: trimmedName })}>Saltar encuesta</button></div>
     </>;
   } else if (step === "otro_detail") {
     title = "Cuéntanos, ¿a qué se dedica tu negocio?";
@@ -307,7 +324,7 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete, onExit,
       {!submitted && submitError && <p className="ob-error" role="alert">{submitError}</p>}
       {submitted && <dl className="survey-summary"><div><dt>Tu negocio</dt><dd>{categoryLabel}</dd></div><div><dt>Ciudad</dt><dd>{city.trim()}</dd></div><div><dt>Días de operación</dt><dd>{days.length} a la semana</dd></div></dl>}
       {submitted
-        ? <button className="entry-primary" onClick={() => onComplete?.({ category, answers })}>Ir a mi cuenta<ArrowRight size={16} aria-hidden /></button>
+        ? <button className="entry-primary" onClick={() => onComplete?.({ category, answers, name: trimmedName })}>Ir a mi cuenta<ArrowRight size={16} aria-hidden /></button>
         : controls(submit, submitting ? "Guardando…" : "Reintentar")}
     </>;
   }

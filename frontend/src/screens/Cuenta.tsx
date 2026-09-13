@@ -8,13 +8,18 @@ interface CuentaProps {
   profile: {
     category: string | null;
     answers: Record<string, boolean>;
+    name?: string;
   } | null;
 }
 
-export default function Cuenta({ profile: _profile }: CuentaProps) {
+export default function Cuenta({ profile }: CuentaProps) {
+  // "Usuario" cubre los dos casos sin nombre: encuesta saltada desde el primer
+  // paso, o perfil viejo guardado antes de que existiera la pregunta.
+  const firstName = profile?.name?.trim() || "Usuario";
+
   return (
     <Screen>
-      <BalanceHeader />
+      <BalanceHeader firstName={firstName} />
       <CreditCardTile />
 
       <div className="mt-6">

@@ -1,7 +1,6 @@
 export interface User {
   firstName: string;
   lastName: string;
-  greeting: string;
 }
 
 export interface Account {

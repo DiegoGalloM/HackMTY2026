@@ -14,12 +14,11 @@ import type {
 export const user: User = {
   firstName: "Carlos",
   lastName: "Tabares",
-  greeting: "Hola Carlos!",
 };
 
 export const account: Account = {
   id: "acc_1",
-  balance: 3000,
+  balance: 0,
   currency: "MXN",
   label: "Cuenta Monito",
   clabe: "012180015739024615",
