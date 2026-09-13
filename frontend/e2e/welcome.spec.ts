@@ -1,10 +1,12 @@
 import { expect, test } from "@playwright/test";
 import { OnboardingPage } from "./pages/OnboardingPage";
 
-test("la bienvenida aparece primero y ambos accesos demo llevan a la encuesta", async ({ page }) => {
+// La app abre en la landing (logo animado + "Empezar"); la bienvenida es la segunda pantalla.
+test("la bienvenida aparece tras la landing y ambos accesos demo llevan a la encuesta", async ({ page }) => {
   const requests: string[] = [];
   page.on("request", request => { if (request.method() === "POST") requests.push(request.url()); });
   await page.goto("/");
+  await page.getByRole("button", { name: "Empezar" }).click();
   await expect(page.getByRole("heading", { name: /Tu negocio. Tu esfuerzo./ })).toBeVisible();
   await expect(page.getByRole("img", { name: /NEGOCIO DEMO/ })).toBeVisible();
   await expect(page.getByText("Selecciona tu modelo de negocio")).toHaveCount(0);
@@ -49,6 +51,7 @@ test("el recorrido completo vuelve a Cuenta con la imagen original", async ({ pa
 test("tarjeta y encuesta caben en pantallas pequeñas y a 200% de texto", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 740 });
   await page.goto("/");
+  await page.getByRole("button", { name: "Empezar" }).click();
   const bounds = await page.locator(".reference-card").boundingBox();
   expect(bounds!.x).toBeGreaterThanOrEqual(0);
   expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(320);
@@ -67,12 +70,14 @@ test("tarjeta y encuesta caben en pantallas pequeñas y a 200% de texto", async 
 test("la tarjeta sigue al mouse y respeta movimiento reducido", async ({ page, isMobile }) => {
   test.skip(isMobile, "El movimiento solo se activa con mouse.");
   await page.goto("/");
+  await page.getByRole("button", { name: "Empezar" }).click();
   const card = page.locator(".business-card-surface");
   const bounds = await card.boundingBox();
   await page.mouse.move(bounds!.x + bounds!.width * .85, bounds!.y + bounds!.height * .65);
   await expect.poll(() => card.evaluate(el => getComputedStyle(el).transform)).not.toBe("none");
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.reload();
+  await page.getByRole("button", { name: "Empezar" }).click();
   const reducedBounds = await card.boundingBox();
   await page.mouse.move(reducedBounds!.x + reducedBounds!.width * .85, reducedBounds!.y + reducedBounds!.height * .65);
   await expect(card).toHaveCSS("transform", "none");

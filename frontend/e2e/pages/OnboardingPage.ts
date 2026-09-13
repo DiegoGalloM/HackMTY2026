@@ -22,6 +22,8 @@ export class OnboardingPage {
 
   async goto() {
     await this.page.goto("/");
+    // La app abre en la landing (logo animado + "Empezar"); la bienvenida es la segunda pantalla.
+    await this.page.getByRole("button", { name: "Empezar" }).click();
     await this.page.getByRole("button", { name: "Registrarme", exact: true }).click();
     await this.page.getByRole("button", { name: "Comenzar mi encuesta" }).click();
     await expect(this.page.getByText("Selecciona tu modelo de negocio")).toBeVisible();

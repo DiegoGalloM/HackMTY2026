@@ -12,6 +12,7 @@ import Transferencias from "./screens/Transferencias";
 import PhoneFrame from "./onboarding/PhoneFrame.jsx";
 import Onboarding from "./onboarding/Onboarding.jsx";
 import Welcome from "./onboarding/Welcome";
+import Landing from "./landing/Landing";
 
 interface BusinessProfile {
   category: string | null;
@@ -51,11 +52,12 @@ function MainApp({ profile }: { profile: BusinessProfile | null }) {
 }
 
 export default function App() {
-  const [stage, setStage] = useState<"welcome" | "survey" | "account">("welcome");
+  // landing: logo animado + "Empezar"; de ahí a la bienvenida y el resto del flujo.
+  const [stage, setStage] = useState<"landing" | "welcome" | "survey" | "account">("landing");
   const [surveyStarted, setSurveyStarted] = useState(false);
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
 
-  // Un solo mockup de celular para toda la sesión: bienvenida, encuesta y app
+  // Un solo mockup de celular para toda la sesión: landing, bienvenida, encuesta y app
   // principal viven dentro del mismo PhoneFrame, así el marco no se desmonta
   // ni cambia de tamaño al pasar de una etapa a otra.
   return (
@@ -63,6 +65,7 @@ export default function App() {
       {stage === "account" ? (
         <MainApp profile={profile} />
       ) : <>
+        {stage === "landing" && <Landing onStart={() => setStage("welcome")} />}
         {stage === "welcome" && <Welcome
           onStart={() => { setSurveyStarted(true); setStage("survey"); }}
           onExplore={() => setStage("account")}

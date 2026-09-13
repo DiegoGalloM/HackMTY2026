@@ -1,23 +1,20 @@
 # RUNBOOK — operacion, incidencias y rollback
 
-## CORRER BACKEND Y FRONTEND AL MISMO 
+Que hacer cuando algo se rompe, sobre todo en vivo. Para correr el stack en el
+dia a dia vean [DEV.md](./DEV.md); para el setup inicial,
+[CONTRIB.md](./CONTRIB.md); para el deploy paso a paso,
+[DEPLOY.md](./DEPLOY.md).
 
-## Backend:
+## Correr backend y frontend al mismo tiempo
 
-```bash
-cd C:\Users\ricar\Documents\TEC\PROJECTS\HACKMTY\HackMTY2026\backend
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
-```
-
-## Frontend:
+Desde la raiz del repo, en **una sola terminal**:
 
 ```bash
-cd C:\Users\ricar\Documents\TEC\PROJECTS\HACKMTY\HackMTY2026\frontend
-npm run dev
+python dev.py
 ```
 
-Que hacer cuando algo se rompe, sobre todo en vivo. Para setup de desarrollo
-vean [CONTRIB.md](./CONTRIB.md); para el deploy paso a paso, [DEPLOY.md](./DEPLOY.md).
+Un solo Ctrl+C baja los dos. Banderas, setup y problemas comunes en
+[DEV.md](./DEV.md).
 
 ## Antes de presentar (checklist de 5 minutos)
 

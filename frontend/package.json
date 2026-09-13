@@ -13,6 +13,7 @@
     "e2e:report": "playwright show-report"
   },
   "dependencies": {
+    "animejs": "^4.5.0",
     "framer-motion": "^13.2.0",
     "lucide-react": "^1.45.0",
     "react": "^19.3.0",
