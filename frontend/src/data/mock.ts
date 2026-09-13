@@ -14,14 +14,14 @@ import type {
 export const user: User = {
   firstName: "Carlos",
   lastName: "Tabares",
-  greeting: "Hola Carlos!",
 };
 
 export const account: Account = {
   id: "acc_1",
-  balance: 3000,
+  balance: 0,
   currency: "MXN",
   label: "Cuenta Monito",
+  clabe: "012180015739024615",
 };
 
 export const creditCard: CreditCard = {
@@ -29,7 +29,8 @@ export const creditCard: CreditCard = {
   holder: "CARLOS TABARES",
   brand: "visa",
   issuer: "Capital One",
-  last4: "4021",
+  number: "4147209388431234",
+  last4: "1234",
   expiry: "09/29",
   contactless: true,
 };
@@ -57,11 +58,11 @@ export const quickActions: QuickAction[] = [
     to: "/educacion",
   },
   {
-    id: "qa_bills",
-    label: "Servicios",
-    caption: "Luz, agua, internet",
-    icon: "receipt",
-    to: "/pagos",
+    id: "qa_cash",
+    label: "Cobro en efectivo",
+    caption: "Registra billetes",
+    icon: "cash",
+    to: "/cobro-efectivo",
   },
 ];
 
@@ -160,6 +161,11 @@ export function formatBalance(amount: number): string {
     minimumFractionDigits: hasCents ? 2 : 0,
     maximumFractionDigits: hasCents ? 2 : 0,
   }).format(amount);
+}
+
+/** Agrupa los dígitos de 4 en 4, como vienen impresos en el plástico. */
+export function formatCardNumber(number: string): string {
+  return number.replace(/\D/g, "").replace(/(.{4})(?=.)/g, "$1 ");
 }
 
 export function formatDate(iso: string): string {

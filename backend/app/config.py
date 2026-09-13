@@ -4,9 +4,18 @@ compañero, y el servidor de demo debería vivir aquí — nunca hardcodeado en
 el resto del código.
 """
 
+import secrets
+import warnings
 from functools import lru_cache
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Solo HMAC: el proyecto firma y verifica con el mismo secreto. Dejar fuera las
+# familias RS/ES evita de raíz la confusión de algoritmos (mandar un token RS
+# firmado con la clave pública como si fuera el secreto HMAC).
+_ALLOWED_JWT_ALGORITHMS = frozenset({"HS256", "HS384", "HS512"})
+_MIN_JWT_SECRET_LENGTH = 32
 
 
 class Settings(BaseSettings):
@@ -28,6 +37,49 @@ class Settings(BaseSettings):
     snowflake_role: str = ""
 
     cors_origins: str = "http://localhost:5173"
+
+    # Auth. jwt_secret vacío = se genera uno efímero al arrancar (ver validador).
+    jwt_secret: str = ""
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 720
+
+    @model_validator(mode="after")
+    def _ensure_jwt_secret(self):
+        # El algoritmo se valida contra una lista blanca: viene del entorno y
+        # decode() confía en él. Con un valor raro (o "none") la verificación de
+        # firma dejaría de proteger nada.
+        if self.jwt_algorithm not in _ALLOWED_JWT_ALGORITHMS:
+            raise ValueError(
+                f"JWT_ALGORITHM inválido: {self.jwt_algorithm!r}. "
+                f"Permitidos: {sorted(_ALLOWED_JWT_ALGORITHMS)}"
+            )
+
+        # Un secreto corto se rompe offline en minutos: cualquiera puede pedir
+        # un token en /auth/register y atacarlo sin tocar el servidor. Con el
+        # secreto, se firma un token para CUALQUIER user_id. 32 caracteres es el
+        # mínimo razonable para HS256; el generado abajo trae 64.
+        if self.jwt_secret and len(self.jwt_secret) < _MIN_JWT_SECRET_LENGTH:
+            raise ValueError(
+                f"JWT_SECRET es demasiado corto ({len(self.jwt_secret)} caracteres): "
+                f"se requieren al menos {_MIN_JWT_SECRET_LENGTH}. "
+                'Genera uno con: python -c "import secrets; print(secrets.token_urlsafe(48))"'
+            )
+
+        # Nunca hay un secreto por default en el código: un literal hardcodeado
+        # acabaría en producción y cualquiera con el repo podría firmar tokens.
+        # Sin JWT_SECRET se usa uno aleatorio por proceso, que sirve para
+        # desarrollar pero invalida los tokens en cada reinicio.
+        if not self.jwt_secret:
+            self.jwt_secret = secrets.token_urlsafe(48)
+            warnings.warn(
+                "JWT_SECRET no está definido: se generó un secreto efímero. "
+                "Todos los tokens se invalidan al reiniciar el backend y no "
+                "funcionan entre varios procesos/workers. Definan JWT_SECRET "
+                "en backend/.env para cualquier despliegue real.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+        return self
 
     @property
     def cors_origin_list(self) -> list[str]:

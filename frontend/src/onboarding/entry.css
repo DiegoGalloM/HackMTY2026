@@ -25,6 +25,19 @@
    La página es el contenedor de scroll; el marco nunca scrollea.
    ------------------------------------------------------------------------ */
 .entry-page {
+  /* --- Ajustes rapidos de la bienvenida ---------------------------------
+     Cambia SOLO estos numeros para mover el bloque de la tarjeta y el texto.
+     --entry-drop: reparte el hueco sobrante entre "arriba de la tarjeta" y
+       "antes de Registrarme".  0 = todo el hueco queda antes del boton (como
+       estaba), 1 = mitad y mitad, 3 = baja 3/4 del hueco, 9 = el bloque baja
+       casi hasta tocar el boton.
+     Las otras tres son distancias fijas en px. */
+  --entry-drop: 1;
+  --entry-visual-h: 212px;   /* alto del halo con la tarjeta */
+  --entry-copy-gap: 14px;    /* aire entre la tarjeta y "PARA QUIENES..." */
+  --entry-actions-gap: 18px; /* hueco minimo antes de "Registrarme" */
+  --entry-note-bottom: 2px;  /* que tan abajo cuelga la nota "Grandes planes" */
+
   container: entry / inline-size;
   flex: 1;
   min-height: 0;
@@ -43,6 +56,9 @@
 .entry-login { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 2px; border: 0; background: none; font-size: 13px; font-weight: 650; color: var(--c1-navy); cursor: pointer; }
 
 .entry-main { flex: 1 0 auto; display: flex; flex-direction: column; padding: 0 20px 8px; }
+/* Espaciador elastico: se lleva --entry-drop partes del hueco sobrante y baja
+   todo lo que viene despues (tarjeta, nota, titulo, descripcion). */
+.entry-main::before { content: ""; flex: var(--entry-drop) 0; }
 
 /* Visual: halo orbital a todo el ancho de la pantalla, tarjeta al centro. */
 .entry-visual {
@@ -50,7 +66,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 212px;
+  height: var(--entry-visual-h);
   margin-inline: -20px;
   background: radial-gradient(ellipse 62% 52% at 50% 50%, #dce9ef 0, #eaf1f5 55%, #f8fafb00 100%);
   transition: height .35s cubic-bezier(.22, .61, .36, 1);
@@ -63,24 +79,25 @@
 .entry-card .business-card-stage { margin: 0; padding: 10px 4px; }
 .entry-card .business-card-angle { transform: rotate(-8deg); }
 .entry-card .business-card-surface { box-shadow: 8px 22px 30px -18px #00345380; }
-.entry-floating-note { position: absolute; left: 16px; bottom: 2px; z-index: 2; display: flex; align-items: center; gap: 10px; padding: 8px 12px 8px 8px; background: #ffffffed; border: 1px solid white; border-radius: 12px; box-shadow: 0 12px 26px #13344914; }
+.entry-floating-note { position: absolute; left: 16px; bottom: var(--entry-note-bottom); z-index: 2; display: flex; align-items: center; gap: 10px; padding: 8px 12px 8px 8px; background: #ffffffed; border: 1px solid white; border-radius: 12px; box-shadow: 0 12px 26px #13344914; }
 .entry-note-icon { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; background: #eaf3f7; color: var(--c1-navy); }
 .entry-floating-note strong { display: block; font-size: 12px; font-weight: 650; }
 .entry-floating-note div > span { display: block; margin-top: 1px; font-size: 10px; color: var(--entry-muted); }
 .entry-note-check { display: grid; place-items: center; width: 18px; height: 18px; margin-left: 4px; border-radius: 50%; color: #297560; background: #edf7f2; }
 
 /* Registro / login: la tarjeta se encoge y deja el protagonismo al texto. */
+.entry-main--access { --entry-drop: 0; }
 .entry-main--access .entry-visual { height: 132px; }
 .entry-main--access .entry-card { width: 48%; }
 
-.entry-copy { flex: 1; display: flex; flex-direction: column; padding-top: 14px; animation: survey-appear .2s ease-out; }
+.entry-copy { flex: 1 1 auto; display: flex; flex-direction: column; padding-top: var(--entry-copy-gap); animation: survey-appear .2s ease-out; }
 .entry-copy .entry-eyebrow { margin-bottom: 12px; font-size: 9px; }
 .entry-copy h1 { margin: 0; font-size: clamp(28px, 9.4cqi, 36px); font-weight: 650; letter-spacing: -.045em; line-height: 1.08; text-wrap: balance; }
 .entry-copy h1 em { font-style: normal; color: var(--c1-navy); }
 .entry-description { margin: 12px 0 0; font-size: 14px; line-height: 1.6; color: var(--entry-muted); }
 
 /* CTAs apiladas al fondo de la pantalla, en la zona del pulgar. */
-.entry-actions { display: grid; gap: 8px; margin-top: auto; padding-top: 18px; }
+.entry-actions { display: grid; gap: 8px; margin-top: auto; padding-top: var(--entry-actions-gap); }
 .entry-actions > :is(.entry-primary, .entry-secondary) { width: 100%; min-height: 48px; padding-block: 12px; gap: 10px; }
 .entry-time { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 2px 0 0; font-size: 11px; color: var(--entry-muted); }
 .entry-switch { justify-content: center; width: 100%; margin: 0; }
@@ -89,6 +106,46 @@
 .entry-demo-note > svg { flex-shrink: 0; margin-top: 2px; }
 .entry-demo-note p { margin: 0; font-size: 12px; line-height: 1.6; }
 .entry-demo-note strong { font-weight: 650; }
+
+/* ------------------------------------------------------------------------
+   Formularios de registro / login (src/auth). Reusan los tokens de la
+   encuesta: los inputs van a 16px porque iOS hace zoom automatico en
+   cualquier campo por debajo de ese tamaño y saca la pantalla de cuadro.
+   ------------------------------------------------------------------------ */
+.entry-form { display: flex; flex-direction: column; gap: 14px; margin-top: 18px; }
+.entry-field { display: grid; gap: 6px; min-width: 0; }
+.entry-field > label { font-size: 12px; font-weight: 650; color: var(--entry-ink); }
+.entry-field input { width: 100%; min-width: 0; min-height: 48px; padding: 12px 14px; background: white; border: 1px solid #ccdbe3; border-radius: 12px; font: inherit; font-size: 16px; font-weight: 400; color: var(--entry-ink); }
+.entry-field input::placeholder { color: #6c7d86; font-size: 13px; }
+.entry-field input:focus-visible { outline: 3px solid var(--c1-red); outline-offset: 2px; }
+.entry-field input[aria-invalid="true"] { border-color: var(--c1-red); background: #fffbfa; }
+/* El date picker nativo trae su propio alto y su propio ancho intrinseco: sin
+   esto el campo de fecha queda mas alto que los demas y desborda a 320px. */
+.entry-field input[type="date"] { appearance: none; }
+.entry-hint { margin: 0; font-size: 11px; line-height: 1.5; color: var(--entry-muted); }
+.entry-error { margin: 0; font-size: 12px; line-height: 1.5; font-weight: 550; color: var(--c1-red); }
+.entry-error p { margin: 0; }
+.entry-error ul { display: grid; gap: 2px; margin: 4px 0 0; padding-left: 16px; font-weight: 400; }
+.entry-form-error { margin: 0; padding: 11px 12px; background: #fdf2f1; border: 1px solid #f3cfcb; border-radius: 10px; font-size: 12px; line-height: 1.55; color: var(--c1-red); }
+
+/* Campo con el ojo de mostrar/ocultar: el padding derecho le reserva sitio. */
+.entry-input-reveal { position: relative; display: flex; min-width: 0; }
+.entry-input-reveal input { padding-right: 46px; }
+.entry-reveal { position: absolute; top: 0; right: 0; display: grid; place-items: center; width: 44px; height: 100%; background: none; border: 0; color: var(--entry-muted); cursor: pointer; }
+.entry-reveal[aria-pressed="true"] { color: var(--c1-navy); }
+
+/* Requisitos de la contraseña: se tachan en verde conforme se cumplen. */
+.entry-checklist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 10px; margin: 2px 0 0; padding: 0; list-style: none; font-size: 11px; color: var(--entry-muted); }
+.entry-checklist li { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.entry-checklist li > svg { flex-shrink: 0; }
+.entry-checklist li[data-met="true"] { color: #297560; font-weight: 600; }
+
+.entry-form .entry-actions { padding-top: 10px; }
+.entry-spinner { animation: entry-spin .9s linear infinite; }
+@keyframes entry-spin { to { transform: rotate(360deg); } }
+/* El reset global de index.css solo acorta la duracion: un giro infinito de
+   0.01ms parpadea. Aqui se apaga la animacion de verdad. */
+@media (prefers-reduced-motion: reduce) { .entry-spinner { animation: none; } }
 
 /* Footer: mini stepper de 3 pasos + acceso a la demo. El padding inferior
    libra el indicador de inicio del mockup. */
@@ -102,10 +159,12 @@
 /* Celulares angostos reales (iPhone SE, Galaxy mini). */
 @container entry (max-width: 340px) {
   .entry-header, .entry-main, .entry-footer { padding-inline: 16px; }
-  .entry-visual { margin-inline: -16px; height: 190px; }
+  .entry-visual { margin-inline: -16px; height: calc(var(--entry-visual-h) - 22px); }
   .entry-demo { display: none; }
   .entry-floating-note { left: 12px; }
   .entry-footer { font-size: 9px; }
+  /* A 320px dos columnas dejan ~130px por requisito y el texto se corta. */
+  .entry-checklist { grid-template-columns: 1fr; }
 }
 /* En celular real el mockup desaparece (theme.css): no hay notch que librar,
    pero sí la safe area del dispositivo. */

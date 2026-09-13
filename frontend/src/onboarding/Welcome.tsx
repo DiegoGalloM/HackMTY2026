@@ -1,11 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, ChartNoAxesCombined, Check, Clock3, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChartNoAxesCombined, Check, Sparkles } from "lucide-react";
 import CreditCardTile from "../components/CreditCardTile";
 import CapitalOneLogo from "../components/CapitalOneLogo";
+import LoginForm from "../auth/LoginForm";
+import RegisterForm from "../auth/RegisterForm";
+import type { Session } from "../auth/session";
 import "./entry.css";
 
 interface WelcomeProps {
-  onStart: () => void;
+  /** Se llama con la sesión ya creada por /auth/register o /auth/login. */
+  onAuthenticated: (session: Session) => void;
+  /** Camino sin cuenta: la demo abierta, que no toca endpoints protegidos. */
   onExplore: () => void;
 }
 
@@ -16,7 +21,7 @@ const steps = ["Cuéntanos de ti", "Construye tu perfil", "Da el siguiente paso"
  * (.phone-frame__screen, ~362px útiles en desktop y 100% del ancho en móvil).
  * La propia página es el contenedor de scroll: el marco no scrollea.
  */
-export default function Welcome({ onStart, onExplore }: WelcomeProps) {
+export default function Welcome({ onAuthenticated, onExplore }: WelcomeProps) {
   const [mode, setMode] = useState<"welcome" | "register" | "login">("welcome");
   const page = useRef<HTMLDivElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
@@ -52,7 +57,6 @@ export default function Welcome({ onStart, onExplore }: WelcomeProps) {
         <section className="entry-visual" aria-label="Tu tarjeta de negocio">
           <div className="entry-orbit entry-orbit--outer" aria-hidden />
           <div className="entry-orbit entry-orbit--inner" aria-hidden />
-          {isWelcome && <span className="entry-visual-caption">HECHA PARA TU SIGUIENTE PASO</span>}
           <div className="entry-card"><CreditCardTile artwork="demo" /></div>
           {isWelcome && (
             <div className="entry-floating-note">
@@ -67,12 +71,11 @@ export default function Welcome({ onStart, onExplore }: WelcomeProps) {
           {isWelcome ? (
             <>
               <p className="entry-eyebrow"><span /> PARA QUIENES MUEVEN EL MUNDO</p>
-              <h1 id="entry-title" ref={heading} tabIndex={-1}>Tu negocio.<br />Tu esfuerzo.<br /><em>Tu siguiente paso.</em></h1>
+              <h1 id="entry-title" ref={heading} tabIndex={-1}>Tu negocio<br /><em>en tus manos</em></h1>
               <p className="entry-description">Una nueva forma de entender tu dinero y hacer crecer lo que estás construyendo. Empecemos por conocerte.</p>
               <div className="entry-actions">
                 <button className="entry-primary" onClick={() => setMode("register")}>Registrarme <ArrowRight size={18} aria-hidden /></button>
                 <button className="entry-secondary" onClick={() => setMode("login")}>Ya tengo una cuenta</button>
-                <p className="entry-time"><Clock3 size={14} aria-hidden /> Una breve encuesta. Un espacio a tu medida.</p>
               </div>
             </>
           ) : (
@@ -80,11 +83,14 @@ export default function Welcome({ onStart, onExplore }: WelcomeProps) {
               <p className="entry-eyebrow"><span /> TU PRÓXIMO CAPÍTULO EMPIEZA AQUÍ</p>
               <h1 id="entry-title" ref={heading} tabIndex={-1}>{mode === "register" ? "Dale un espacio a tu negocio." : "Qué bueno verte de nuevo."}</h1>
               <p className="entry-description">{mode === "register" ? "Crea tu perfil y cuéntanos un poco sobre tu negocio para personalizar tu experiencia." : "Entra a la experiencia y comienza a construir el perfil de tu negocio."}</p>
-              <div className="entry-demo-note"><Sparkles size={18} aria-hidden /><p><strong>Estás en la versión de demostración.</strong><br />Puedes continuar sin correo ni contraseña. No se crea una cuenta real.</p></div>
-              <div className="entry-actions">
-                <button className="entry-primary" onClick={onStart}>{mode === "register" ? "Comenzar mi encuesta" : "Continuar a mi encuesta"}<ArrowRight size={18} aria-hidden /></button>
-                <button className="entry-switch" onClick={() => setMode(mode === "register" ? "login" : "register")}>{mode === "register" ? "¿Ya tienes cuenta? Inicia sesión" : "¿Es tu primera vez? Regístrate"}</button>
-              </div>
+              {mode === "register" ? (
+                <>
+                  <div className="entry-demo-note"><Sparkles size={18} aria-hidden /><p><strong>Estás en la versión de demostración.</strong><br />Tu cuenta y tus respuestas se guardan solo en el backend de esta demo.</p></div>
+                  <RegisterForm onAuthenticated={onAuthenticated} onSwitchToLogin={() => setMode("login")} />
+                </>
+              ) : (
+                <LoginForm onAuthenticated={onAuthenticated} onSwitchToRegister={() => setMode("register")} />
+              )}
             </>
           )}
         </section>

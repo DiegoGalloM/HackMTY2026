@@ -5,8 +5,8 @@ from typing import Any
 import snowflake.connector
 
 from app.config import Settings
-from app.models.schemas import BusinessProfile
-from app.storage.base import ProfileStore
+from app.models.schemas import BusinessProfile, StoredUser
+from app.storage.base import ProfileStore, UserStore
 
 # Columnas que se leen para reconstruir un BusinessProfile completo.
 # El orden tiene que coincidir con _row_to_profile().
@@ -15,6 +15,9 @@ PROFILE_COLUMNS = """
     week_description_mode, week_description_text,
     week_description_audio_base64, week_description_audio_mime
 """
+
+# Igual que PROFILE_COLUMNS: el orden tiene que coincidir con _row_to_user().
+USER_COLUMNS = "user_id, username, business_name, full_name, birthdate, password_hash"
 
 
 class SnowflakeProfileStore(ProfileStore):
@@ -160,3 +163,113 @@ class SnowflakeProfileStore(ProfileStore):
 
     async def category_stats(self, category: str) -> dict[str, Any]:
         return await asyncio.to_thread(self._category_stats_sync, category)
+
+
+class SnowflakeUserStore(UserStore):
+    def __init__(self, settings: Settings):
+        self._settings = settings
+
+    def _connect(self):
+        return snowflake.connector.connect(
+            account=self._settings.snowflake_account,
+            user=self._settings.snowflake_user,
+            password=self._settings.snowflake_password,
+            warehouse=self._settings.snowflake_warehouse,
+            database=self._settings.snowflake_database,
+            schema=self._settings.snowflake_schema,
+            role=self._settings.snowflake_role or None,
+        )
+
+    def _create_user_sync(self, user: StoredUser) -> bool:
+        # OJO: en Snowflake PRIMARY KEY y UNIQUE son *solo metadata*, no se
+        # imponen — puedes insertar dos filas con el mismo username sin que la
+        # base se queje. La unicidad se hace con MERGE y no con
+        # INSERT ... WHERE NOT EXISTS: INSERT no toma lock sobre la tabla
+        # destino, así que dos registros simultáneos del mismo username evalúan
+        # el NOT EXISTS cada uno contra su propio snapshot, los dos ven "no
+        # existe" y los dos entran. MERGE sí serializa sobre el destino (es la
+        # razón por la que el MERGE de los perfiles ya era seguro).
+        conn = self._connect()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                MERGE INTO users AS target
+                USING (SELECT %(username)s AS username) AS source
+                ON LOWER(target.username) = source.username
+                WHEN NOT MATCHED THEN INSERT (
+                    user_id, username, business_name, full_name, birthdate, password_hash)
+                VALUES (%(user_id)s, %(username)s, %(business_name)s, %(full_name)s,
+                        TO_DATE(%(birthdate)s), %(password_hash)s)
+                """,
+                {
+                    "user_id": user.user_id,
+                    "username": user.username.strip().lower(),
+                    "business_name": user.business_name,
+                    "full_name": user.full_name,
+                    "birthdate": user.birthdate,
+                    "password_hash": user.password_hash,
+                },
+            )
+            # MERGE regresa una fila con el número de filas insertadas. Se lee de
+            # ahí y no de rowcount porque para MERGE el driver no lo reporta de
+            # forma consistente; si por lo que sea no viene la fila, se cae a
+            # rowcount en vez de asumir que se insertó.
+            row = cur.fetchone()
+            inserted = int(row[0]) if row and row[0] is not None else (cur.rowcount or 0)
+            return inserted > 0
+        finally:
+            conn.close()
+
+    async def create_user(self, user: StoredUser) -> bool:
+        return await asyncio.to_thread(self._create_user_sync, user)
+
+    def _row_to_user(self, row) -> StoredUser:
+        user_id, username, business_name, full_name, birthdate, password_hash = row
+        return StoredUser(
+            user_id=user_id,
+            username=username,
+            business_name=business_name,
+            full_name=full_name,
+            # La columna es DATE, así que el driver regresa datetime.date;
+            # el contrato con el frontend es string YYYY-MM-DD.
+            birthdate=birthdate.isoformat() if hasattr(birthdate, "isoformat") else str(birthdate),
+            password_hash=password_hash,
+        )
+
+    def _get_user_by_username_sync(self, username: str) -> StoredUser | None:
+        conn = self._connect()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                # ORDER BY + LIMIT 1: si alguna vez llegaran a existir dos filas
+                # con el mismo username (datos viejos, una carga manual), el
+                # login debe resolver siempre contra la MISMA, la más antigua, y
+                # no contra una cualquiera según el plan de ejecución.
+                f"SELECT {USER_COLUMNS} FROM users WHERE LOWER(username) = %(username)s "
+                "ORDER BY created_at LIMIT 1",
+                {"username": username.strip().lower()},
+            )
+            row = cur.fetchone()
+            return self._row_to_user(row) if row else None
+        finally:
+            conn.close()
+
+    async def get_user_by_username(self, username: str) -> StoredUser | None:
+        return await asyncio.to_thread(self._get_user_by_username_sync, username)
+
+    def _get_user_by_id_sync(self, user_id: str) -> StoredUser | None:
+        conn = self._connect()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                f"SELECT {USER_COLUMNS} FROM users WHERE user_id = %(user_id)s",
+                {"user_id": user_id},
+            )
+            row = cur.fetchone()
+            return self._row_to_user(row) if row else None
+        finally:
+            conn.close()
+
+    async def get_user_by_id(self, user_id: str) -> StoredUser | None:
+        return await asyncio.to_thread(self._get_user_by_id_sync, user_id)
