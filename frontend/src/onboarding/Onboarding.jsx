@@ -13,7 +13,7 @@ const STEPS = ["name", "welcome", "otro_detail", "questions", "week_description"
 // token = "" y no null: TS infiere los tipos de este .jsx y con null el prop
 // quedaria tipado como `null`, rompiendo a quien le pase el string del token.
 export default function Onboarding({ ownerId = "demo-owner", token = "", onComplete, onExit, active = true }) {
-  const [stepIndex, setStepIndex] = useState(1); // Start at "welcome" step (skip "name" in demo)
+  const [stepIndex, setStepIndex] = useState(1); // Start at "welcome" (category selection) - skip "name" step
   const [name, setName] = useState("");
   const [category, setCategory] = useState(null);
   const [otroDetail, setOtroDetail] = useState("");
