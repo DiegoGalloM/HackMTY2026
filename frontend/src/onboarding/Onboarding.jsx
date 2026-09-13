@@ -11,7 +11,7 @@ const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 const STEPS = ["name", "welcome", "otro_detail", "questions", "week_description", "schedule", "employees", "city", "done"];
 
 export default function Onboarding({ ownerId = "demo-owner", onComplete, onExit, active = true }) {
-  const [stepIndex, setStepIndex] = useState(0);
+  const [stepIndex, setStepIndex] = useState(1); // Start at "welcome" step (skip "name" in demo)
   const [name, setName] = useState("");
   const [category, setCategory] = useState(null);
   const [otroDetail, setOtroDetail] = useState("");
