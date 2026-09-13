@@ -107,6 +107,46 @@
 .entry-demo-note p { margin: 0; font-size: 12px; line-height: 1.6; }
 .entry-demo-note strong { font-weight: 650; }
 
+/* ------------------------------------------------------------------------
+   Formularios de registro / login (src/auth). Reusan los tokens de la
+   encuesta: los inputs van a 16px porque iOS hace zoom automatico en
+   cualquier campo por debajo de ese tamaño y saca la pantalla de cuadro.
+   ------------------------------------------------------------------------ */
+.entry-form { display: flex; flex-direction: column; gap: 14px; margin-top: 18px; }
+.entry-field { display: grid; gap: 6px; min-width: 0; }
+.entry-field > label { font-size: 12px; font-weight: 650; color: var(--entry-ink); }
+.entry-field input { width: 100%; min-width: 0; min-height: 48px; padding: 12px 14px; background: white; border: 1px solid #ccdbe3; border-radius: 12px; font: inherit; font-size: 16px; font-weight: 400; color: var(--entry-ink); }
+.entry-field input::placeholder { color: #6c7d86; font-size: 13px; }
+.entry-field input:focus-visible { outline: 3px solid var(--c1-red); outline-offset: 2px; }
+.entry-field input[aria-invalid="true"] { border-color: var(--c1-red); background: #fffbfa; }
+/* El date picker nativo trae su propio alto y su propio ancho intrinseco: sin
+   esto el campo de fecha queda mas alto que los demas y desborda a 320px. */
+.entry-field input[type="date"] { appearance: none; }
+.entry-hint { margin: 0; font-size: 11px; line-height: 1.5; color: var(--entry-muted); }
+.entry-error { margin: 0; font-size: 12px; line-height: 1.5; font-weight: 550; color: var(--c1-red); }
+.entry-error p { margin: 0; }
+.entry-error ul { display: grid; gap: 2px; margin: 4px 0 0; padding-left: 16px; font-weight: 400; }
+.entry-form-error { margin: 0; padding: 11px 12px; background: #fdf2f1; border: 1px solid #f3cfcb; border-radius: 10px; font-size: 12px; line-height: 1.55; color: var(--c1-red); }
+
+/* Campo con el ojo de mostrar/ocultar: el padding derecho le reserva sitio. */
+.entry-input-reveal { position: relative; display: flex; min-width: 0; }
+.entry-input-reveal input { padding-right: 46px; }
+.entry-reveal { position: absolute; top: 0; right: 0; display: grid; place-items: center; width: 44px; height: 100%; background: none; border: 0; color: var(--entry-muted); cursor: pointer; }
+.entry-reveal[aria-pressed="true"] { color: var(--c1-navy); }
+
+/* Requisitos de la contraseña: se tachan en verde conforme se cumplen. */
+.entry-checklist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 10px; margin: 2px 0 0; padding: 0; list-style: none; font-size: 11px; color: var(--entry-muted); }
+.entry-checklist li { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.entry-checklist li > svg { flex-shrink: 0; }
+.entry-checklist li[data-met="true"] { color: #297560; font-weight: 600; }
+
+.entry-form .entry-actions { padding-top: 10px; }
+.entry-spinner { animation: entry-spin .9s linear infinite; }
+@keyframes entry-spin { to { transform: rotate(360deg); } }
+/* El reset global de index.css solo acorta la duracion: un giro infinito de
+   0.01ms parpadea. Aqui se apaga la animacion de verdad. */
+@media (prefers-reduced-motion: reduce) { .entry-spinner { animation: none; } }
+
 /* Footer: mini stepper de 3 pasos + acceso a la demo. El padding inferior
    libra el indicador de inicio del mockup. */
 .entry-footer { display: grid; gap: 4px; padding: 12px 20px 16px; border-top: 1px solid #e0e7eb; font-size: 10px; color: var(--entry-muted); }
@@ -123,6 +163,8 @@
   .entry-demo { display: none; }
   .entry-floating-note { left: 12px; }
   .entry-footer { font-size: 9px; }
+  /* A 320px dos columnas dejan ~130px por requisito y el texto se corta. */
+  .entry-checklist { grid-template-columns: 1fr; }
 }
 /* En celular real el mockup desaparece (theme.css): no hay notch que librar,
    pero sí la safe area del dispositivo. */

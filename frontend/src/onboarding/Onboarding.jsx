@@ -10,7 +10,9 @@ import { CATEGORIES, UNIVERSAL_QUESTIONS, CATEGORY_QUESTIONS, WEEKDAYS, EMPLOYEE
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 const STEPS = ["name", "welcome", "otro_detail", "questions", "week_description", "schedule", "employees", "city", "done"];
 
-export default function Onboarding({ ownerId = "demo-owner", onComplete, onExit, active = true }) {
+// token = "" y no null: TS infiere los tipos de este .jsx y con null el prop
+// quedaria tipado como `null`, rompiendo a quien le pase el string del token.
+export default function Onboarding({ ownerId = "demo-owner", token = "", onComplete, onExit, active = true }) {
   // Arranca en "name": de ahí salen el saludo de la app y el nombre impreso
   // en el reverso de la tarjeta.
   const [stepIndex, setStepIndex] = useState(0);
@@ -156,7 +158,11 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete, onExit,
     try {
       const audioBase64 = weekMode === "audio" && audioBlob ? await blobToBase64(audioBlob) : null;
       const res = await fetch(`${API_BASE}/business-profile/${ownerId}`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        // El endpoint esta protegido: el backend exige un Bearer cuyo sujeto
+        // sea el mismo ownerId de la URL. Sin token se manda igual para que el
+        // 401 venga del servidor, que es quien decide.
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({
           category,
           category_detail: category === "otro" ? otroDetail : null,
@@ -172,6 +178,12 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete, onExit,
       });
       // fetch NO lanza error con un 4xx/5xx: hay que revisar res.ok a mano, si no
       // un 500 del backend se veria como guardado exitoso.
+      // 401/403 no son "fallo del servidor": el token falta, caduco o es de
+      // otro dueño. Reintentar con el mismo token no va a arreglarlo, asi que
+      // se dice lo unico que resuelve el problema.
+      if (res.status === 401 || res.status === 403) {
+        throw new Error("Tu sesión expiró. Vuelve al inicio e inicia sesión otra vez para guardar tu perfil — tus respuestas siguen aquí.");
+      }
       if (!res.ok) throw new Error(`El servidor respondió ${res.status}`);
       setSubmitted(true);
     } catch (err) {

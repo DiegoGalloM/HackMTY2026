@@ -1,28 +1,33 @@
 import { expect, test } from "@playwright/test";
-import { OnboardingPage } from "./pages/OnboardingPage";
+import { OnboardingPage, stubAuth } from "./pages/OnboardingPage";
 
 // La app abre en la landing (logo animado + "Empezar"); la bienvenida es la segunda pantalla.
-test("la bienvenida aparece tras la landing y ambos accesos demo llevan a la encuesta", async ({ page }) => {
-  const requests: string[] = [];
-  page.on("request", request => { if (request.method() === "POST") requests.push(request.url()); });
+test("la bienvenida aparece tras la landing y ambos accesos llevan a la encuesta", async ({ page }) => {
+  // La encuesta ya exige cuenta: lo que se vigila aquí es que llegar a ella no
+  // toque los endpoints protegidos del perfil antes de tiempo.
+  const guarded: string[] = [];
+  page.on("request", request => { if (request.url().includes("/business-profile/")) guarded.push(request.url()); });
+  await stubAuth(page);
+
+  const onboarding = new OnboardingPage(page);
   await page.goto("/");
   await page.getByRole("button", { name: "Empezar" }).click();
   await expect(page.getByRole("heading", { name: /Tu negocio en tus manos/ })).toBeVisible();
   await expect(page.getByRole("img", { name: /NEGOCIO DEMO/ })).toBeVisible();
   await expect(page.getByText("Selecciona tu modelo de negocio")).toHaveCount(0);
+
   await page.getByRole("button", { name: "Iniciar sesión", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Qué bueno verte de nuevo." })).toBeFocused();
-  await expect(page.getByText(/No se crea una cuenta real/)).toBeVisible();
-  await page.getByRole("button", { name: "Continuar a mi encuesta" }).click();
+  await onboarding.login();
   // La encuesta empieza pidiendo el nombre; el modelo de negocio viene después.
   await expect(page.getByRole("heading", { name: "¿Cómo te llamas?" })).toBeFocused();
-  await new OnboardingPage(page).fillName();
+  await onboarding.fillName();
   await expect(page.getByRole("heading", { name: "Selecciona tu modelo de negocio" })).toBeVisible();
+
   await page.getByRole("button", { name: "Ir al inicio" }).click();
-  await page.getByRole("button", { name: "Registrarme", exact: true }).click();
-  await page.getByRole("button", { name: "Comenzar mi encuesta" }).click();
+  await onboarding.register();
   await expect(page.getByRole("heading", { name: "Selecciona tu modelo de negocio" })).toBeVisible();
-  expect(requests).toEqual([]);
+  expect(guarded).toEqual([]);
 });
 
 test("volver a la pregunta anterior o al inicio conserva las respuestas", async ({ page }) => {
@@ -35,8 +40,7 @@ test("volver a la pregunta anterior o al inicio conserva las respuestas", async 
   await expect(page.locator("#survey-title")).toHaveText(firstQuestion!);
   await expect(page.getByRole("button", { name: "Sí", exact: true })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Ir al inicio" }).click();
-  await page.getByRole("button", { name: "Registrarme", exact: true }).click();
-  await page.getByRole("button", { name: "Comenzar mi encuesta" }).click();
+  await onboarding.register();
   await expect(page.getByRole("button", { name: "Sí", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#survey-title")).toBeFocused();
 });
@@ -51,17 +55,28 @@ test("el recorrido completo vuelve a Cuenta con la imagen original", async ({ pa
   await expect(page.getByRole("navigation", { name: "Accesos rápidos" })).toHaveClass(/\bgrid\b/);
 });
 
-test("tarjeta y encuesta caben en pantallas pequeñas y a 200% de texto", async ({ page }) => {
+test("tarjeta, registro y encuesta caben en pantallas pequeñas y a 200% de texto", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 740 });
+  await stubAuth(page);
+  const onboarding = new OnboardingPage(page);
   await page.goto("/");
   await page.getByRole("button", { name: "Empezar" }).click();
   const bounds = await page.locator(".reference-card").boundingBox();
   expect(bounds!.x).toBeGreaterThanOrEqual(0);
   expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(320);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+
   await expect(page.getByRole("button", { name: "Registrarme", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Registrarme", exact: true }).click();
-  await page.getByRole("button", { name: "Comenzar mi encuesta" }).click();
+  // El formulario de registro es lo más ancho de la bienvenida: seis campos,
+  // el date picker nativo y el ojo de mostrar contraseña.
+  await onboarding.fillRegisterForm();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  const birthdate = await page.getByLabel("Fecha de nacimiento").boundingBox();
+  expect(birthdate!.x).toBeGreaterThanOrEqual(0);
+  expect(birthdate!.x + birthdate!.width).toBeLessThanOrEqual(320);
+
+  await onboarding.registerSubmit.click();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
   expect(overflow).toBe(false);
   await new OnboardingPage(page).fillName();

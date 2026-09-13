@@ -1,8 +1,8 @@
 from collections import defaultdict
 from typing import Any
 
-from app.models.schemas import BusinessProfile
-from app.storage.base import ProfileStore
+from app.models.schemas import BusinessProfile, StoredUser
+from app.storage.base import ProfileStore, UserStore
 
 
 class MemoryProfileStore(ProfileStore):
@@ -41,3 +41,25 @@ class MemoryProfileStore(ProfileStore):
             "n_negocios": n,
             "answers_pct_true": {k: round(v / n, 2) for k, v in totals.items()},
         }
+
+
+class MemoryUserStore(UserStore):
+    def __init__(self):
+        # Dos índices porque las dos búsquedas son igual de frecuentes: por
+        # username en el login y por user_id al validar el token de cada request.
+        self._by_username: dict[str, StoredUser] = {}
+        self._by_id: dict[str, StoredUser] = {}
+
+    async def create_user(self, user: StoredUser) -> bool:
+        key = user.username.strip().lower()
+        if key in self._by_username:
+            return False
+        self._by_username[key] = user
+        self._by_id[user.user_id] = user
+        return True
+
+    async def get_user_by_username(self, username: str) -> StoredUser | None:
+        return self._by_username.get(username.strip().lower())
+
+    async def get_user_by_id(self, user_id: str) -> StoredUser | None:
+        return self._by_id.get(user_id)
