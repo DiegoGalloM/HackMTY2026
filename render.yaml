@@ -29,6 +29,12 @@ services:
         sync: false
       - key: NESSIE_API_KEY
         sync: false
+      # Firma de los tokens de sesion. `generateValue` hace que Render invente
+      # uno seguro la primera vez y lo conserve entre deploys. Sin esto el
+      # backend genera uno al arrancar y, en el plan free (que reinicia el
+      # servicio seguido), cada reinicio cerraria la sesion de todos.
+      - key: JWT_SECRET
+        generateValue: true
       - key: SNOWFLAKE_ACCOUNT
         sync: false
       - key: SNOWFLAKE_USER
