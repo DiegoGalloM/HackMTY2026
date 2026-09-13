@@ -17,7 +17,7 @@ import Retiros from "./screens/Retiros";
 import Transferencias from "./screens/Transferencias";
 import Vender from "./screens/Vender";
 import PhoneFrame from "./onboarding/PhoneFrame.jsx";
-import Onboarding from "./onboarding/Onboarding.jsx";
+import Onboarding from "./onboarding/OnboardingFlow.jsx";
 import Welcome from "./onboarding/Welcome";
 import Landing from "./landing/Landing";
 import { demoSession } from "./api/finance";
