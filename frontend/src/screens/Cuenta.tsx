@@ -6,6 +6,7 @@ import CreditCardTile from "../components/CreditCardTile";
 import QuickActionsGrid from "../components/QuickActionsGrid";
 import Screen from "../components/Screen";
 import { StatusPill } from "../components/ui";
+import CashInsightCard from "../financial-literacy/CashInsightCard.jsx";
 import { useBusiness } from "../business/BusinessContext";
 import { useBusinessQuery } from "../business/useAsync";
 import { formatDate, movements } from "../data/mock";
@@ -76,13 +77,16 @@ export default function Cuenta({ profile }: CuentaProps) {
       <BalanceHeader firstName={firstName} balance={h ? h.cash.cash_available : null} label={api ? `Efectivo de ${businessName}` : undefined} />
       <CreditCardTile flippable holder={holder} />
 
+      {/* La lección disparada por la encuesta (categoría + respuestas). */}
+      <CashInsightCard profile={profile} />
+
       <div className="mt-6">
         <QuickActionsGrid />
       </div>
 
       {h && (
         <section className="mt-6 px-5">
-          <Link to="/analisis" className="block rounded-2xl bg-white px-4 py-4 ring-1 ring-black/5">
+          <Link to="/resumen" className="block rounded-2xl bg-white px-4 py-4 ring-1 ring-black/5">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold">Cómo va el negocio {h.period.label}</p>
               <ChevronRight size={16} className="text-muted" aria-hidden />

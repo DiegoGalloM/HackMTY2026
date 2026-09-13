@@ -1,35 +1,45 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { BookOpen, ChevronDown, MessageCircle, TrendingDown, TrendingUp } from "lucide-react";
-import { formatChange, formatMoney, ratioValue } from "../api/format";
-import type { Ratio } from "../api/types";
+import { BookOpen, MessageCircle, TrendingDown, TrendingUp } from "lucide-react";
+import { formatChange, formatDate, formatMoney, periodBounds } from "../api/format";
+import type { JournalEntry } from "../api/types";
 import { useBusiness } from "../business/BusinessContext";
 import { useBusinessQuery } from "../business/useAsync";
 import Screen from "../components/Screen";
 import { Card, EmptyState, ErrorState, LoadingState, NoSessionState, Notice, SectionTitle, Segmented, StatusPill } from "../components/ui";
 
 type PeriodOpt = "week" | "month" | "30d";
-const GROUPS: { key: Ratio["group"]; label: string }[] = [
-  { key: "liquidez", label: "Liquidez: ¿puedes pagar lo que debes pronto?" },
-  { key: "rentabilidad", label: "Rentabilidad: ¿te queda ganancia?" },
-  { key: "eficiencia", label: "Inventario: ¿tu dinero se mueve?" },
-  { key: "apalancamiento", label: "Deuda: ¿de quién es el negocio?" },
-];
+
+/** Asientos que caben en el diario del resumen; el resto vive en Libros. */
+const DIARY_LIMIT = 40;
+
+export const SOURCE_LABELS: Record<string, string> = {
+  SALE_COMPLETED: "Venta",
+  SALE_COGS: "Costo de venta",
+  PURCHASE_CAPTURED: "Compra con tarjeta",
+  RECLASSIFICATION: "Reclasificación",
+  INVENTORY_ADJUSTMENT: "Ajuste de inventario",
+  ADJUSTMENT: "Ajuste",
+  OWNER_CONTRIBUTION: "Aportación",
+  OWNER_DRAW: "Retiro",
+  EXPENSE_PAID: "Gasto pagado",
+  MANUAL_RECEIPT: "Entrada manual",
+};
 
 /**
- * Análisis financiero. Primero lo que importa (ventas, ganancia, caja,
- * inventario) en lenguaje llano; las razones y los libros formales quedan
- * un nivel abajo para quien quiera verlos. Todos los números vienen del
- * backend, derivados del diario.
+ * Resumen: lo que importa (ventas, ganancia, caja, inventario) en lenguaje
+ * llano, más el diario del periodo como tabla. Un nivel debajo del asistente;
+ * las razones explicadas viven en Libros → Indicadores. Todos los números
+ * vienen del backend, derivados del diario.
  */
-export default function Analisis() {
+export default function Resumen() {
   const { api, businessName } = useBusiness();
   const [period, setPeriod] = useState<PeriodOpt>("month");
   const health = useBusinessQuery((a) => a.health(period), [period]);
 
   if (!api) {
     return (
-      <Screen title="Análisis Financiero">
+      <Screen title="Resumen">
         <NoSessionState />
       </Screen>
     );
@@ -38,7 +48,7 @@ export default function Analisis() {
   const h = health.data;
 
   return (
-    <Screen title="Análisis Financiero">
+    <Screen title="Resumen">
       <div className="px-5">
         <Segmented
           value={period}
@@ -139,31 +149,15 @@ export default function Analisis() {
             </section>
           )}
 
-          <section className="mt-6 px-5">
-            <SectionTitle>Tus indicadores, explicados</SectionTitle>
-            <div className="space-y-4">
-              {GROUPS.map((g) => (
-                <div key={g.key}>
-                  <p className="mb-2 text-xs font-semibold">{g.label}</p>
-                  <ul className="space-y-2">
-                    {h.ratios
-                      .filter((r) => r.group === g.key)
-                      .map((r) => (
-                        <RatioRow key={r.key} ratio={r} />
-                      ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </section>
+          <DiarySection period={period} />
 
           <section className="mt-6 px-5">
             <div className="grid grid-cols-2 gap-2">
+              <Link to="/analisis" className="flex min-h-11 items-center justify-center gap-2 rounded-full bg-brand text-sm font-semibold text-white">
+                <MessageCircle size={16} aria-hidden /> Preguntar
+              </Link>
               <Link to="/libros" className="flex min-h-11 items-center justify-center gap-2 rounded-full bg-tile text-sm font-semibold">
                 <BookOpen size={16} aria-hidden /> Ver mis libros
-              </Link>
-              <Link to="/asistente" className="flex min-h-11 items-center justify-center gap-2 rounded-full bg-brand text-sm font-semibold text-white">
-                <MessageCircle size={16} aria-hidden /> Preguntar
               </Link>
             </div>
             <div className="mt-3">
@@ -198,38 +192,80 @@ function MetricCard({ label, value, change, tone }: { label: string; value: numb
   );
 }
 
-function RatioRow({ ratio }: { ratio: Ratio }) {
-  const [open, setOpen] = useState(false);
+/**
+ * Diario del periodo como tabla: una fila por línea de asiento, agrupadas
+ * bajo un encabezado por asiento (JE · fecha · descripción), los abonos
+ * sangrados. El inventario aparece sólo como su cuenta; el detalle por
+ * insumo vive en Inventario. El mismo rango que el resumen, calculado aquí
+ * con la misma regla que el backend.
+ */
+function DiarySection({ period }: { period: PeriodOpt }) {
+  const { start, end } = periodBounds(period);
+  const journal = useBusinessQuery((a) => a.journal(DIARY_LIMIT, start, end), [start, end]);
+  const entries = journal.data ?? [];
   return (
-    <li className="rounded-2xl bg-white ring-1 ring-black/5">
-      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex w-full items-center gap-3 px-4 py-3 text-left">
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium">{ratio.label}</p>
-          <p className="text-xs text-muted">{ratio.available ? ratio.explanation : `Aún no aplica: ${ratio.reason}.`}</p>
-        </div>
-        <div className="flex shrink-0 flex-col items-end gap-1">
-          <span className="text-sm font-semibold tabular-nums">{ratioValue(ratio.value, ratio.unit)}</span>
-          <StatusPill status={ratio.status} />
-        </div>
-        <ChevronDown size={16} className={`shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
-      </button>
-      {open && (
-        <div className="border-t border-black/5 px-4 py-3 text-xs text-muted">
-          <p>
-            <span className="font-semibold text-ink">Cómo se calcula:</span> {ratio.formula}
+    <section className="mt-6 px-5">
+      <SectionTitle>Diario</SectionTitle>
+      {journal.loading && !journal.data && <LoadingState label="Leyendo el diario…" />}
+      {journal.error && <ErrorState error={journal.error} onRetry={journal.reload} />}
+      {journal.data && entries.length === 0 && <p className="text-sm text-muted">Sin asientos en este periodo.</p>}
+      {entries.length > 0 && (
+        <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-black/5">
+          {/* overflow-x-auto por si un importe muy largo no cabe: el marco del
+              celular nunca scrollea a lo ancho. Con anchos normales las cinco
+              columnas caben en los 322 px útiles y no hay que deslizar. */}
+          <div className="no-scrollbar overflow-x-auto">
+            <table className="w-full text-[11px]" data-testid="diary-table">
+              <thead>
+                <tr className="text-muted">
+                  <th className="px-2 py-2 text-left font-medium">Fecha</th>
+                  <th className="px-1 py-2 text-left font-medium">Concepto</th>
+                  <th className="px-1 py-2 text-left font-medium">Cuenta</th>
+                  <th className="px-1 py-2 text-right font-medium">Debe</th>
+                  <th className="px-2 py-2 text-right font-medium">Haber</th>
+                </tr>
+              </thead>
+              <tbody>
+                {entries.map((e: JournalEntry) => (
+                  <EntryRows key={e.entry_id} entry={e} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="border-t border-black/5 px-3 py-2 text-[11px] text-muted">
+            {entries.length >= DIARY_LIMIT ? `Los ${DIARY_LIMIT} asientos más recientes del periodo. ` : ""}
+            <Link to="/libros" className="font-semibold text-brand">
+              Ver todo en Libros
+            </Link>
           </p>
-          {Object.keys(ratio.inputs).length > 0 && (
-            <p className="mt-1">
-              {Object.entries(ratio.inputs)
-                .map(([k, v]) => `${k.replace(/_/g, " ")}: ${typeof v === "number" && k !== "days" ? formatMoney(v) : v}`)
-                .join(" · ")}
-            </p>
-          )}
-          <Link to="/educacion" className="mt-2 inline-block font-semibold text-brand">
-            Aprender qué significa
-          </Link>
         </div>
       )}
-    </li>
+    </section>
+  );
+}
+
+function EntryRows({ entry }: { entry: JournalEntry }) {
+  return (
+    <>
+      <tr className="border-t border-black/5 bg-tile/60">
+        <td colSpan={5} className="px-2 py-1.5 font-semibold text-ink">
+          JE-{String(entry.transaction_number).padStart(5, "0")} · {formatDate(entry.entry_date)} · {entry.description}
+          <span className="ml-1 font-normal text-muted">({SOURCE_LABELS[entry.source_type] ?? entry.source_type}{entry.is_adjusting ? " · ajuste" : ""})</span>
+        </td>
+      </tr>
+      {entry.lines.map((l) => (
+        <tr key={l.line_id} className="align-top">
+          <td className="w-11 px-2 py-1 whitespace-nowrap text-[10px] text-muted tabular-nums">{formatDate(entry.entry_date)}</td>
+          <td className="max-w-[4.5rem] truncate px-1 py-1 text-muted">{l.memo || SOURCE_LABELS[entry.source_type] || entry.source_type}</td>
+          {/* Los abonos van sangrados, como en el diario de Libros. */}
+          <td className={`max-w-[6.5rem] px-1 py-1 break-words ${l.credit > 0 ? "pl-4" : ""}`}>
+            <span className="mr-1 text-muted tabular-nums">{l.account_number}</span>
+            {l.account_name}
+          </td>
+          <td className="px-1 py-1 text-right whitespace-nowrap tabular-nums">{l.debit > 0 ? formatMoney(l.debit) : ""}</td>
+          <td className="px-2 py-1 text-right whitespace-nowrap tabular-nums">{l.credit > 0 ? formatMoney(l.credit) : ""}</td>
+        </tr>
+      ))}
+    </>
   );
 }

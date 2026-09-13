@@ -21,13 +21,27 @@ interface BusinessState {
   /** Cambia cada vez que algo financiero se modificó: las consultas lo usan como dependencia. */
   version: number;
   refresh: () => void;
+  /** "Más → Cerrar sesión": borra sesión, perfil local y transcripción, y vuelve a la bienvenida. */
+  logout: () => void;
+  /** "Más → Actualizar mi perfil": vuelve a la encuesta con la sesión actual. */
+  updateProfile: () => void;
 }
 
 const BusinessContext = createContext<BusinessState | null>(null);
 
-export function BusinessProvider({ session, profile, children }: { session: Session | null; profile: LocalProfile | null; children: ReactNode }) {
+interface BusinessProviderProps {
+  session: Session | null;
+  profile: LocalProfile | null;
+  onLogout?: () => void;
+  onUpdateProfile?: () => void;
+  children: ReactNode;
+}
+
+export function BusinessProvider({ session, profile, onLogout, onUpdateProfile, children }: BusinessProviderProps) {
   const [version, setVersion] = useState(0);
   const refresh = useCallback(() => setVersion((v) => v + 1), []);
+  const logout = useCallback(() => onLogout?.(), [onLogout]);
+  const updateProfile = useCallback(() => onUpdateProfile?.(), [onUpdateProfile]);
   const value = useMemo<BusinessState>(
     () => ({
       session,
@@ -37,8 +51,10 @@ export function BusinessProvider({ session, profile, children }: { session: Sess
       profile,
       version,
       refresh,
+      logout,
+      updateProfile,
     }),
-    [session, profile, version, refresh],
+    [session, profile, version, refresh, logout, updateProfile],
   );
   return <BusinessContext.Provider value={value}>{children}</BusinessContext.Provider>;
 }

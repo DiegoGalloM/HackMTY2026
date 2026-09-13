@@ -1,14 +1,22 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
-import { formatDate, formatMoney } from "../api/format";
-import type { JournalEntry, StatementRow } from "../api/types";
+import { formatDate, formatMoney, ratioValue } from "../api/format";
+import type { JournalEntry, Ratio, StatementRow } from "../api/types";
 import { useBusiness } from "../business/BusinessContext";
 import { useBusinessQuery } from "../business/useAsync";
 import Screen from "../components/Screen";
 import { Card, ErrorState, LoadingState, NoSessionState, Notice, Segmented, StatusPill } from "../components/ui";
 
-type Tab = "resultados" | "balance" | "diario" | "balanza";
+type Tab = "resultados" | "balance" | "diario" | "balanza" | "indicadores";
 type PeriodOpt = "month" | "last_month" | "30d" | "all";
+
+const GROUPS: { key: Ratio["group"]; label: string }[] = [
+  { key: "liquidez", label: "Liquidez: ¿puedes pagar lo que debes pronto?" },
+  { key: "rentabilidad", label: "Rentabilidad: ¿te queda ganancia?" },
+  { key: "eficiencia", label: "Inventario: ¿tu dinero se mueve?" },
+  { key: "apalancamiento", label: "Deuda: ¿de quién es el negocio?" },
+];
 
 const PERIODS: { value: PeriodOpt; label: string }[] = [
   { value: "month", label: "Este mes" },
@@ -25,6 +33,7 @@ const SOURCE_LABELS: Record<string, string> = {
   INVENTORY_ADJUSTMENT: "Ajuste de inventario",
   ADJUSTMENT: "Ajuste",
   OWNER_CONTRIBUTION: "Aportación",
+  OWNER_DRAW: "Retiro",
   EXPENSE_PAID: "Gasto pagado",
   MANUAL_RECEIPT: "Entrada manual",
 };
@@ -50,7 +59,9 @@ export default function Libros() {
   return (
     <Screen title="Libros">
       <div className="px-5">
+        {/* Cinco pestañas no caben en 362 px: la fila se desliza. */}
         <Segmented
+          scroll
           value={tab}
           onChange={setTab}
           options={[
@@ -58,6 +69,7 @@ export default function Libros() {
             { value: "balance", label: "Balance" },
             { value: "diario", label: "Diario" },
             { value: "balanza", label: "Balanza" },
+            { value: "indicadores", label: "Indicadores" },
           ]}
         />
       </div>
@@ -66,6 +78,7 @@ export default function Libros() {
         {tab === "balance" && <BalanceTab adjusted={adjusted} />}
         {tab === "diario" && <JournalTab />}
         {tab === "balanza" && <TrialBalanceTab adjusted={adjusted} setAdjusted={setAdjusted} />}
+        {tab === "indicadores" && <RatiosTab period={period} setPeriod={setPeriod} />}
       </div>
     </Screen>
   );
@@ -272,5 +285,70 @@ function TrialBalanceTab({ adjusted, setAdjusted }: { adjusted: boolean; setAdju
         </Card>
       )}
     </div>
+  );
+}
+
+/** Las razones financieras explicadas, agrupadas por pregunta de negocio. */
+function RatiosTab({ period, setPeriod }: { period: PeriodOpt; setPeriod: (p: PeriodOpt) => void }) {
+  const q = useBusinessQuery((a) => a.ratios(period), [period]);
+  return (
+    <div className="px-5">
+      <Segmented value={period} onChange={setPeriod} options={PERIODS} />
+      {q.loading && !q.data && <LoadingState label="Calculando con tus libros…" />}
+      {q.error && <ErrorState error={q.error} onRetry={q.reload} />}
+      {q.data && (
+        <div className="mt-3 space-y-4" data-testid="ratios">
+          <p className="text-xs text-muted">Indicadores {q.data.period.label}. Toca uno para ver cómo se calcula con tus cifras.</p>
+          {GROUPS.map((g) => (
+            <div key={g.key}>
+              <p className="mb-2 text-xs font-semibold">{g.label}</p>
+              <ul className="space-y-2">
+                {q.data!.ratios
+                  .filter((r) => r.group === g.key)
+                  .map((r) => (
+                    <RatioRow key={r.key} ratio={r} />
+                  ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RatioRow({ ratio }: { ratio: Ratio }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <li className="rounded-2xl bg-white ring-1 ring-black/5">
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex w-full items-center gap-3 px-4 py-3 text-left">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium">{ratio.label}</p>
+          <p className="text-xs text-muted">{ratio.available ? ratio.explanation : `Aún no aplica: ${ratio.reason}.`}</p>
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <span className="text-sm font-semibold tabular-nums">{ratioValue(ratio.value, ratio.unit)}</span>
+          <StatusPill status={ratio.status} />
+        </div>
+        <ChevronDown size={16} className={`shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
+      </button>
+      {open && (
+        <div className="border-t border-black/5 px-4 py-3 text-xs text-muted">
+          <p>
+            <span className="font-semibold text-ink">Cómo se calcula:</span> {ratio.formula}
+          </p>
+          {Object.keys(ratio.inputs).length > 0 && (
+            <p className="mt-1">
+              {Object.entries(ratio.inputs)
+                .map(([k, v]) => `${k.replace(/_/g, " ")}: ${typeof v === "number" && k !== "days" ? formatMoney(v) : v}`)
+                .join(" · ")}
+            </p>
+          )}
+          <Link to="/educacion" className="mt-2 inline-block font-semibold text-brand">
+            Aprender qué significa
+          </Link>
+        </div>
+      )}
+    </li>
   );
 }

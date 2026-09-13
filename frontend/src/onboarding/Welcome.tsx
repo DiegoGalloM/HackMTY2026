@@ -1,18 +1,61 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, ChartNoAxesCombined, Check, Sparkles } from "lucide-react";
+import { AnimatePresence } from "framer-motion";
+import { ArrowLeft, ArrowRight, ChartNoAxesCombined, Check, ChevronRight, Croissant, Scissors, Sparkles } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import type { DemoBusinessKey } from "../api/types";
 import CreditCardTile from "../components/CreditCardTile";
 import CapitalOneLogo from "../components/CapitalOneLogo";
+import BottomSheet from "../components/BottomSheet";
 import LoginForm from "../auth/LoginForm";
 import RegisterForm from "../auth/RegisterForm";
 import type { Session } from "../auth/session";
+import type { LocalProfile } from "../business/BusinessContext";
 import "./entry.css";
 
 interface WelcomeProps {
   /** Se llama con la sesión ya creada por /auth/register o /auth/login. */
-  onAuthenticated: (session: Session) => void;
-  /** Camino sin cuenta: la demo abierta, que no toca endpoints protegidos. */
-  onExplore: () => void;
+  onAuthenticated: (session: Session) => void | Promise<void>;
+  /** Camino sin cuenta: la demo abierta con el negocio elegido. */
+  onExplore: (business: DemoBusinessKey) => void;
 }
+
+interface DemoBusinessCard {
+  key: DemoBusinessKey;
+  name: string;
+  place: string;
+  category: NonNullable<LocalProfile["category"]>;
+  categoryLabel: string;
+  /** Qué demuestra este negocio, en una línea. */
+  shows: string;
+  icon: LucideIcon;
+  /** Respuestas de la encuesta guardadas en el backend para este negocio
+   * (deciden la lección de Cash Insight en Cuenta). Espejo de demo.py. */
+  answers: LocalProfile["answers"];
+}
+
+/** Los negocios de ejemplo del backend (backend/app/finance/demo.py). */
+export const DEMO_BUSINESSES: Record<DemoBusinessKey, DemoBusinessCard> = {
+  panaderia: {
+    key: "panaderia",
+    name: "Panadería La Espiga",
+    place: "Austin, TX",
+    category: "comida",
+    categoryLabel: "comida",
+    shows: "Productos con receta, inventario perecedero y compras al mayoreo con ticket.",
+    icon: Croissant,
+    answers: { guarda_inventario: true, se_ha_quedado_sin_stock: true, compra_mayoreo: true },
+  },
+  estetica: {
+    key: "estetica",
+    name: "Estética Carolina",
+    place: "Monterrey, MX",
+    category: "belleza",
+    categoryLabel: "belleza",
+    shows: "Servicios que consumen insumos, venta de producto y cifras en pesos.",
+    icon: Scissors,
+    answers: { vende_producto_fisico: true, guarda_inventario: false, compra_mayoreo: false, se_ha_quedado_sin_stock: false, compro_de_mas: false, vende_en_local_fijo: true, usa_insumos_belleza: true, vende_retail: true },
+  },
+};
 
 const steps = ["Cuéntanos de ti", "Construye tu perfil", "Da el siguiente paso"];
 
@@ -23,6 +66,7 @@ const steps = ["Cuéntanos de ti", "Construye tu perfil", "Da el siguiente paso"
  */
 export default function Welcome({ onAuthenticated, onExplore }: WelcomeProps) {
   const [mode, setMode] = useState<"welcome" | "register" | "login">("welcome");
+  const [picking, setPicking] = useState(false);
   const page = useRef<HTMLDivElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const previousMode = useRef(mode);
@@ -100,8 +144,40 @@ export default function Welcome({ onAuthenticated, onExplore }: WelcomeProps) {
         <ol aria-label="Cómo funciona">
           {steps.map((label, index) => <li key={label}><span>0{index + 1}</span>{label}</li>)}
         </ol>
-        <button onClick={onExplore}>Explorar la demo <ArrowRight size={14} aria-hidden /></button>
+        <button onClick={() => setPicking(true)}>Explorar la demo <ArrowRight size={14} aria-hidden /></button>
       </footer>
+
+      {/* Un toque más: elegir qué negocio de ejemplo explorar. */}
+      <AnimatePresence>
+        {picking && (
+          <BottomSheet label="Elige un negocio de ejemplo" onDismiss={() => setPicking(false)}>
+            <h2 className="mt-3 text-lg font-semibold tracking-tight text-ink">¿Qué negocio quieres explorar?</h2>
+            <p className="mt-1 text-xs text-muted">Los dos usan el mismo motor: otro giro, otro país y otro catálogo de cuentas.</p>
+            <ul className="mt-4 space-y-2">
+              {Object.values(DEMO_BUSINESSES).map((b) => {
+                const Icon = b.icon;
+                return (
+                  <li key={b.key}>
+                    <button
+                      type="button"
+                      onClick={() => { setPicking(false); onExplore(b.key); }}
+                      className="flex w-full items-center gap-3 rounded-2xl bg-surface px-4 py-3 text-left ring-1 ring-black/5"
+                    >
+                      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand/10 text-brand"><Icon size={20} aria-hidden /></span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-semibold text-ink">{b.name}</span>
+                        <span className="block text-[11px] text-muted">{b.place} · {b.categoryLabel}</span>
+                        <span className="mt-1 block text-xs text-ink/80">{b.shows}</span>
+                      </span>
+                      <ChevronRight size={16} className="shrink-0 text-muted" aria-hidden />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </BottomSheet>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

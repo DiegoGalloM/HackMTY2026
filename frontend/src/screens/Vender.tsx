@@ -254,8 +254,8 @@ function OrderSheet({ api, order: initial, onClose, onPaid }: { api: BusinessApi
             <Button variant="secondary" onClick={onClose} className="flex-1">
               Nueva venta
             </Button>
-            <Button onClick={() => navigate("/analisis")} className="flex-1">
-              Ver análisis
+            <Button onClick={() => navigate("/resumen")} className="flex-1">
+              Ver resumen
             </Button>
           </div>
         </div>
@@ -351,7 +351,7 @@ function NewItemSheet({ api, onClose, onCreated }: { api: BusinessApi; onClose: 
           <input className={inputClass} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ej. Pastel de chocolate" />
         </Field>
         <div className="grid grid-cols-3 gap-2">
-          <Field label="Precio (USD)">
+          <Field label="Precio">
             <input className={inputClass} inputMode="decimal" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="25" />
           </Field>
           <Field label="Impuesto %">

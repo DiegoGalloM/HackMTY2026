@@ -56,7 +56,7 @@ export const quickActions: QuickAction[] = [
     label: "Asistente",
     caption: "Pregúntale a tu negocio",
     icon: "assistant",
-    to: "/asistente",
+    to: "/analisis",
   },
   {
     id: "qa_education",

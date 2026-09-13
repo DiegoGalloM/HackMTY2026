@@ -29,12 +29,19 @@ export const AUTH_SUCCESS = {
 export const AUTH_ROUTE = /\/auth\/(register|login|me)\b/;
 export const REGISTER_ROUTE = /\/auth\/register\b/;
 export const LOGIN_ROUTE = /\/auth\/login\b/;
+/** GET /business-profile/{owner_id}: el perfil guardado (o null). */
+export const PROFILE_ROUTE = /\/business-profile\/[^/?]+$/;
 
 /**
  * Intercepta /auth/* para que la suite siga siendo hermetica: no hace falta
  * backend ni base de datos para recorrer el registro o el login.
+ *
+ * También responde el GET del perfil que la app hace después de cualquier
+ * login o registro: con `profile` null (el default) la cuenta es nueva y la
+ * app manda a la encuesta. Los POST del perfil se dejan pasar (fallback) a
+ * los handlers que cada test registre.
  */
-export async function stubAuth(page: Page, body: unknown = AUTH_SUCCESS) {
+export async function stubAuth(page: Page, body: unknown = AUTH_SUCCESS, { profile = null }: { profile?: unknown } = {}) {
   await page.route(AUTH_ROUTE, (route) =>
     route.fulfill({
       // El contrato: 201 al registrar, 200 al iniciar sesión.
@@ -43,6 +50,29 @@ export async function stubAuth(page: Page, body: unknown = AUTH_SUCCESS) {
       body: JSON.stringify(body),
     }),
   );
+  await page.route(PROFILE_ROUTE, (route) => {
+    if (route.request().method() !== "GET") return route.fallback();
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(profile) });
+  });
+}
+
+/**
+ * Perfil con memoria: el POST de la encuesta lo guarda y el GET lo regresa,
+ * como hace el backend. Registrar DESPUÉS de stubAuth: en Playwright el último
+ * handler registrado es el que atiende primero.
+ */
+export async function stubProfileStore(page: Page) {
+  const store: { saved: unknown | null; posts: unknown[] } = { saved: null, posts: [] };
+  await page.route(PROFILE_ROUTE, (route) => {
+    const request = route.request();
+    if (request.method() === "POST") {
+      store.saved = request.postDataJSON();
+      store.posts.push(store.saved);
+      return route.fulfill({ status: 200, contentType: "application/json", body: '{"status":"ok"}' });
+    }
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(store.saved) });
+  });
+  return store;
 }
 
 /**
@@ -162,6 +192,11 @@ export class OnboardingPage {
   /** Camino completo hasta justo después de mandar el POST. */
   async completeSurvey({ city = "Monterrey" }: { city?: string } = {}) {
     await this.goto();
+    await this.fillSurvey({ city });
+  }
+
+  /** Sólo los pasos de la encuesta (ya en "Selecciona tu modelo de negocio"). */
+  async fillSurvey({ city = "Monterrey" }: { city?: string } = {}) {
     await this.pickCategory("Comida y bebidas");
     await this.answerAllQuestions("Sí");
     await this.describeWeekAsText("Los lunes recibo mercancía y los fines de semana vendo más.");

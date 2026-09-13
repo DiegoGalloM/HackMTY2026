@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { BookOpen, Database, SendHorizontal, Sparkles } from "lucide-react";
-import type { AssistantAnswer } from "../api/types";
+import { Link } from "react-router-dom";
+import { BarChart3, BookOpen, Database, SendHorizontal, Sparkles } from "lucide-react";
+import { formatMoney } from "../api/format";
+import type { AssistantAnswer, AttentionItem, Health } from "../api/types";
 import { useBusiness } from "../business/BusinessContext";
+import { useBusinessQuery } from "../business/useAsync";
 import Screen from "../components/Screen";
-import { NoSessionState } from "../components/ui";
+import { NoSessionState, StatusPill } from "../components/ui";
 
 interface Message {
   id: number;
@@ -14,15 +17,39 @@ interface Message {
 }
 
 const STARTERS = ["¿Cómo van mis ventas esta semana?", "¿Cómo está mi liquidez?", "¿Por qué bajó mi utilidad este mes?", "¿Qué insumo se me va a acabar primero?", "¿Qué es el capital de trabajo?"];
+const CONCEPT_STARTERS = ["¿Qué es el capital de trabajo?", "¿Qué es el margen bruto?", "¿Qué es la liquidez?", "¿Cómo se calcula la razón circulante?"];
 
-/** "Pregúntale lo que sea a tu negocio": respuestas con evidencia de tus datos. */
+/** Cada punto de atención se vuelve una pregunta que el asistente sabe enrutar. */
+const ATTENTION_QUESTIONS: Record<string, string> = {
+  cash: "¿Cómo está mi caja?",
+  margin: "¿Cómo va mi margen este mes?",
+  stock: "¿Qué insumo se me va a acabar primero?",
+  overstock: "¿Cuánto inventario tengo?",
+  review: "¿Cuánto gasté con la tarjeta este mes?",
+  profit_drop: "¿Por qué bajó mi utilidad este mes?",
+};
+
+const questionFor = (a: AttentionItem) => ATTENTION_QUESTIONS[a.id] ?? `¿Qué pasa con esto: ${a.title.toLowerCase()}?`;
+
+/**
+ * "Pregúntale lo que sea a tu negocio". Es la pantalla del botón central
+ * (Análisis): primero la conversación, con un resumen de apertura calculado
+ * por el backend; los datos completos quedan un toque más allá (Ver resumen).
+ *
+ * Cada pregunta es independiente: el asistente no guarda conversación y la
+ * transcripción vive sólo mientras la pantalla esté montada.
+ */
 export default function Asistente() {
   const { api, businessName } = useBusiness();
   const [messages, setMessages] = useState<Message[]>([]);
+  const [suggestions, setSuggestions] = useState<string[]>(STARTERS);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [suggestions, setSuggestions] = useState<string[]>(STARTERS);
   const bottom = useRef<HTMLDivElement>(null);
+  // El resumen de apertura sólo hace falta con la conversación vacía; con
+  // mensajes no se pide (y si falla, la charla sigue con la bienvenida fija).
+  const empty = messages.length === 0;
+  const health = useBusinessQuery<Health | null>((a) => (empty ? a.health("week") : Promise.resolve({ ok: true, data: null })), [empty]);
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -30,7 +57,7 @@ export default function Asistente() {
 
   if (!api) {
     return (
-      <Screen title="Asistente">
+      <Screen title="Análisis">
         <NoSessionState />
       </Screen>
     );
@@ -52,23 +79,26 @@ export default function Asistente() {
     }
   };
 
+  const brief = empty && health.data ? buildBrief(health.data) : null;
+  const chips = brief ? brief.chips : suggestions;
+
   return (
     <Screen>
       <header className="px-5 pt-8">
-        <p className="text-xs font-semibold tracking-wide text-muted uppercase">Asistente</p>
-        <h1 className="text-2xl font-semibold tracking-tight">Pregúntale a {businessName}</h1>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold tracking-wide text-muted uppercase">Análisis</p>
+            <h1 className="text-2xl font-semibold tracking-tight">Pregúntale a {businessName}</h1>
+          </div>
+          <Link to="/resumen" className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full bg-tile px-3 text-xs font-semibold text-ink">
+            <BarChart3 size={14} aria-hidden /> Ver resumen
+          </Link>
+        </div>
         <p className="mt-1 text-xs text-muted">Responde con tus ventas, inventario y libros reales. Te muestra de dónde salió cada número.</p>
       </header>
 
       <div className="mt-4 space-y-3 px-5" aria-live="polite">
-        {messages.length === 0 && (
-          <div className="rounded-2xl bg-white px-4 py-4 text-sm ring-1 ring-black/5">
-            <p className="flex items-center gap-2 font-semibold">
-              <Sparkles size={16} className="text-brand" aria-hidden /> Hola. ¿Qué quieres saber de tu negocio?
-            </p>
-            <p className="mt-1 text-xs text-muted">Puedes preguntar por ventas, ganancia, inventario, caja, gastos, clientes o qué significa un término.</p>
-          </div>
-        )}
+        {empty && (brief ? <BriefCard brief={brief} /> : <WelcomeCard loading={health.loading} />)}
         {messages.map((m) => (
           <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
             <div className={`max-w-[88%] rounded-2xl px-4 py-3 text-sm ${m.role === "user" ? "bg-brand text-white" : m.error ? "bg-accent/10 text-ink" : "bg-white text-ink ring-1 ring-black/5"}`} role={m.error ? "alert" : undefined}>
@@ -115,8 +145,8 @@ export default function Asistente() {
       </div>
 
       <div className="mt-4 px-5">
-        <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Sugerencias">
-          {suggestions.map((s) => (
+        <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1" aria-label="Sugerencias">
+          {chips.map((s) => (
             <button key={s} type="button" onClick={() => ask(s)} disabled={busy} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-medium ring-1 ring-black/10 disabled:opacity-50">
               {s}
             </button>
@@ -136,5 +166,84 @@ export default function Asistente() {
         </form>
       </div>
     </Screen>
+  );
+}
+
+// ------------------------------------------------------ resumen de apertura --
+
+interface Brief {
+  noSales: boolean;
+  headline: string;
+  status: Health["cash"]["status"];
+  sales: string;
+  attention: AttentionItem[];
+  chips: string[];
+}
+
+/** Primer mensaje del asistente, calculado en el cliente a partir del panel
+ * de salud (cero llamadas al LLM): el estado de la caja, las ventas de la
+ * semana y cada punto de atención en una línea, con su pregunta lista. */
+function buildBrief(h: Health): Brief {
+  const noSales = h.revenue.value === 0 && h.orders.value === 0;
+  const attentionChips = h.attention.map(questionFor);
+  const chips = noSales ? CONCEPT_STARTERS : [...new Set([...attentionChips, ...STARTERS])].slice(0, 7);
+  return {
+    noSales,
+    headline: h.cash.headline,
+    status: h.cash.status,
+    sales: `${formatMoney(h.revenue.value)} en ${h.orders.value} ${h.orders.value === 1 ? "venta" : "ventas"} ${h.period.label}`,
+    attention: h.attention,
+    chips,
+  };
+}
+
+function BriefCard({ brief }: { brief: Brief }) {
+  return (
+    <div className="rounded-2xl bg-white px-4 py-4 text-sm ring-1 ring-black/5" data-testid="opening-brief">
+      <p className="flex items-center gap-2 font-semibold">
+        <Sparkles size={16} className="text-brand" aria-hidden /> Así va tu negocio hoy
+      </p>
+      {brief.noSales ? (
+        <p className="mt-2 text-xs text-muted">
+          Todavía no hay ventas registradas. En cuanto cobres con QR desde{" "}
+          <Link to="/vender" className="font-semibold text-brand">
+            Vender
+          </Link>
+          , aquí verás cómo va el negocio. Mientras, pregúntame qué significa cualquier término.
+        </p>
+      ) : (
+        <>
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <p className="font-medium">{brief.headline}</p>
+            <StatusPill status={brief.status} />
+          </div>
+          <p className="mt-1 text-xs text-muted">Ventas: {brief.sales}.</p>
+          {brief.attention.length > 0 && (
+            <ul className="mt-3 space-y-1.5 border-t border-black/5 pt-3">
+              {brief.attention.map((a) => (
+                <li key={a.id} className="flex items-start gap-2 text-xs">
+                  <StatusPill status={a.severity} />
+                  <span>
+                    <span className="font-semibold">{a.title}.</span> <span className="text-muted">{a.body}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="mt-3 text-xs text-muted">Toca un tema abajo o escribe tu pregunta.</p>
+        </>
+      )}
+    </div>
+  );
+}
+
+function WelcomeCard({ loading }: { loading: boolean }) {
+  return (
+    <div className="rounded-2xl bg-white px-4 py-4 text-sm ring-1 ring-black/5">
+      <p className="flex items-center gap-2 font-semibold">
+        <Sparkles size={16} className="text-brand" aria-hidden /> Hola. ¿Qué quieres saber de tu negocio?
+      </p>
+      <p className="mt-1 text-xs text-muted">{loading ? "Revisando tus números de la semana…" : "Puedes preguntar por ventas, ganancia, inventario, caja, gastos, clientes o qué significa un término."}</p>
+    </div>
   );
 }

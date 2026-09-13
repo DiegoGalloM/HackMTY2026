@@ -207,7 +207,7 @@ function InventorySheet({ api, sheet, onClose, onDone }: { api: BusinessApi; she
             <Field label={sheet.kind === "new" ? "Cantidad inicial" : "Cantidad recibida"}>
               <input className={inputClass} inputMode="decimal" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} placeholder="0" />
             </Field>
-            <Field label="Costo por unidad (USD)">
+            <Field label="Costo por unidad">
               <input className={inputClass} inputMode="decimal" value={form.cost} onChange={(e) => setForm({ ...form, cost: e.target.value })} placeholder="0.00" />
             </Field>
           </div>

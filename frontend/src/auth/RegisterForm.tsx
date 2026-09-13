@@ -5,7 +5,8 @@ import { PASSWORD_RULES, checkPassword, describePasswordProblem } from "./passwo
 import type { Session } from "./session";
 
 interface RegisterFormProps {
-  onAuthenticated: (session: Session) => void;
+  /** Puede ser asíncrono: el formulario sigue ocupado mientras la app decide a dónde entrar. */
+  onAuthenticated: (session: Session) => void | Promise<void>;
   onSwitchToLogin: () => void;
 }
 
@@ -119,7 +120,7 @@ export default function RegisterForm({ onAuthenticated, onSwitchToLogin }: Regis
 
     if (result.ok) {
       // No se limpia nada: Welcome desmonta esta pantalla al avanzar.
-      onAuthenticated(result.session);
+      await onAuthenticated(result.session);
       return;
     }
 

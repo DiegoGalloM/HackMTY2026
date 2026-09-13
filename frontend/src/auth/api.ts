@@ -4,6 +4,7 @@ import { describePasswordProblem } from "./passwordPolicy";
 import { sessionFromAuth, type Session, type UserPublic } from "./session";
 
 // La URL del backend vive en api/config.ts (VITE_API_URL o el local de cada quien).
+import { apiFetch, type ApiResult } from "../api/client";
 import { API_BASE } from "../api/config";
 
 export interface RegisterInput {
@@ -41,6 +42,27 @@ export interface AuthFailure {
 }
 
 export type AuthResult = { ok: true; session: Session } | AuthFailure;
+
+/** El perfil del onboarding tal como lo guarda el backend (BusinessProfile). */
+export interface BusinessProfile {
+  category: string;
+  category_detail: string | null;
+  operating_days: string[];
+  city: string;
+  employees: string | null;
+  answers: Record<string, boolean>;
+  week_description_mode: string | null;
+  week_description_text: string | null;
+}
+
+/**
+ * GET /business-profile/{ownerId}: el perfil guardado, o null si la cuenta
+ * todavía no terminó la encuesta. Es lo que decide, después de cualquier
+ * login o registro, si se entra a la app o a la encuesta.
+ */
+export function getProfile(ownerId: string, token: string): Promise<ApiResult<BusinessProfile | null>> {
+  return apiFetch<BusinessProfile | null>(`/business-profile/${encodeURIComponent(ownerId)}`, { token });
+}
 export type MeResult = { ok: true; user: UserPublic } | AuthFailure;
 
 export const NETWORK_MESSAGE = "No se pudo conectar con el servidor. Revisa tu conexión y vuelve a intentar.";
