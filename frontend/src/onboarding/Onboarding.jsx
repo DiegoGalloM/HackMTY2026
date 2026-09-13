@@ -1,6 +1,7 @@
 // frontend/src/onboarding/Onboarding.jsx
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Bubble, BubbleGrid } from "./Bubble.jsx";
+import { ArrowLeft, ArrowRight, Check, CircleAlert, MapPin, Mic, Pencil, Scissors, Sparkles, Square, Store, Truck, Utensils, Wrench, HardHat, X } from "lucide-react";
+import SurveyLayout from "./SurveyLayout.jsx";
 import { CATEGORIES, UNIVERSAL_QUESTIONS, CATEGORY_QUESTIONS, WEEKDAYS, EMPLOYEE_OPTIONS } from "./questions.js";
 
 // Por default apunta al backend local de cada quien. Para usar un backend
@@ -35,6 +36,7 @@ export default function Onboarding({ ownerId = "demo-owner", token = "", onCompl
   const [locationError, setLocationError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
 
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
@@ -222,7 +224,8 @@ export default function Onboarding({ ownerId = "demo-owner", token = "", onCompl
         aria-label={step === "questions" ? "Volver a la pregunta anterior" : "Volver al paso anterior"}>
         <ArrowLeft size={16} aria-hidden /> Atrás
       </button>
-    </Screen>
+      {onNext && <button type="button" className="entry-primary" onClick={onNext} disabled={disabled || submitting}>{label}<ArrowRight size={16} aria-hidden /></button>}
+    </div>
   );
 
   // El nombre se queda en el cliente: solo alimenta el saludo de la app y el
@@ -294,7 +297,8 @@ export default function Onboarding({ ownerId = "demo-owner", token = "", onCompl
           {recording ? <Square size={24} aria-hidden /> : <Mic size={28} aria-hidden />}
         </button>
       </div>
-      <p className="survey-auto-note" role="status">{days.length ? `${days.length} ${days.length === 1 ? "día seleccionado" : "días seleccionados"}` : "Puedes elegir más de uno."}</p>
+        }
+        <p className="survey-auto-note" role="status">{days.length ? `${days.length} ${days.length === 1 ? "día seleccionado" : "días seleccionados"}` : "Puedes elegir más de uno."}</p>
       {controls(() => goToStep("employees"), "Continuar", days.length === 0)}
     </>;
   } else if (step === "employees") {
@@ -330,6 +334,9 @@ export default function Onboarding({ ownerId = "demo-owner", token = "", onCompl
     </>;
   }
 
+  return <SurveyLayout section={section} progress={progress} stepKey={`${step}-${questionIndex}`} title={title} description={description} kicker={kicker} onExit={onExit} busy={submitting} active={active}>{content}</SurveyLayout>;
+
+  /*
       {weekMode === "text" ? (
         <textarea
           className="ob-textarea"
@@ -417,6 +424,7 @@ export default function Onboarding({ ownerId = "demo-owner", token = "", onCompl
       </button>
     </Screen>
   );
+  */
 }
 
 function Screen({ children, transitionKey }) {
