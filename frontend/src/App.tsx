@@ -3,6 +3,7 @@ import { AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import BottomNav from "./components/BottomNav";
 import Analisis from "./screens/Analisis";
+import CobroEfectivo from "./screens/CobroEfectivo";
 import Cuenta from "./screens/Cuenta";
 import Educacion from "./screens/Educacion";
 import Mas from "./screens/Mas";
@@ -38,6 +39,7 @@ function MainApp({ profile }: { profile: BusinessProfile | null }) {
           <Route path="/retiros" element={<Retiros />} />
           <Route path="/transferencias" element={<Transferencias />} />
           <Route path="/analisis" element={<Analisis />} />
+          <Route path="/cobro-efectivo" element={<CobroEfectivo />} />
           <Route path="/pagos" element={<Pagos />} />
           <Route path="/educacion" element={<Educacion profile={profile} />} />
           <Route path="/mas" element={<Mas />} />
