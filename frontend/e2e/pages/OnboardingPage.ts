@@ -26,7 +26,19 @@ export class OnboardingPage {
     await this.page.getByRole("button", { name: "Empezar" }).click();
     await this.page.getByRole("button", { name: "Registrarme", exact: true }).click();
     await this.page.getByRole("button", { name: "Comenzar mi encuesta" }).click();
+    await this.fillName();
     await expect(this.page.getByRole("heading", { name: "Selecciona tu modelo de negocio" })).toBeVisible();
+  }
+
+  /**
+   * Primer paso de la encuesta: nombre y apellidos. Los apellidos son
+   * opcionales en la app, pero se llenan aquí porque son los que terminan
+   * impresos en el reverso de la tarjeta.
+   */
+  async fillName({ name = "Carlos Alberto", lastName = "Tabares Quiroz" } = {}) {
+    await this.page.getByRole("textbox", { name: /Tu nombre/ }).fill(name);
+    await this.page.getByRole("textbox", { name: /Tus apellidos/ }).fill(lastName);
+    await this.page.getByRole("button", { name: "Continuar" }).click();
   }
 
   async pickCategory(label: string) {

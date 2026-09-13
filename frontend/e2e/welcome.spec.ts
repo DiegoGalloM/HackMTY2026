@@ -14,7 +14,10 @@ test("la bienvenida aparece tras la landing y ambos accesos demo llevan a la enc
   await expect(page.getByRole("heading", { name: "Qué bueno verte de nuevo." })).toBeFocused();
   await expect(page.getByText(/No se crea una cuenta real/)).toBeVisible();
   await page.getByRole("button", { name: "Continuar a mi encuesta" }).click();
-  await expect(page.getByRole("heading", { name: "Selecciona tu modelo de negocio" })).toBeFocused();
+  // La encuesta empieza pidiendo el nombre; el modelo de negocio viene después.
+  await expect(page.getByRole("heading", { name: "¿Cómo te llamas?" })).toBeFocused();
+  await new OnboardingPage(page).fillName();
+  await expect(page.getByRole("heading", { name: "Selecciona tu modelo de negocio" })).toBeVisible();
   await page.getByRole("button", { name: "Ir al inicio" }).click();
   await page.getByRole("button", { name: "Registrarme", exact: true }).click();
   await page.getByRole("button", { name: "Comenzar mi encuesta" }).click();
@@ -61,6 +64,7 @@ test("tarjeta y encuesta caben en pantallas pequeñas y a 200% de texto", async 
   await page.getByRole("button", { name: "Comenzar mi encuesta" }).click();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
   expect(overflow).toBe(false);
+  await new OnboardingPage(page).fillName();
   await page.addStyleTag({ content: ".survey-step-body h1 { font-size: 50px; }" });
   await expect(page.getByRole("button", { name: "Otro", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Otro", exact: true }).click();
