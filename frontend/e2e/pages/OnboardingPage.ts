@@ -1,6 +1,51 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
 /**
+ * Datos de la cuenta de prueba. Viven aqui (y no en cada spec) para que el
+ * token que stubeamos en /auth sea el mismo que después verificamos en el
+ * header Authorization del POST de la encuesta.
+ */
+export const AUTH_TOKEN = "e2e-token-abc123";
+export const AUTH_PASSWORD = "TacosDelBarrio26";
+export const AUTH_USER = {
+  user_id: "usr_e2e_0001",
+  username: "donbeto",
+  business_name: "Tacos Don Beto",
+  full_name: "Beto Ramirez",
+  birthdate: "1990-05-04",
+};
+export const AUTH_SUCCESS = {
+  access_token: AUTH_TOKEN,
+  token_type: "bearer",
+  expires_in: 3600,
+  user: AUTH_USER,
+};
+
+// Endpoints de auth del backend.
+//
+// Van como RegExp y NO como glob de comodines sobre /auth/: el propio codigo de
+// la app se sirve desde /src/auth/ en el dev server, asi que un glob amplio
+// interceptaba los modulos del front y la pantalla se quedaba en blanco.
+export const AUTH_ROUTE = /\/auth\/(register|login|me)\b/;
+export const REGISTER_ROUTE = /\/auth\/register\b/;
+export const LOGIN_ROUTE = /\/auth\/login\b/;
+
+/**
+ * Intercepta /auth/* para que la suite siga siendo hermetica: no hace falta
+ * backend ni base de datos para recorrer el registro o el login.
+ */
+export async function stubAuth(page: Page, body: unknown = AUTH_SUCCESS) {
+  await page.route(AUTH_ROUTE, (route) =>
+    route.fulfill({
+      // El contrato: 201 al registrar, 200 al iniciar sesión.
+      status: route.request().url().includes("/auth/register") ? 201 : 200,
+      contentType: "application/json",
+      body: JSON.stringify(body),
+    }),
+  );
+}
+
+/**
  * Page Object de la encuesta de onboarding.
  *
  * Los selectores van por texto visible / rol, no por clase CSS: las clases
@@ -20,12 +65,45 @@ export class OnboardingPage {
     this.weekTextarea = page.getByPlaceholder(/Los lunes recibo mercancía/);
   }
 
+  // --- registro / login -----------------------------------------------------
+  async fillRegisterForm(overrides: Partial<typeof AUTH_USER & { password: string }> = {}) {
+    const data = { ...AUTH_USER, password: AUTH_PASSWORD, ...overrides };
+    await this.page.getByLabel("Nombre de tu negocio").fill(data.business_name);
+    await this.page.getByLabel("Tu nombre completo").fill(data.full_name);
+    await this.page.getByLabel("Fecha de nacimiento").fill(data.birthdate);
+    await this.page.getByLabel("Usuario", { exact: true }).fill(data.username);
+    await this.page.getByLabel("Contraseña", { exact: true }).fill(data.password);
+    await this.page.getByLabel("Confirmar contraseña").fill(data.password);
+  }
+
+  get registerSubmit() {
+    return this.page.getByRole("button", { name: "Crear mi cuenta" });
+  }
+  get loginSubmit() {
+    return this.page.getByRole("button", { name: "Entrar a mi cuenta" });
+  }
+
+  /** Abre el formulario de registro desde la bienvenida y lo manda. */
+  async register(overrides?: Partial<typeof AUTH_USER & { password: string }>) {
+    await this.page.getByRole("button", { name: "Registrarme", exact: true }).click();
+    await this.fillRegisterForm(overrides);
+    await this.registerSubmit.click();
+  }
+
+  async login({ username = AUTH_USER.username, password = AUTH_PASSWORD } = {}) {
+    await this.page.getByLabel("Usuario", { exact: true }).fill(username);
+    await this.page.getByLabel("Contraseña", { exact: true }).fill(password);
+    await this.loginSubmit.click();
+  }
+
   async goto() {
+    // El stub va antes del goto: así ninguna petición real se escapa.
+    await stubAuth(this.page);
     await this.page.goto("/");
     // La app abre en la landing (logo animado + "Empezar"); la bienvenida es la segunda pantalla.
     await this.page.getByRole("button", { name: "Empezar" }).click();
-    await this.page.getByRole("button", { name: "Registrarme", exact: true }).click();
-    await this.page.getByRole("button", { name: "Comenzar mi encuesta" }).click();
+    // La encuesta ya exige cuenta: el camino real pasa por el registro.
+    await this.register();
     await expect(this.page.getByRole("heading", { name: "Selecciona tu modelo de negocio" })).toBeVisible();
   }
 
