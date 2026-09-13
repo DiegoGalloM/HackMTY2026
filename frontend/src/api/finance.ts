@@ -11,6 +11,7 @@ import type {
   ClassificationKind,
   ClassificationSuggestion,
   CustomerSummary,
+  DemoBusinessKey,
   Health,
   IncomeStatement,
   Insight,
@@ -62,7 +63,7 @@ export interface BusinessApi {
   attachReceipt(transactionId: string, items: (SampleReceiptItem & { create_inventory_item?: boolean })[]): Promise<ApiResult<CardTransaction>>;
   // libros
   accounts(): Promise<ApiResult<Account[]>>;
-  journal(limit?: number): Promise<ApiResult<JournalEntry[]>>;
+  journal(limit?: number, start?: string, end?: string): Promise<ApiResult<JournalEntry[]>>;
   ledger(): Promise<ApiResult<LedgerRow[]>>;
   trialBalance(adjusted: boolean): Promise<ApiResult<TrialBalance>>;
   incomeStatement(period: string, adjusted?: boolean): Promise<ApiResult<IncomeStatement>>;
@@ -77,7 +78,7 @@ export interface BusinessApi {
   ask(question: string): Promise<ApiResult<AssistantAnswer>>;
   assistantStatus(): Promise<ApiResult<{ llm_provider: string; llm_available: boolean }>>;
   // demo
-  seedDemo(reset?: boolean): Promise<ApiResult<{ seeded: boolean }>>;
+  seedDemo(reset?: boolean, business?: DemoBusinessKey): Promise<ApiResult<{ seeded: boolean }>>;
 }
 
 export function businessApi(ownerId: string, token: string): BusinessApi {
@@ -116,7 +117,7 @@ export function businessApi(ownerId: string, token: string): BusinessApi {
     sampleReceipt: (transactionId) => get(`/purchases/${transactionId}/receipt/sample`),
     attachReceipt: (transactionId, items) => post(`/purchases/${transactionId}/receipt`, { items, source: "sample" }),
     accounts: () => get("/books/accounts"),
-    journal: (limit = 100) => get(`/books/journal${q({ limit })}`),
+    journal: (limit = 100, start, end) => get(`/books/journal${q({ limit, start, end })}`),
     ledger: () => get("/books/ledger"),
     trialBalance: (adjusted) => get(`/books/trial-balance${q({ adjusted })}`),
     incomeStatement: (period, adjusted = true) => get(`/books/income-statement${q({ period, adjusted })}`),
@@ -126,9 +127,10 @@ export function businessApi(ownerId: string, token: string): BusinessApi {
     ratios: (period) => get(`/analytics/ratios${q({ period })}`),
     profitDrivers: (period) => get(`/analytics/profit-drivers${q({ period })}`),
     insights: () => get("/analytics/insights"),
+    // Cada pregunta viaja sola: el asistente no guarda conversación.
     ask: (question) => post("/assistant/ask", { question }),
     assistantStatus: () => get("/assistant/status"),
-    seedDemo: (reset = false) => post(`/demo/seed${q({ reset })}`),
+    seedDemo: (reset = false, business) => post(`/demo/seed${q({ reset, business })}`),
   };
 }
 
@@ -142,7 +144,7 @@ export function payCheckout(token: string, input: CheckoutPayInput = {}): Promis
   return apiFetch<CheckoutView>(`/pay/${encodeURIComponent(token)}`, { method: "POST", body: input });
 }
 
-/** Entra con el negocio de ejemplo (lo crea y lo siembra la primera vez). */
-export function demoSession(): Promise<ApiResult<{ access_token: string; expires_in: number; user: { user_id: string; username: string; business_name: string; full_name: string; birthdate: string } }>> {
-  return apiFetch("/demo/session", { method: "POST", body: {} });
+/** Entra con un negocio de ejemplo (lo crea y lo siembra la primera vez). */
+export function demoSession(business: DemoBusinessKey = "panaderia"): Promise<ApiResult<{ access_token: string; expires_in: number; user: { user_id: string; username: string; business_name: string; full_name: string; birthdate: string } }>> {
+  return apiFetch("/demo/session", { method: "POST", body: { business } });
 }

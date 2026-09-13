@@ -120,6 +120,7 @@ test("sin nombre la tarjeta dice USUARIO", async ({ page }) => {
   await page.route(/\/demo\/session\b/, (route) => route.abort("connectionrefused"));
   await goToWelcome(page);
   await page.getByRole("button", { name: /Explorar la demo/ }).click();
+  await page.getByRole("button", { name: /Panadería La Espiga/ }).click();
 
   await expect(page.getByText("Hola Usuario!")).toBeVisible();
   await page.getByRole("button", { name: /Ver los datos de la tarjeta/ }).click();

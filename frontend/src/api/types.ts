@@ -492,3 +492,7 @@ export interface AssistantAnswer {
   llm_used: boolean;
   llm_provider: string | null;
 }
+
+// ------------------------------------------------------------------ demo --
+
+export type DemoBusinessKey = "panaderia" | "estetica";

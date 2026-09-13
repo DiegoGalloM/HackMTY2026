@@ -153,9 +153,13 @@ export function Notice({ tone = "info", children }: { tone?: "info" | "success";
   );
 }
 
-export function Segmented<T extends string>({ value, options, onChange }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void }) {
+/**
+ * Pestañas en píldora. Con `scroll`, las opciones no se comprimen: la fila se
+ * desliza horizontalmente (para cinco pestañas en los 362 px del celular).
+ */
+export function Segmented<T extends string>({ value, options, onChange, scroll = false }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void; scroll?: boolean }) {
   return (
-    <div className="flex rounded-full bg-tile p-1" role="tablist">
+    <div className={`flex rounded-full bg-tile p-1 ${scroll ? "no-scrollbar max-w-full overflow-x-auto" : ""}`} role="tablist">
       {options.map((opt) => (
         <button
           key={opt.value}
@@ -163,7 +167,7 @@ export function Segmented<T extends string>({ value, options, onChange }: { valu
           role="tab"
           aria-selected={value === opt.value}
           onClick={() => onChange(opt.value)}
-          className={`flex-1 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${value === opt.value ? "bg-white text-brand shadow-sm" : "text-muted"}`}
+          className={`${scroll ? "shrink-0 whitespace-nowrap" : "flex-1"} rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${value === opt.value ? "bg-white text-brand shadow-sm" : "text-muted"}`}
         >
           {opt.label}
         </button>

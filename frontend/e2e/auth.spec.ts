@@ -26,6 +26,9 @@ async function countAuthCalls(page: Page, status: number, body: unknown) {
 test.describe("Registro e inicio de sesión", () => {
   test("un registro exitoso guarda la sesión y lleva a la encuesta", async ({ page }) => {
     const bodies: any[] = [];
+    // stubAuth responde el GET del perfil (null: cuenta nueva); el handler del
+    // registro va después para tener prioridad y capturar el cuerpo.
+    await stubAuth(page);
     await page.route(REGISTER_ROUTE, (route) => {
       bodies.push(route.request().postDataJSON());
       return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify(AUTH_SUCCESS) });
@@ -168,6 +171,9 @@ test.describe("Registro e inicio de sesión", () => {
 
     await openWelcome(page);
     await page.getByRole("button", { name: "Explorar la demo" }).click();
+    // Un toque más: elegir el negocio de ejemplo.
+    await expect(page.getByRole("dialog", { name: "Elige un negocio de ejemplo" })).toBeVisible();
+    await page.getByRole("button", { name: /Panadería La Espiga/ }).click();
 
     await expect(page.locator(".reference-card img")).toHaveAttribute("src", /capital-one-main-page-card/);
     await expect(page.getByRole("navigation", { name: "Navegación principal" })).toBeVisible();

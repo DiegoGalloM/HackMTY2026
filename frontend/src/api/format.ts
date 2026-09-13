@@ -1,5 +1,7 @@
-// Formato de dinero, cantidades y fechas. El negocio opera en EE. UU.: USD.
-// Un solo lugar para que no haya una pantalla en pesos y otra en dólares.
+// Formato de dinero, cantidades y fechas. Un solo lugar para todas las
+// pantallas. El símbolo es "$" sin código de moneda a propósito: la panadería
+// demo opera en dólares y la estética en pesos, y las dos se leen igual. No
+// hay soporte multi-moneda (ver docs/PROJECT_STATUS.md).
 
 export const CURRENCY = "USD";
 
@@ -43,6 +45,50 @@ export function formatDate(iso: string | null | undefined): string {
 export function formatDateTime(iso: string | null | undefined): string {
   if (!iso) return "—";
   return new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }).format(new Date(iso));
+}
+
+/**
+ * Rango de fechas de un periodo, igual que `period_bounds` del backend
+ * (inclusivo, fecha UTC de hoy). Sirve para pedir el diario del mismo rango
+ * que el resumen sin un viaje extra al servidor.
+ */
+export function periodBounds(period: string): { start: string; end: string } {
+  const today = new Date();
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const utc = (y: number, m: number, d: number) => new Date(Date.UTC(y, m, d));
+  const y = today.getUTCFullYear();
+  const m = today.getUTCMonth();
+  const d = today.getUTCDate();
+  const end = iso(utc(y, m, d));
+  const daysAgo = (n: number) => iso(utc(y, m, d - n));
+  switch (period) {
+    case "today":
+      return { start: end, end };
+    case "yesterday":
+      return { start: daysAgo(1), end: daysAgo(1) };
+    case "week": {
+      const weekday = (today.getUTCDay() + 6) % 7; // lunes = 0
+      return { start: daysAgo(weekday), end };
+    }
+    case "last_week": {
+      const weekday = (today.getUTCDay() + 6) % 7;
+      return { start: daysAgo(weekday + 7), end: daysAgo(weekday + 1) };
+    }
+    case "month":
+      return { start: iso(utc(y, m, 1)), end };
+    case "last_month":
+      return { start: iso(utc(y, m - 1, 1)), end: iso(utc(y, m, 0)) };
+    case "7d":
+      return { start: daysAgo(6), end };
+    case "30d":
+      return { start: daysAgo(29), end };
+    case "90d":
+      return { start: daysAgo(89), end };
+    case "year":
+      return { start: iso(utc(y, 0, 1)), end };
+    default:
+      return { start: "2000-01-01", end };
+  }
 }
 
 export function ratioValue(value: number | null, unit: string): string {

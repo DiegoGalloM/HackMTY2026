@@ -1,3 +1,6 @@
+import asyncio
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
@@ -17,7 +20,26 @@ from app.routers import (
 
 settings = get_settings()
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Prepara los negocios de ejemplo al arrancar, para que sus credenciales
+    sirvan en *Iniciar sesión* desde el primer momento.
+
+    En segundo plano a propósito: con Snowflake la primera siembra tarda unos
+    segundos por negocio y bloquear el arranque haría fallar el health check
+    del despliegue. En sqlite termina en un par de segundos, mucho antes de
+    que alguien alcance a escribir sus credenciales.
+    """
+    task = asyncio.create_task(demo.provision_all())
+    try:
+        yield
+    finally:
+        task.cancel()
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title="Capital One Business — HackMTY 2026",
     description=(
         "Inteligencia de flujo de efectivo y capital de trabajo para micro-negocios: "

@@ -4,9 +4,10 @@ import { OnboardingPage, stubAuth } from "./pages/OnboardingPage";
 // La app abre en la landing (logo animado + "Empezar"); la bienvenida es la segunda pantalla.
 test("la bienvenida aparece tras la landing y ambos accesos llevan a la encuesta", async ({ page }) => {
   // La encuesta ya exige cuenta: lo que se vigila aquí es que llegar a ella no
-  // toque los endpoints protegidos del perfil antes de tiempo.
+  // GUARDE el perfil antes de tiempo (el GET tras el login es el que decide
+  // si hay que hacer la encuesta; los POST sólo salen al terminarla).
   const guarded: string[] = [];
-  page.on("request", request => { if (request.url().includes("/business-profile/")) guarded.push(request.url()); });
+  page.on("request", request => { if (request.method() === "POST" && request.url().includes("/business-profile/")) guarded.push(request.url()); });
   await stubAuth(page);
 
   const onboarding = new OnboardingPage(page);

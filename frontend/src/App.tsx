@@ -1,8 +1,7 @@
-import { Route, Routes, useLocation } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import BottomNav from "./components/BottomNav";
-import Analisis from "./screens/Analisis";
 import Asistente from "./screens/Asistente";
 import CobroEfectivo from "./screens/CobroEfectivo";
 import Compras from "./screens/Compras";
@@ -13,15 +12,18 @@ import Libros from "./screens/Libros";
 import Mas from "./screens/Mas";
 import Pagos from "./screens/Pagos";
 import Pay from "./screens/Pay";
+import Resumen from "./screens/Resumen";
 import Retiros from "./screens/Retiros";
 import Transferencias from "./screens/Transferencias";
 import Vender from "./screens/Vender";
 import PhoneFrame from "./onboarding/PhoneFrame.jsx";
 import Onboarding from "./onboarding/OnboardingFlow.jsx";
-import Welcome from "./onboarding/Welcome";
+import Welcome, { DEMO_BUSINESSES } from "./onboarding/Welcome";
 import Landing from "./landing/Landing";
 import { demoSession } from "./api/finance";
-import { readSession, saveSession, sessionFromAuth, type Session } from "./auth/session";
+import type { DemoBusinessKey } from "./api/types";
+import { getProfile, type BusinessProfile as RemoteProfile } from "./auth/api";
+import { clearSession, readSession, saveSession, sessionFromAuth, type Session } from "./auth/session";
 import { BusinessProvider, type LocalProfile } from "./business/BusinessContext";
 
 type BusinessProfile = LocalProfile;
@@ -47,6 +49,17 @@ function saveProfile(profile: BusinessProfile | null) {
   }
 }
 
+/** Nombre y apellidos a partir del nombre completo de la cuenta. */
+function splitName(fullName: string): { name: string; lastName: string } {
+  const [name, ...rest] = fullName.trim().split(" ");
+  return { name, lastName: rest.join(" ") };
+}
+
+/** El perfil local que usan las pantallas, a partir del guardado en el backend. */
+function localProfileFrom(remote: RemoteProfile, fullName: string): BusinessProfile {
+  return { category: remote.category, answers: remote.answers ?? {}, ...splitName(fullName) };
+}
+
 function MainApp({ profile }: { profile: BusinessProfile | null }) {
   const location = useLocation();
 
@@ -67,11 +80,14 @@ function MainApp({ profile }: { profile: BusinessProfile | null }) {
           <Route path="/vender" element={<Vender />} />
           <Route path="/inventario" element={<Inventario />} />
           <Route path="/compras" element={<Compras />} />
-          <Route path="/asistente" element={<Asistente />} />
+          {/* El botón central abre la conversación; los datos viven en /resumen
+              y los indicadores en /libros. /asistente se conserva como alias. */}
+          <Route path="/analisis" element={<Asistente />} />
+          <Route path="/asistente" element={<Navigate to="/analisis" replace />} />
+          <Route path="/resumen" element={<Resumen />} />
           <Route path="/libros" element={<Libros />} />
           <Route path="/retiros" element={<Retiros />} />
           <Route path="/transferencias" element={<Transferencias />} />
-          <Route path="/analisis" element={<Analisis />} />
           <Route path="/cobro-efectivo" element={<CobroEfectivo />} />
           <Route path="/pagos" element={<Pagos />} />
           <Route path="/educacion" element={<Educacion profile={profile} />} />
@@ -87,9 +103,13 @@ function MainApp({ profile }: { profile: BusinessProfile | null }) {
 
 export default function App() {
   const location = useLocation();
+  const navigate = useNavigate();
   // landing: logo animado + "Empezar"; de ahí a la bienvenida y el resto del flujo.
   const [stage, setStage] = useState<"landing" | "welcome" | "survey" | "account">("landing");
   const [surveyStarted, setSurveyStarted] = useState(false);
+  // A dónde vuelve la encuesta al salir: a la bienvenida (cuenta nueva) o a
+  // la app ("Más → Actualizar mi perfil").
+  const [surveyOrigin, setSurveyOrigin] = useState<"welcome" | "account">("welcome");
   const [profile, setProfileState] = useState<BusinessProfile | null>(null);
   // La sesión vive aquí y no en un contexto propio: la encuesta la necesita
   // para el POST del perfil y el BusinessProvider para la API financiera.
@@ -113,19 +133,64 @@ export default function App() {
     }
   }, []);
 
-  // "Explorar la demo": entra con la panadería de ejemplo ya sembrada. Si el
-  // backend no responde, entra igual sin sesión (las pantallas lo explican).
-  const explore = async () => {
-    const res = await demoSession();
+  const openSurvey = (origin: "welcome" | "account") => {
+    setSurveyOrigin(origin);
+    setSurveyStarted(true);
+    setStage("survey");
+  };
+
+  // Una sola regla después de CUALQUIER autenticación (registro o login):
+  // si la cuenta ya tiene perfil guardado, a la app; si no, a la encuesta.
+  // Una cuenta nueva no tiene perfil, así que el registro sigue llevando a la
+  // encuesta; quien cerró la pestaña a media encuesta también la vuelve a ver.
+  // Si el backend falla al leer el perfil, se entra a la app con perfil vacío
+  // (todas las pantallas lo aguantan) en vez de atrapar al usuario en la
+  // encuesta: puede rehacerla desde "Más".
+  const authenticated = async (next: Session) => {
+    saveSession(next);
+    setSession(next);
+    const result = await getProfile(next.user.user_id, next.token);
+    if (result.ok) {
+      if (result.data) {
+        setProfile(localProfileFrom(result.data, next.user.full_name));
+        setStage("account");
+      } else {
+        openSurvey("welcome");
+      }
+      return;
+    }
+    console.warn("No se pudo leer el perfil del negocio; se entra sin perfil:", result.message);
+    setProfile(null);
+    setStage("account");
+  };
+
+  // "Explorar la demo": entra con el negocio de ejemplo elegido, ya
+  // sembrado. Si el backend no responde, entra igual sin sesión (las
+  // pantallas lo explican).
+  const explore = async (business: DemoBusinessKey) => {
+    const res = await demoSession(business);
+    const demo = DEMO_BUSINESSES[business];
     if (res.ok) {
       const next = sessionFromAuth(res.data);
       saveSession(next);
       setSession(next);
-      const [name, ...rest] = res.data.user.full_name.split(" ");
-      setProfile({ category: "comida", answers: { guarda_inventario: true, se_ha_quedado_sin_stock: true, compra_mayoreo: true }, name, lastName: rest.join(" ") });
+      setProfile({ category: demo.category, answers: demo.answers, ...splitName(res.data.user.full_name) });
     }
     setStage("account");
   };
+
+  // "Más → Cerrar sesión": no queda nada de la cuenta en el dispositivo.
+  const logout = useCallback(() => {
+    clearSession();
+    saveProfile(null);
+    setProfileState(null);
+    setSession(null);
+    setSurveyStarted(false);
+    setStage("welcome");
+    navigate("/", { replace: true });
+  }, [navigate]);
+
+  const updateProfile = useCallback(() => openSurvey("account"), []);
 
   // La página pública de pago (QR) vive fuera del flujo de sesión: la abre
   // el cliente, sin cuenta, dentro del mismo mockup para que se vea como app.
@@ -145,19 +210,14 @@ export default function App() {
   return (
     <PhoneFrame>
       {stage === "account" ? (
-        <BusinessProvider session={session} profile={profile}>
+        <BusinessProvider session={session} profile={profile} onLogout={logout} onUpdateProfile={updateProfile}>
           <MainApp profile={profile} />
         </BusinessProvider>
       ) : <>
         {stage === "landing" && <Landing onStart={() => setStage("welcome")} />}
         {stage === "welcome" && <Welcome
-          onAuthenticated={(next) => {
-            saveSession(next);
-            setSession(next);
-            setSurveyStarted(true);
-            setStage("survey");
-          }}
-          onExplore={() => { void explore(); }}
+          onAuthenticated={authenticated}
+          onExplore={(business) => { void explore(business); }}
         />}
         {/* La encuesta se oculta (no se desmonta) para conservar las respuestas
             si el usuario vuelve a la bienvenida. */}
@@ -168,7 +228,7 @@ export default function App() {
             ownerId={session?.user.user_id}
             token={session?.token ?? ""}
             active={stage === "survey"}
-            onExit={() => setStage("welcome")}
+            onExit={() => setStage(surveyOrigin)}
             onComplete={(completedProfile?: BusinessProfile) => {
               setProfile(completedProfile ?? null);
               setStage("account");

@@ -60,10 +60,10 @@ idempotencia vive en los servicios (pago por `provider_ref`, asiento por
 | `payments.py` | `PaymentProvider` (demo). | El evento es el mismo que produciría un webhook real. Nunca se guarda el número de tarjeta. |
 | `purchases.py` | `TransactionProvider` (demo, Nessie), normalización, clasificación por reglas + memoria del negocio, tickets. | Se contabiliza al instante (el lado de la tarjeta es cierto); corregir = reclasificación, nunca editar. |
 | `analytics.py` | Razones, salud de caja, drivers de utilidad, insights de educación. | Cada razón dice si está disponible y por qué no; nada de ceros inventados. |
-| `assistant.py` | Intención → herramientas → conocimiento → redacción. | Las cifras vienen de `evidence`; el LLM no puede introducir montos nuevos (guardia). |
+| `assistant.py` | Intención → herramientas → conocimiento → redacción. Sin estado: cada pregunta se responde sola. | Las cifras vienen de `evidence`; el LLM no puede introducir montos nuevos (guardia). |
 | `knowledge.py` | Corpus de educación financiera + perfil del onboarding; recuperación léxica. | Explica, no calcula. |
 | `llm.py` | Anthropic (`claude-opus-5`) → Snowflake Cortex (`claude-sonnet-4-5`) → plantillas. | Opcional y reemplazable. |
-| `demo.py` | Panadería La Espiga: 10 semanas construidas con la misma tubería, copiadas en bloque. | Reutiliza el catálogo de cuentas existente; nunca lo duplica. |
+| `demo.py` | Registro `DEMO_BUSINESSES` (Panadería La Espiga, Estética Carolina): 10 semanas por negocio construidas con la misma tubería (`Pipeline`), copiadas en bloque. | Reutiliza el catálogo de cuentas existente; nunca lo duplica. La panadería es reproducible al centavo (test). |
 | `repo.py` | Acceso a tablas acotado a un `business_id`. | Toda consulta libre debe llevar `:business_id`. |
 
 ## Asientos que genera cada evento
@@ -82,6 +82,33 @@ idempotencia vive en los servicios (pago por `provider_ref`, asiento por
 Balanza sin ajustes = asientos con `is_adjusting = false`; balanza ajustada =
 todos. El balance general presenta la utilidad acumulada dentro del capital
 (no hay asientos de cierre) y verifica `Activos = Pasivos + Capital`.
+
+## Asistente: una pregunta, una respuesta
+
+El asistente no es un RAG libre: es un **enrutador de intenciones** por regex
+(`INTENT_PATTERNS`, `PERIOD_PATTERNS`) que elige una herramienta `_tool_*`
+sobre el motor, agrega recuperación léxica para conceptos y deja que el LLM
+sólo *redacte* la respuesta con la evidencia como hechos.
+
+**No hay conversación.** Cada llamada a `Assistant.ask(question)` es
+independiente: el servidor no guarda estado y el cliente no manda historial.
+Todo lo que necesita para responder sale de la pregunta actual — intención,
+periodo (`month` por defecto) y, cuando la herramienta trabaja sobre un
+insumo, el insumo que la pregunta nombra (`_find_inventory_item`). Una
+continuación como "¿y el mes pasado?" no tiene de dónde heredar y cae en la
+respuesta de respaldo, a propósito.
+
+> Se implementó una memoria de sesión (historial del cliente, herencia de
+> intención/periodo/entidad y reformulación por LLM) y se retiró después por
+> decisión de producto. Si vuelve a hacer falta, el punto de entrada es
+> `ask()` y el contrato sería un `history` en `AssistantAsk`.
+
+**El LLM sólo redacta.** `_rewrite` recibe la pregunta, los hechos y la
+respuesta base, y devuelve una versión más cálida. La **guardia de montos**
+descarta la reescritura completa si aparece una cifra con `$` que no esté en
+la evidencia o en la respuesta base, así que el LLM no puede introducir
+números nuevos ni por error ni por inyección. Sin proveedor disponible
+(`NoLLM`) la respuesta es la plantilla determinista y todo sigue funcionando.
 
 ## Seguridad por negocio
 
@@ -114,5 +141,8 @@ Con eso un panel completo tarda 2–4 s en Snowflake y milisegundos en sqlite.
 `test_finance_api.py` (flujo completo por HTTP: catálogo → orden → QR → pago
 público → libros → análisis → asistente, y guardia de tenant),
 `test_assistant.py` (enrutamiento, cifras del motor, aislamiento, guardia del
-LLM). Todo corre contra sqlite en memoria; Snowflake se verifica a mano con el
-backend real (ver `docs/DEMO.md`).
+LLM), `test_demo.py` (las dos demos: libros que cuadran, insumo por agotarse,
+causa real de la caída de utilidad, idempotencia, la panadería reproducible al
+centavo con fecha fija, y que las cuentas demo existan sin pasar por
+"Explorar la demo"). Todo corre contra sqlite en memoria; Snowflake se
+verifica a mano con el backend real (ver `docs/DEMO.md`).

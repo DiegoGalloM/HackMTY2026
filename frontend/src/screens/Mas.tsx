@@ -5,9 +5,11 @@ import {
   Bell,
   BookOpen,
   ChevronRight,
+  ClipboardList,
   CreditCard,
   HandCoins,
   HelpCircle,
+  LogOut,
   MessageCircle,
   Package,
   Receipt,
@@ -25,12 +27,15 @@ interface Option {
   caption?: string;
   icon: LucideIcon;
   to?: string;
+  /** Acciones de la cuenta que no son navegación (encuesta, cerrar sesión). */
+  action?: "updateProfile" | "logout";
+  tone?: "danger";
 }
 
 const business: Option[] = [
   { id: "inventory", label: "Inventario", caption: "Existencias y movimientos", icon: Package, to: "/inventario" },
   { id: "purchases", label: "Compras con tarjeta", caption: "Clasificación y tickets", icon: CreditCard, to: "/compras" },
-  { id: "assistant", label: "Asistente", caption: "Pregúntale a tu negocio", icon: MessageCircle, to: "/asistente" },
+  { id: "assistant", label: "Asistente", caption: "Pregúntale a tu negocio", icon: MessageCircle, to: "/analisis" },
   { id: "books", label: "Libros", caption: "Resultados, balance, diario", icon: BookOpen, to: "/libros" },
 ];
 
@@ -42,15 +47,22 @@ const banking: Option[] = [
 ];
 
 const account: Option[] = [
+  { id: "profile", label: "Actualizar mi perfil", caption: "Volver a la encuesta de tu negocio", icon: ClipboardList, action: "updateProfile" },
   { id: "security", label: "Seguridad", icon: ShieldCheck },
   { id: "notifications", label: "Notificaciones", icon: Bell },
   { id: "settings", label: "Configuración", icon: Settings },
   { id: "help", label: "Ayuda", icon: HelpCircle },
+  { id: "logout", label: "Cerrar sesión", caption: "Salir de esta cuenta en este dispositivo", icon: LogOut, action: "logout", tone: "danger" },
 ];
 
 export default function Mas() {
   const navigate = useNavigate();
-  const { session, businessName } = useBusiness();
+  const { session, businessName, logout, updateProfile } = useBusiness();
+  const activate = (option: Option) => {
+    if (option.action === "logout") logout();
+    else if (option.action === "updateProfile") updateProfile();
+    else if (option.to) navigate(option.to);
+  };
   const fullName = session?.user.full_name ?? `${user.firstName} ${user.lastName}`;
   const initials = fullName
     .split(" ")
@@ -63,22 +75,25 @@ export default function Mas() {
     <section className="mb-6 px-5">
       <h2 className="mb-2 text-sm font-semibold text-muted">{title}</h2>
       <ul className="divide-y divide-black/5 overflow-hidden rounded-2xl bg-white">
-        {options.map(({ id, label, caption, icon: Icon, to }) => (
+        {options.map((option) => {
+          const { id, label, caption, icon: Icon, tone } = option;
+          return (
           <li key={id}>
             <button
               type="button"
-              onClick={() => to && navigate(to)}
+              onClick={() => activate(option)}
               className="flex w-full items-center gap-3 px-4 py-3.5 text-left"
             >
-              <Icon size={18} className="shrink-0 text-ink/70" aria-hidden />
+              <Icon size={18} className={`shrink-0 ${tone === "danger" ? "text-accent" : "text-ink/70"}`} aria-hidden />
               <span className="flex-1">
-                <span className="block text-sm font-medium">{label}</span>
+                <span className={`block text-sm font-medium ${tone === "danger" ? "text-accent" : ""}`}>{label}</span>
                 {caption && <span className="block text-xs text-muted">{caption}</span>}
               </span>
               <ChevronRight size={16} className="text-muted" aria-hidden />
             </button>
           </li>
-        ))}
+          );
+        })}
       </ul>
     </section>
   );

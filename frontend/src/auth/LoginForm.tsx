@@ -4,7 +4,8 @@ import { login } from "./api";
 import type { Session } from "./session";
 
 interface LoginFormProps {
-  onAuthenticated: (session: Session) => void;
+  /** Puede ser asíncrono: el formulario sigue ocupado mientras la app decide a dónde entrar. */
+  onAuthenticated: (session: Session) => void | Promise<void>;
   onSwitchToRegister: () => void;
 }
 
@@ -52,7 +53,9 @@ export default function LoginForm({ onAuthenticated, onSwitchToRegister }: Login
     const result = await login({ username, password: values.password });
 
     if (result.ok) {
-      onAuthenticated(result.session);
+      // Sigue en "Entrando…" mientras App consulta el perfil: así no se ve
+      // la encuesta un instante antes de entrar a la cuenta.
+      await onAuthenticated(result.session);
       return;
     }
 

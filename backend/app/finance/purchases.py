@@ -95,6 +95,29 @@ SAMPLE_RECEIPTS: dict[str, list[dict[str, Any]]] = {
         {"description": "Huevo docena × 2.5", "quantity": "30", "unit": "pieza", "unit_cost": "0.24", "match": "huevo"},
         {"description": "Crema para batir", "quantity": "3", "unit": "l", "unit_cost": "3.10", "match": "crema"},
     ],
+    # Estética (pesos): lo que trae la compra semanal de insumos del salón.
+    "sally beauty": [
+        {"description": "Tinte permanente tubo × 12", "quantity": "12", "unit": "pieza", "unit_cost": "95.00", "match": "tinte"},
+        {"description": "Oxidante 20 vol 1 l × 2", "quantity": "2", "unit": "l", "unit_cost": "180.00", "match": "oxidante"},
+        {"description": "Shampoo profesional 1 l × 2", "quantity": "2", "unit": "l", "unit_cost": "220.00", "match": "shampoo profesional"},
+        {"description": "Esmalte en gel × 4", "quantity": "4", "unit": "pieza", "unit_cost": "120.00", "match": "esmalte"},
+        {"description": "Ampolleta reparadora × 6", "quantity": "6", "unit": "pieza", "unit_cost": "85.00", "match": "ampolleta"},
+        {"description": "Shampoo Kérastase 250 ml × 2", "quantity": "2", "unit": "pieza", "unit_cost": "260.00", "match": "kérastase"},
+        {"description": "Olaplex No. 3 × 1", "quantity": "1", "unit": "pieza", "unit_cost": "380.00", "match": "olaplex"},
+    ],
+    # Cuando Sally no tiene el tono: lo mismo sin tinte.
+    "cosmoprof": [
+        {"description": "Oxidante 20 vol 1 l × 2", "quantity": "2", "unit": "l", "unit_cost": "180.00", "match": "oxidante"},
+        {"description": "Shampoo profesional 1 l × 2", "quantity": "2", "unit": "l", "unit_cost": "220.00", "match": "shampoo profesional"},
+        {"description": "Esmalte en gel × 4", "quantity": "4", "unit": "pieza", "unit_cost": "120.00", "match": "esmalte"},
+        {"description": "Ampolleta reparadora × 6", "quantity": "6", "unit": "pieza", "unit_cost": "85.00", "match": "ampolleta"},
+        {"description": "Shampoo Kérastase 250 ml × 2", "quantity": "2", "unit": "pieza", "unit_cost": "260.00", "match": "kérastase"},
+        {"description": "Olaplex No. 3 × 1", "quantity": "1", "unit": "pieza", "unit_cost": "380.00", "match": "olaplex"},
+    ],
+    "walmart": [
+        {"description": "Toallas desechables paq. 100", "quantity": "100", "unit": "pieza", "unit_cost": "4.50", "match": "toalla"},
+        {"description": "Guantes de nitrilo × 50 pares", "quantity": "50", "unit": "pieza", "unit_cost": "3.00", "match": "guante"},
+    ],
 }
 
 

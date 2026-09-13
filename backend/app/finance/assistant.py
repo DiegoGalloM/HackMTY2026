@@ -1,7 +1,7 @@
 """
 Asistente financiero híbrido: "pregúntale lo que sea a tu negocio".
 
-    pregunta
+    pregunta (cada una independiente: el asistente no guarda conversación)
       -> detección de intención (determinista, español e inglés)
       -> herramientas gobernadas sobre el motor financiero (datos estructurados,
          SIEMPRE acotados al negocio del token: el asistente nace con un
@@ -85,6 +85,9 @@ INTENT_PATTERNS: list[tuple[str, str]] = [
 ENGLISH_HINTS = re.compile(r"\b(what|how|which|why|my|the|is|are|did|do|sales|profit|inventory|cash|week|month|explain|much|many)\b")
 SPANISH_HINTS = re.compile(r"\b(que|como|cual|cuales|por que|mi|mis|el|la|los|las|ventas|utilidad|inventario|caja|semana|mes|explica|cuanto|cuantos|tengo)\b")
 
+# Toda cifra con $ que el LLM escriba tiene que existir ya en la evidencia.
+_AMOUNT = re.compile(r"\$[\d,]+\.\d{2}")
+
 
 class Assistant:
     def __init__(
@@ -111,6 +114,8 @@ class Assistant:
     # ------------------------------------------------------------- entrada --
 
     def ask(self, question: str) -> dict[str, Any]:
+        """Responde UNA pregunta, sin conversación: cada llamada es
+        independiente y el servidor no guarda estado entre ellas."""
         text = _norm(question.strip())
         lang = self._language(text)
         period = self._period(text)
@@ -402,7 +407,37 @@ class Assistant:
                 days = on_hand / daily
             projections.append({"item": item, "daily": daily, "days": days})
         with_days = sorted([p for p in projections if p["days"] is not None], key=lambda p: p["days"])
-        evidence = [{"label": p["item"]["name"], "value": (f"~{q2(p['days'])} días" if lang == "es" else f"~{q2(p['days'])} days"), "detail": f"{D(p['item']['quantity_on_hand']).normalize():f} {p['item']['unit_of_measure']}, {q2(p['daily'])}/día" if lang == "es" else f"{D(p['item']['quantity_on_hand']).normalize():f} {p['item']['unit_of_measure']}, {q2(p['daily'])}/day"} for p in with_days[:5]]
+
+        def row(p: dict[str, Any]) -> dict[str, Any]:
+            qty = f"{D(p['item']['quantity_on_hand']).normalize():f} {p['item']['unit_of_measure']}"
+            if p["days"] is None:
+                return {"label": p["item"]["name"], "value": "sin consumo" if lang == "es" else "no usage", "detail": qty}
+            return {"label": p["item"]["name"], "value": (f"~{q2(p['days'])} días" if lang == "es" else f"~{q2(p['days'])} days"), "detail": f"{qty}, {q2(p['daily'])}/día" if lang == "es" else f"{qty}, {q2(p['daily'])}/day"}
+
+        asked = self._find_inventory_item(text)
+        if asked:
+            # "¿Cuándo se me acaba la harina?": la pregunta nombra un insumo,
+            # así que la respuesta es sobre ÉSE; los demás quedan de contexto.
+            target = next((p for p in projections if p["item"]["inventory_item_id"] == asked["inventory_item_id"]), None)
+            if target is not None:
+                it = target["item"]
+                qty = f"{D(it['quantity_on_hand']).normalize():f} {it['unit_of_measure']}"
+                others = [p for p in with_days if p["item"]["inventory_item_id"] != it["inventory_item_id"]][:4]
+                evidence = [row(target)] + [row(p) for p in others]
+                if target["days"] is None:
+                    answer = f"{it['name']} no se ha consumido en ventas en los últimos 30 días: tienes {qty} y no hay ritmo para proyectar cuándo se acaba." if lang == "es" else f"{it['name']} has not been used in sales over the last 30 days: you have {qty}, so there is no pace to project from."
+                elif target["days"] == 0:
+                    answer = f"{it['name']} ya se acabó: no queda nada en inventario." if lang == "es" else f"{it['name']} is already out: nothing left in inventory."
+                else:
+                    low = " Ya está por debajo de su punto de reorden." if it["low_stock"] else ""
+                    answer = (
+                        f"Al ritmo de los últimos 30 días, {it['name']} se acaba en unos {q2(target['days'])} días: quedan {qty} y consumes {q2(target['daily'])} {it['unit_of_measure']} al día.{low}"
+                        if lang == "es"
+                        else f"At the pace of the last 30 days, {it['name']} runs out in about {q2(target['days'])} days: {qty} left, using {q2(target['daily'])} {it['unit_of_measure']} per day.{' It is below its reorder point.' if it['low_stock'] else ''}"
+                    )
+                return {"answer": answer, "evidence": evidence, "tools": ["inventory_runout"], "sources": [{"type": "structured", "title": "inventory_movements (consumo por ventas)"}]}
+
+        evidence = [row(p) for p in with_days[:5]]
         if not with_days:
             answer = "Todavía no hay consumo suficiente para proyectar cuándo se acaba cada insumo." if lang == "es" else "There is not enough consumption history yet to project run-out dates."
         else:
@@ -578,9 +613,10 @@ class Assistant:
         text = self.llm.complete(system, prompt, max_tokens=400)
         if not text:
             return None
-        # Guardia: toda cifra con $ en la respuesta del LLM debe existir en los hechos o en la base.
-        allowed = set(re.findall(r"\$[\d,]+\.\d{2}", facts + " " + result["answer"]))
-        for amount in re.findall(r"\$[\d,]+\.\d{2}", text):
+        # Guardia: toda cifra con $ en la respuesta del LLM debe existir en los
+        # hechos o en la respuesta base.
+        allowed = set(_AMOUNT.findall(facts + " " + result["answer"]))
+        for amount in _AMOUNT.findall(text):
             if amount not in allowed:
                 return None
         return text

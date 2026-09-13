@@ -51,6 +51,14 @@ body {
   overscroll-behavior-y: none;
 }
 
+/* Filas que se deslizan sin mostrar la barra (pestañas, chips). */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Sin halo azul al tocar en Android/Chrome. */
 * {
   -webkit-tap-highlight-color: transparent;
