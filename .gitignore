@@ -33,3 +33,7 @@ frontend/test-results/
 frontend/playwright-report/
 frontend/blob-report/
 frontend/.playwright/
+
+# Snowflake schema export (temp.py)
+snowflake-out/
+temp.py

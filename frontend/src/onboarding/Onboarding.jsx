@@ -1,7 +1,6 @@
 // frontend/src/onboarding/Onboarding.jsx
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, CircleAlert, MapPin, Mic, Pencil, Scissors, Sparkles, Square, Store, Truck, Utensils, Wrench, HardHat, X } from "lucide-react";
-import SurveyLayout from "./SurveyLayout.jsx";
+import { Bubble, BubbleGrid } from "./Bubble.jsx";
 import { CATEGORIES, UNIVERSAL_QUESTIONS, CATEGORY_QUESTIONS, WEEKDAYS, EMPLOYEE_OPTIONS } from "./questions.js";
 
 // Por default apunta al backend local de cada quien. Para usar un backend
@@ -36,7 +35,6 @@ export default function Onboarding({ ownerId = "demo-owner", token = "", onCompl
   const [locationError, setLocationError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [submitError, setSubmitError] = useState(null);
 
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
@@ -54,7 +52,6 @@ export default function Onboarding({ ownerId = "demo-owner", token = "", onCompl
   const goToStep = useCallback((stepName) => setStepIndex(STEPS.indexOf(stepName)), []);
 
   const pickCategory = (id) => {
-    if (id !== category) setAnswers({});
     setCategory(id);
     setQuestionIndex(0);
     goToStep(id === "otro" ? "otro_detail" : "questions");
@@ -123,19 +120,18 @@ export default function Onboarding({ ownerId = "demo-owner", token = "", onCompl
     }
   };
 
-  const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
+  const stopRecording = () => {
+    mediaRecorderRef.current?.stop();
     setRecording(false);
     clearInterval(timerRef.current);
-  }, []);
+  };
 
   const toggleRecording = () => (recording ? stopRecording() : startRecording());
 
   useEffect(() => {
-    if ((weekMode !== "audio" || !active || step !== "week_description") && recording) stopRecording();
-  }, [weekMode, active, step, recording, stopRecording]);
-
-  useEffect(() => () => { if (audioUrl) URL.revokeObjectURL(audioUrl); }, [audioUrl]);
+    if (weekMode !== "audio" && recording) stopRecording();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekMode]);
 
   useEffect(() => () => {
     clearInterval(timerRef.current);
@@ -167,7 +163,7 @@ export default function Onboarding({ ownerId = "demo-owner", token = "", onCompl
           category,
           category_detail: category === "otro" ? otroDetail : null,
           operating_days: days,
-          city: city.trim(),
+          city,
           employees,
           answers,
           week_description_mode: weekMode,
@@ -226,8 +222,7 @@ export default function Onboarding({ ownerId = "demo-owner", token = "", onCompl
         aria-label={step === "questions" ? "Volver a la pregunta anterior" : "Volver al paso anterior"}>
         <ArrowLeft size={16} aria-hidden /> Atrás
       </button>
-      {onNext && <button type="button" className="entry-primary" onClick={onNext} disabled={disabled || submitting}>{label}<ArrowRight size={16} aria-hidden /></button>}
-    </div>
+    </Screen>
   );
 
   // El nombre se queda en el cliente: solo alimenta el saludo de la app y el
@@ -298,19 +293,6 @@ export default function Onboarding({ ownerId = "demo-owner", token = "", onCompl
           {recording && <span className="ob-mic-btn__ring" aria-hidden />}
           {recording ? <Square size={24} aria-hidden /> : <Mic size={28} aria-hidden />}
         </button>
-        <p className="ob-recorder-status" role="status">{recording ? `Grabando… ${formatTime(recordSeconds)}` : audioUrl ? "Grabación lista" : "Toca para grabar"}</p>
-        {recordError && <p className="ob-error" role="alert">{recordError}</p>}
-        {audioUrl && !recording && <div className="ob-recorder-playback"><audio controls src={audioUrl} /><button className="ob-link-btn" onClick={resetRecording}>Grabar de nuevo</button></div>}
-      </div>}
-      {controls(() => goToStep("schedule"), "Continuar", weekMode === "text" ? !weekText.trim() : !audioBlob || recording)}
-    </>;
-  } else if (step === "schedule") {
-    title = "¿Qué días opera tu negocio?";
-    description = "Selecciona todos los días que trabajas en tu negocio.";
-    kicker = "02 / A tu ritmo";
-    content = <>
-      <div className="survey-days bubble-grid" role="group" aria-label="Días de operación">
-        {WEEKDAYS.map((day, index) => <button key={day.id} aria-label={dayNames[index]} aria-pressed={days.includes(day.id)} onClick={() => toggleDay(day.id)}>{dayNames[index].slice(0, 3)}</button>)}
       </div>
       <p className="survey-auto-note" role="status">{days.length ? `${days.length} ${days.length === 1 ? "día seleccionado" : "días seleccionados"}` : "Puedes elegir más de uno."}</p>
       {controls(() => goToStep("employees"), "Continuar", days.length === 0)}
@@ -348,5 +330,124 @@ export default function Onboarding({ ownerId = "demo-owner", token = "", onCompl
     </>;
   }
 
-  return <SurveyLayout section={section} progress={progress} stepKey={`${step}-${questionIndex}`} title={title} description={description} kicker={kicker} onExit={onExit} busy={submitting} active={active}>{content}</SurveyLayout>;
+      {weekMode === "text" ? (
+        <textarea
+          className="ob-textarea"
+          placeholder="Ej. Los lunes recibo mercancía, entre semana atiendo el local de 9 a 6, los fines de semana es cuando más vendo…"
+          value={weekText}
+          onChange={(e) => setWeekText(e.target.value)}
+          rows={5}
+        />
+      ) : (
+        <div className="ob-recorder">
+          <button
+            type="button"
+            className={`ob-mic-btn ${recording ? "ob-mic-btn--recording" : ""}`}
+            onClick={toggleRecording}
+            aria-label={recording ? "Detener grabación" : "Iniciar grabación"}
+          >
+            {recording && <span className="ob-mic-btn__ring" aria-hidden="true" />}
+            {recording ? <StopIcon /> : <MicIcon size={28} />}
+          </button>
+
+          {recording && (
+            <div className="ob-wave" aria-hidden="true">
+              <span /><span /><span /><span /><span />
+            </div>
+          )}
+
+          <p className="ob-recorder-status">
+            {recording ? `Grabando… ${formatTime(recordSeconds)}` : audioUrl ? "Grabación lista" : "Toca para grabar"}
+          </p>
+          {recordError && <p className="ob-error">{recordError}</p>}
+
+          {audioUrl && !recording && (
+            <div className="ob-recorder-playback">
+              <audio controls src={audioUrl} />
+              <button type="button" className="ob-link-btn" onClick={resetRecording}>Grabar de nuevo</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      <button
+        className="ob-continue"
+        disabled={weekMode === "text" ? !weekText.trim() : !audioBlob}
+        onClick={() => goToStep("schedule")}
+      >
+        Continuar
+      </button>
+    </Screen>
+  );
+
+  if (step === "schedule") return (
+    <Screen transitionKey="schedule">
+      <p className="ob-subtitle">¿Qué días opera tu negocio?</p>
+      <BubbleGrid>{WEEKDAYS.map((d) => <Bubble key={d.id} label={d.label} selected={days.includes(d.id)} onClick={() => toggleDay(d.id)} />)}</BubbleGrid>
+      <button className="ob-continue" disabled={days.length === 0} onClick={() => goToStep("employees")}>Continuar</button>
+    </Screen>
+  );
+
+  if (step === "employees") return (
+    <Screen transitionKey="employees">
+      <p className="ob-subtitle">¿Cuántas personas trabajan contigo?</p>
+      <BubbleGrid>{EMPLOYEE_OPTIONS.map((e) => <Bubble key={e.id} label={e.label} selected={employees === e.id} onClick={() => { setEmployees(e.id); goToStep("city"); }} />)}</BubbleGrid>
+    </Screen>
+  );
+
+  if (step === "city") return (
+    <Screen transitionKey="city">
+      <p className="ob-subtitle">¿En qué ciudad opera tu negocio?</p>
+      <button className="ob-continue" onClick={detectCity} disabled={locating}>{locating ? "Buscando…" : "📍 Usar mi ubicación"}</button>
+      {locationError && <p className="ob-error">{locationError}</p>}
+      <input className="ob-input" placeholder="O escribe tu ciudad" value={city} onChange={(e) => setCity(e.target.value)} />
+      <button className="ob-continue" disabled={!city} onClick={submit}>{submitting ? "Guardando…" : "Terminar"}</button>
+    </Screen>
+  );
+
+  return (
+    <Screen transitionKey="done">
+      <h2 className="ob-title">{submitted ? "¡Listo! 🎉" : "Algo salió mal, intenta de nuevo."}</h2>
+      <p className="ob-subtitle">Tu perfil de negocio quedó guardado.</p>
+      <button
+        className="ob-continue"
+        onClick={() => onComplete?.({ category, answers })}
+      >
+        Ir a mi cuenta
+      </button>
+    </Screen>
+  );
+}
+
+function Screen({ children, transitionKey }) {
+  return <div className="ob-screen" key={transitionKey}>{children}</div>;
+}
+function ProgressBar({ value }) { return <div className="ob-progress-track"><div className="ob-progress-fill" style={{ width: `${Math.round(value * 100)}%` }} /></div>; }
+
+function MicIcon({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="9" y="2" width="6" height="12" rx="3" />
+      <path d="M5 11a7 7 0 0 0 14 0" />
+      <line x1="12" y1="18" x2="12" y2="22" />
+      <line x1="8" y1="22" x2="16" y2="22" />
+    </svg>
+  );
+}
+
+function StopIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <rect x="6" y="6" width="12" height="12" rx="2" />
+    </svg>
+  );
+}
+
+function PencilIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  );
 }
