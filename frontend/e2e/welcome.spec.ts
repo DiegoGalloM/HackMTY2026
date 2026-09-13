@@ -43,7 +43,7 @@ test("el recorrido completo vuelve a Cuenta con la imagen original", async ({ pa
   await onboarding.accountButton.click();
   await expect(page.locator(".reference-card img")).toHaveAttribute("src", /capital-one-main-page-card/);
   await expect(page.getByRole("navigation", { name: "Navegación principal" })).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "Accesos rápidos" })).toHaveCSS("display", "grid");
+  await expect(page.getByRole("navigation", { name: "Accesos rápidos" })).toHaveClass(/\bgrid\b/);
 });
 
 test("tarjeta y encuesta caben en pantallas pequeñas y a 200% de texto", async ({ page }) => {
