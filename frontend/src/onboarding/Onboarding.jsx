@@ -1,6 +1,7 @@
 // frontend/src/onboarding/Onboarding.jsx
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Bubble, BubbleGrid } from "./Bubble.jsx";
+import { ArrowLeft, ArrowRight, Check, CircleAlert, MapPin, Mic, Pencil, Scissors, Sparkles, Square, Store, Truck, Utensils, Wrench, HardHat, X } from "lucide-react";
+import SurveyLayout from "./SurveyLayout.jsx";
 import { CATEGORIES, UNIVERSAL_QUESTIONS, CATEGORY_QUESTIONS, WEEKDAYS, EMPLOYEE_OPTIONS } from "./questions.js";
 
 // Por default apunta al backend local de cada quien. Para usar un backend
@@ -9,7 +10,7 @@ import { CATEGORIES, UNIVERSAL_QUESTIONS, CATEGORY_QUESTIONS, WEEKDAYS, EMPLOYEE
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 const STEPS = ["welcome", "otro_detail", "questions", "week_description", "schedule", "employees", "city", "done"];
 
-export default function Onboarding({ ownerId = "demo-owner", onComplete }) {
+export default function Onboarding({ ownerId = "demo-owner", onComplete, onExit, active = true }) {
   const [stepIndex, setStepIndex] = useState(0);
   const [category, setCategory] = useState(null);
   const [otroDetail, setOtroDetail] = useState("");
@@ -45,6 +46,7 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete }) {
   const goToStep = useCallback((name) => setStepIndex(STEPS.indexOf(name)), []);
 
   const pickCategory = (id) => {
+    if (id !== category) setAnswers({});
     setCategory(id);
     setQuestionIndex(0);
     goToStep(id === "otro" ? "otro_detail" : "questions");
@@ -57,21 +59,15 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete }) {
     else goToStep("week_description");
   };
 
-  const goToPreviousQuestion = () => {
-    // Antes de la primera pregunta viene "elige tu categoría" (o el detalle
-    // de "otro" si el negocio no encajaba en ninguna). Regresar ahí en vez
-    // de quedarse atorado es lo que se esperaría de un botón "atrás".
-    if (questionIndex === 0) {
-      goToStep(category === "otro" ? "otro_detail" : "welcome");
-      return;
-    }
-    setQuestionIndex((index) => index - 1);
-  };
-
   const toggleDay = (id) => setDays((prev) => (prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id]));
 
   const detectCity = () => {
     setLocating(true); setLocationError(null);
+    if (!navigator.geolocation) {
+      setLocating(false);
+      setLocationError("Ubicación no disponible, escribe tu ciudad abajo.");
+      return;
+    }
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         try {
@@ -83,7 +79,8 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete }) {
         } catch { setLocationError("No pudimos detectar tu ciudad, escríbela abajo."); }
         finally { setLocating(false); }
       },
-      () => { setLocationError("Ubicación no disponible, escribe tu ciudad abajo."); setLocating(false); }
+      () => { setLocationError("Ubicación no disponible, escribe tu ciudad abajo."); setLocating(false); },
+      { timeout: 10000 }
     );
   };
 
@@ -118,18 +115,19 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete }) {
     }
   };
 
-  const stopRecording = () => {
-    mediaRecorderRef.current?.stop();
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
     setRecording(false);
     clearInterval(timerRef.current);
-  };
+  }, []);
 
   const toggleRecording = () => (recording ? stopRecording() : startRecording());
 
   useEffect(() => {
-    if (weekMode !== "audio" && recording) stopRecording();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [weekMode]);
+    if ((weekMode !== "audio" || !active || step !== "week_description") && recording) stopRecording();
+  }, [weekMode, active, step, recording, stopRecording]);
+
+  useEffect(() => () => { if (audioUrl) URL.revokeObjectURL(audioUrl); }, [audioUrl]);
 
   useEffect(() => () => {
     clearInterval(timerRef.current);
@@ -146,6 +144,7 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete }) {
   });
 
   const submit = async () => {
+    if (submitting) return;
     setSubmitting(true);
     setSubmitError(null);
     try {
@@ -156,7 +155,7 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete }) {
           category,
           category_detail: category === "otro" ? otroDetail : null,
           operating_days: days,
-          city,
+          city: city.trim(),
           employees,
           answers,
           week_description_mode: weekMode,
@@ -173,7 +172,7 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete }) {
       setSubmitted(false);
       setSubmitError(
         err instanceof TypeError
-          ? "No se pudo conectar con el servidor. Revisa que el backend esté corriendo."
+          ? "No se pudo conectar con el servidor. Revisa tu conexión y vuelve a intentar."
           : err.message,
       );
     } finally {
@@ -182,318 +181,136 @@ export default function Onboarding({ ownerId = "demo-owner", onComplete }) {
     }
   };
 
-  if (step === "welcome") return (
-    <Screen transitionKey="welcome">
-      <h1 className="ob-title">Bienvenido a Capital One Business:</h1>
-      <p className="ob-subtitle">Selecciona tu modelo de negocio</p>
-      <BubbleGrid>
-        {CATEGORIES.map((c) => <Bubble key={c.id} label={c.label} icon={c.icon} size="large" onClick={() => pickCategory(c.id)} />)}
-      </BubbleGrid>
-      {/* Atajo para demos/dev: brinca toda la encuesta sin guardar perfil. */}
-      <button type="button" className="ob-link-btn" onClick={() => onComplete?.()}>
-        Saltar encuesta
+  const categoryLabel = CATEGORIES.find((item) => item.id === category)?.label;
+  const categoryIcons = { comida: Utensils, retail: Store, servicios: Wrench, belleza: Scissors, construccion: HardHat, transporte: Truck, otro: Sparkles };
+  const dayNames = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+  const completedSteps = step === "welcome" ? 0 : step === "otro_detail" ? 0.5 : step === "questions" ? 1 + questionIndex : questions.length + ({ week_description: 1, schedule: 2, employees: 3, city: 4, done: submitted ? 5 : 4 }[step] ?? 0);
+  const progress = completedSteps / (questions.length + 5);
+  const section = ["welcome", "otro_detail", "questions"].includes(step) ? 0 : ["week_description", "schedule", "employees"].includes(step) ? 1 : 2;
+
+  const goBack = () => {
+    if (step === "welcome") return onExit?.();
+    if (step === "questions") {
+      if (questionIndex > 0) setQuestionIndex((index) => index - 1);
+      else goToStep(category === "otro" ? "otro_detail" : "welcome");
+    } else if (step === "otro_detail") goToStep("welcome");
+    else if (step === "week_description") { setQuestionIndex(questions.length - 1); goToStep("questions"); }
+    else if (step === "schedule") goToStep("week_description");
+    else if (step === "employees") goToStep("schedule");
+    else if (step === "city") goToStep("employees");
+    else goToStep("city");
+  };
+
+  const controls = (onNext, label = "Continuar", disabled = false) => (
+    <div className="survey-controls">
+      <button type="button" className="entry-back" onClick={goBack} disabled={submitting}
+        aria-label={step === "questions" ? "Volver a la pregunta anterior" : "Volver al paso anterior"}>
+        <ArrowLeft size={16} aria-hidden /> Atrás
       </button>
-    </Screen>
+      {onNext && <button type="button" className="entry-primary" onClick={onNext} disabled={disabled || submitting}>{label}<ArrowRight size={16} aria-hidden /></button>}
+    </div>
   );
 
-  if (step === "otro_detail") return (
-    <Screen transitionKey="otro_detail">
-      <p className="ob-subtitle">Cuéntanos, ¿a qué se dedica tu negocio?</p>
-      <input
-        className="ob-input"
-        placeholder="Ej. Taller de bicicletas"
-        value={otroDetail}
-        onChange={(e) => setOtroDetail(e.target.value)}
-        autoFocus
-      />
-      <button className="ob-continue" disabled={!otroDetail.trim()} onClick={() => goToStep("questions")}>Continuar</button>
-    </Screen>
-  );
-
-  if (step === "otro_detail") return (
-    <Screen transitionKey="otro_detail">
-      <p className="ob-subtitle">Cuéntanos, ¿a qué se dedica tu negocio?</p>
-      <input
-        className="ob-input"
-        placeholder="Ej. Taller de bicicletas"
-        value={otroDetail}
-        onChange={(e) => setOtroDetail(e.target.value)}
-        autoFocus
-      />
-      <button className="ob-continue" disabled={!otroDetail.trim()} onClick={() => goToStep("questions")}>Continuar</button>
-    </Screen>
-  );
-
-  if (step === "otro_detail") return (
-    <Screen transitionKey="otro_detail">
-      <p className="ob-subtitle">Cuéntanos, ¿a qué se dedica tu negocio?</p>
-      <input
-        className="ob-input"
-        placeholder="Ej. Taller de bicicletas"
-        value={otroDetail}
-        onChange={(e) => setOtroDetail(e.target.value)}
-        autoFocus
-      />
-      <button className="ob-continue" disabled={!otroDetail.trim()} onClick={() => goToStep("questions")}>Continuar</button>
-    </Screen>
-  );
-
-  if (step === "questions") {
-    const q = questions[questionIndex];
-    return (
-      <Screen transitionKey={`question-${questionIndex}`}>
-        <ProgressBar value={(questionIndex + 1) / questions.length} />
-        <p className="ob-question">{q.text}</p>
-        <BubbleGrid>
-          <Bubble label="No" variant="no" selected={answers[q.id] === false} onClick={() => answerQuestion(false)} />
-          <Bubble label="Sí" variant="yes" selected={answers[q.id] === true} onClick={() => answerQuestion(true)} />
-        </BubbleGrid>
-        <button
-          type="button"
-          className="ob-back"
-          aria-label="Volver a la pregunta anterior"
-          title="Volver a la pregunta anterior"
-          onClick={goToPreviousQuestion}
-        >
-          <BackArrowIcon />
+  let title, description, kicker, content;
+  if (step === "welcome") {
+    title = "Selecciona tu modelo de negocio";
+    description = "Elige la opción que mejor describe lo que haces. A partir de aquí, la encuesta se adapta a ti.";
+    kicker = "01 / Empecemos por lo tuyo";
+    content = <>
+      <div className="survey-categories">
+        {CATEGORIES.map((item) => {
+          const Icon = categoryIcons[item.id];
+          return <button key={item.id} className="survey-category" aria-pressed={category === item.id} onClick={() => pickCategory(item.id)}><Icon size={23} aria-hidden /><span>{item.label}</span></button>;
+        })}
+      </div>
+      <div className="survey-controls"><button className="entry-back" onClick={onExit}><ArrowLeft size={16} aria-hidden /> Inicio</button><button className="ob-link-btn" onClick={() => onComplete?.()}>Saltar encuesta</button></div>
+    </>;
+  } else if (step === "otro_detail") {
+    title = "Cuéntanos, ¿a qué se dedica tu negocio?";
+    description = "Cada negocio es distinto. Describe el tuyo en unas palabras.";
+    kicker = "01 / Tu negocio, a tu manera";
+    content = <>
+      <label className="survey-field">Actividad de tu negocio<input placeholder="Ej. Taller de bicicletas" value={otroDetail} onChange={(event) => setOtroDetail(event.target.value)} /></label>
+      {controls(() => goToStep("questions"), "Continuar", !otroDetail.trim())}
+    </>;
+  } else if (step === "questions") {
+    const question = questions[questionIndex];
+    title = question.text;
+    description = "Piensa en cómo trabajas normalmente. Puedes volver y cambiar tu respuesta.";
+    kicker = `${categoryLabel} / Pregunta ${questionIndex + 1} de ${questions.length}`;
+    content = <>
+      <div className="survey-choice-list">
+        <button className="survey-choice" aria-pressed={answers[question.id] === false} onClick={() => answerQuestion(false)}><X size={22} aria-hidden /> No</button>
+        <button className="survey-choice" aria-pressed={answers[question.id] === true} onClick={() => answerQuestion(true)}><Check size={22} aria-hidden /> Sí</button>
+      </div>
+      <p className="survey-auto-note">Al elegir, pasas a la siguiente pregunta.</p>
+      {controls()}
+    </>;
+  } else if (step === "week_description") {
+    title = "Cuéntanos cómo es una semana normal en tu negocio";
+    description = "¿Cuándo compras, cuándo vendes más y cómo te organizas? Puedes escribirlo o contárnoslo con tu voz.";
+    kicker = "02 / Tu día a día";
+    content = <>
+      <div className="survey-mode" role="group" aria-label="Cómo quieres responder">
+        <button aria-pressed={weekMode === "text"} onClick={() => setWeekMode("text")}><Pencil size={16} aria-hidden /> Escribir</button>
+        <button aria-pressed={weekMode === "audio"} onClick={() => setWeekMode("audio")}><Mic size={16} aria-hidden /> Narrar</button>
+      </div>
+      {weekMode === "text" ? <label className="survey-field">Tu semana en pocas palabras
+        <textarea placeholder="Ej. Los lunes recibo mercancía, entre semana atiendo el local y los fines de semana vendo más…" value={weekText} onChange={(event) => setWeekText(event.target.value)} rows={5} />
+      </label> : <div className="ob-recorder">
+        <button type="button" className={`ob-mic-btn ${recording ? "ob-mic-btn--recording" : ""}`} onClick={toggleRecording} aria-label={recording ? "Detener grabación" : "Iniciar grabación"}>
+          {recording && <span className="ob-mic-btn__ring" aria-hidden />}
+          {recording ? <Square size={24} aria-hidden /> : <Mic size={28} aria-hidden />}
         </button>
-      </Screen>
-    );
+        <p className="ob-recorder-status" role="status">{recording ? `Grabando… ${formatTime(recordSeconds)}` : audioUrl ? "Grabación lista" : "Toca para grabar"}</p>
+        {recordError && <p className="ob-error" role="alert">{recordError}</p>}
+        {audioUrl && !recording && <div className="ob-recorder-playback"><audio controls src={audioUrl} /><button className="ob-link-btn" onClick={resetRecording}>Grabar de nuevo</button></div>}
+      </div>}
+      {controls(() => goToStep("schedule"), "Continuar", weekMode === "text" ? !weekText.trim() : !audioBlob || recording)}
+    </>;
+  } else if (step === "schedule") {
+    title = "¿Qué días opera tu negocio?";
+    description = "Selecciona todos los días que trabajas en tu negocio.";
+    kicker = "02 / A tu ritmo";
+    content = <>
+      <div className="survey-days bubble-grid" role="group" aria-label="Días de operación">
+        {WEEKDAYS.map((day, index) => <button key={day.id} aria-label={dayNames[index]} aria-pressed={days.includes(day.id)} onClick={() => toggleDay(day.id)}>{dayNames[index].slice(0, 3)}</button>)}
+      </div>
+      <p className="survey-auto-note" role="status">{days.length ? `${days.length} ${days.length === 1 ? "día seleccionado" : "días seleccionados"}` : "Puedes elegir más de uno."}</p>
+      {controls(() => goToStep("employees"), "Continuar", days.length === 0)}
+    </>;
+  } else if (step === "employees") {
+    title = "¿Cuántas personas trabajan contigo?";
+    description = "Conocer el tamaño de tu equipo nos ayuda a entender tu operación.";
+    kicker = "02 / Las personas detrás de tu negocio";
+    content = <>
+      <div className="survey-choice-list survey-choice-list--employees">{EMPLOYEE_OPTIONS.map((item) => <button key={item.id} className="survey-choice survey-choice--employee" aria-pressed={employees === item.id} onClick={() => { setEmployees(item.id); goToStep("city"); }}>{item.label}</button>)}</div>
+      <p className="survey-auto-note">Al elegir, pasas al último paso.</p>
+      {controls()}
+    </>;
+  } else if (step === "city") {
+    title = "¿En qué ciudad opera tu negocio?";
+    description = "Un último detalle para completar tu perfil.";
+    kicker = "03 / Ya casi está";
+    content = <>
+      <button className="entry-secondary" onClick={detectCity} disabled={locating || submitting}><MapPin size={17} aria-hidden />{locating ? "Buscando…" : "Usar mi ubicación"}</button>
+      {locationError && <p className="ob-error" role="alert">{locationError}</p>}
+      <label className="survey-field">Ciudad<input placeholder="O escribe tu ciudad" autoComplete="address-level2" value={city} disabled={submitting} onChange={(event) => setCity(event.target.value)} /></label>
+      {controls(submit, submitting ? "Guardando…" : "Terminar", !city.trim())}
+    </>;
+  } else {
+    title = submitted ? "¡Listo! Tu siguiente paso empieza aquí." : "No se pudo guardar";
+    description = submitted ? "Tu perfil de negocio quedó guardado." : "Tus respuestas siguen aquí — puedes reintentar sin volver a capturarlas.";
+    kicker = submitted ? "03 / Un espacio que ya es tuyo" : "Tu perfil sigue contigo";
+    content = <>
+      <div className={`survey-success-icon ${submitted ? "" : "survey-success-icon--error"}`}>{submitted ? <Check size={28} aria-hidden /> : <CircleAlert size={28} aria-hidden />}</div>
+      {!submitted && submitError && <p className="ob-error" role="alert">{submitError}</p>}
+      {submitted && <dl className="survey-summary"><div><dt>Tu negocio</dt><dd>{categoryLabel}</dd></div><div><dt>Ciudad</dt><dd>{city.trim()}</dd></div><div><dt>Días de operación</dt><dd>{days.length} a la semana</dd></div></dl>}
+      {submitted
+        ? <button className="entry-primary" onClick={() => onComplete?.({ category, answers })}>Ir a mi cuenta<ArrowRight size={16} aria-hidden /></button>
+        : controls(submit, submitting ? "Guardando…" : "Reintentar")}
+    </>;
   }
 
-  if (step === "week_description") return (
-    <Screen transitionKey="week_description">
-      <p className="ob-subtitle">Cuéntanos cómo es una semana normal en tu negocio</p>
-
-      <div className="ob-mode-toggle" role="tablist">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={weekMode === "text"}
-          className={`ob-mode-btn ${weekMode === "text" ? "ob-mode-btn--active" : ""}`}
-          onClick={() => setWeekMode("text")}
-        >
-          <PencilIcon /> Escribir
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={weekMode === "audio"}
-          className={`ob-mode-btn ${weekMode === "audio" ? "ob-mode-btn--active" : ""}`}
-          onClick={() => setWeekMode("audio")}
-        >
-          <MicIcon size={16} /> Narrar
-        </button>
-      </div>
-
-      {weekMode === "text" ? (
-        <textarea
-          className="ob-textarea"
-          placeholder="Ej. Los lunes recibo mercancía, entre semana atiendo el local de 9 a 6, los fines de semana es cuando más vendo…"
-          value={weekText}
-          onChange={(e) => setWeekText(e.target.value)}
-          rows={5}
-        />
-      ) : (
-        <div className="ob-recorder">
-          <button
-            type="button"
-            className={`ob-mic-btn ${recording ? "ob-mic-btn--recording" : ""}`}
-            onClick={toggleRecording}
-            aria-label={recording ? "Detener grabación" : "Iniciar grabación"}
-          >
-            {recording && <span className="ob-mic-btn__ring" aria-hidden="true" />}
-            {recording ? <StopIcon /> : <MicIcon size={28} />}
-          </button>
-
-          {recording && (
-            <div className="ob-wave" aria-hidden="true">
-              <span /><span /><span /><span /><span />
-            </div>
-          )}
-
-          <p className="ob-recorder-status">
-            {recording ? `Grabando… ${formatTime(recordSeconds)}` : audioUrl ? "Grabación lista" : "Toca para grabar"}
-          </p>
-          {recordError && <p className="ob-error">{recordError}</p>}
-
-          {audioUrl && !recording && (
-            <div className="ob-recorder-playback">
-              <audio controls src={audioUrl} />
-              <button type="button" className="ob-link-btn" onClick={resetRecording}>Grabar de nuevo</button>
-            </div>
-          )}
-        </div>
-      )}
-
-      <button
-        className="ob-continue"
-        disabled={weekMode === "text" ? !weekText.trim() : !audioBlob}
-        onClick={() => goToStep("schedule")}
-      >
-        Continuar
-      </button>
-    </Screen>
-  );
-
-  if (step === "week_description") return (
-    <Screen transitionKey="week_description">
-      <p className="ob-subtitle">Cuéntanos cómo es una semana normal en tu negocio</p>
-
-      <div className="ob-mode-toggle" role="tablist">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={weekMode === "text"}
-          className={`ob-mode-btn ${weekMode === "text" ? "ob-mode-btn--active" : ""}`}
-          onClick={() => setWeekMode("text")}
-        >
-          <PencilIcon /> Escribir
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={weekMode === "audio"}
-          className={`ob-mode-btn ${weekMode === "audio" ? "ob-mode-btn--active" : ""}`}
-          onClick={() => setWeekMode("audio")}
-        >
-          <MicIcon size={16} /> Narrar
-        </button>
-      </div>
-
-      {weekMode === "text" ? (
-        <textarea
-          className="ob-textarea"
-          placeholder="Ej. Los lunes recibo mercancía, entre semana atiendo el local de 9 a 6, los fines de semana es cuando más vendo…"
-          value={weekText}
-          onChange={(e) => setWeekText(e.target.value)}
-          rows={5}
-        />
-      ) : (
-        <div className="ob-recorder">
-          <button
-            type="button"
-            className={`ob-mic-btn ${recording ? "ob-mic-btn--recording" : ""}`}
-            onClick={toggleRecording}
-            aria-label={recording ? "Detener grabación" : "Iniciar grabación"}
-          >
-            {recording && <span className="ob-mic-btn__ring" aria-hidden="true" />}
-            {recording ? <StopIcon /> : <MicIcon size={28} />}
-          </button>
-
-          {recording && (
-            <div className="ob-wave" aria-hidden="true">
-              <span /><span /><span /><span /><span />
-            </div>
-          )}
-
-          <p className="ob-recorder-status">
-            {recording ? `Grabando… ${formatTime(recordSeconds)}` : audioUrl ? "Grabación lista" : "Toca para grabar"}
-          </p>
-          {recordError && <p className="ob-error">{recordError}</p>}
-
-          {audioUrl && !recording && (
-            <div className="ob-recorder-playback">
-              <audio controls src={audioUrl} />
-              <button type="button" className="ob-link-btn" onClick={resetRecording}>Grabar de nuevo</button>
-            </div>
-          )}
-        </div>
-      )}
-
-      <button
-        className="ob-continue"
-        disabled={weekMode === "text" ? !weekText.trim() : !audioBlob}
-        onClick={() => goToStep("schedule")}
-      >
-        Continuar
-      </button>
-    </Screen>
-  );
-
-  if (step === "schedule") return (
-    <Screen transitionKey="schedule">
-      <p className="ob-subtitle">¿Qué días opera tu negocio?</p>
-      <BubbleGrid>{WEEKDAYS.map((d) => <Bubble key={d.id} label={d.label} selected={days.includes(d.id)} onClick={() => toggleDay(d.id)} />)}</BubbleGrid>
-      <button className="ob-continue" disabled={days.length === 0} onClick={() => goToStep("employees")}>Continuar</button>
-    </Screen>
-  );
-
-  if (step === "employees") return (
-    <Screen transitionKey="employees">
-      <p className="ob-subtitle">¿Cuántas personas trabajan contigo?</p>
-      <BubbleGrid>{EMPLOYEE_OPTIONS.map((e) => <Bubble key={e.id} label={e.label} selected={employees === e.id} onClick={() => { setEmployees(e.id); goToStep("city"); }} />)}</BubbleGrid>
-    </Screen>
-  );
-
-  if (step === "city") return (
-    <Screen transitionKey="city">
-      <p className="ob-subtitle">¿En qué ciudad opera tu negocio?</p>
-      <button className="ob-continue" onClick={detectCity} disabled={locating}>{locating ? "Buscando…" : "📍 Usar mi ubicación"}</button>
-      {locationError && <p className="ob-error">{locationError}</p>}
-      <input className="ob-input" placeholder="O escribe tu ciudad" value={city} onChange={(e) => setCity(e.target.value)} />
-      <button className="ob-continue" disabled={!city} onClick={submit}>{submitting ? "Guardando…" : "Terminar"}</button>
-    </Screen>
-  );
-
-  return (
-    <Screen transitionKey="done">
-      <h2 className="ob-title">{submitted ? "¡Listo! 🎉" : "No se pudo guardar"}</h2>
-      <p className="ob-subtitle">
-        {submitted
-          ? "Tu perfil de negocio quedó guardado."
-          : "Tus respuestas siguen aquí — puedes reintentar sin volver a capturarlas."}
-      </p>
-      {!submitted && submitError && <p className="ob-error">{submitError}</p>}
-      {submitted ? (
-        <button className="ob-continue" onClick={() => onComplete?.()}>Ir a mi cuenta</button>
-      ) : (
-        <button className="ob-continue" disabled={submitting} onClick={submit}>
-          {submitting ? "Guardando…" : "Reintentar"}
-        </button>
-      )}
-    </Screen>
-  );
-}
-
-function Screen({ children, transitionKey }) {
-  return <div className="ob-screen" key={transitionKey}>{children}</div>;
-}
-function ProgressBar({ value }) { return <div className="ob-progress-track"><div className="ob-progress-fill" style={{ width: `${Math.round(value * 100)}%` }} /></div>; }
-
-function MicIcon({ size = 24 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="9" y="2" width="6" height="12" rx="3" />
-      <path d="M5 11a7 7 0 0 0 14 0" />
-      <line x1="12" y1="18" x2="12" y2="22" />
-      <line x1="8" y1="22" x2="16" y2="22" />
-    </svg>
-  );
-}
-
-function StopIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <rect x="6" y="6" width="12" height="12" rx="2" />
-    </svg>
-  );
-}
-
-function PencilIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 20h9" />
-      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-    </svg>
-  );
-}
-
-function BackArrowIcon() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M19 12H5" />
-      <path d="m11 18-6-6 6-6" />
-    </svg>
-  );
+  return <SurveyLayout section={section} progress={progress} stepKey={`${step}-${questionIndex}`} title={title} description={description} kicker={kicker} onExit={onExit} busy={submitting} active={active}>{content}</SurveyLayout>;
 }

@@ -1,0 +1,43 @@
+.business-card-stage {
+  margin-inline: 20px;
+  padding: 18px 8px;
+  perspective: 900px;
+}
+
+/* Keep the static angle separate from the existing pointer-driven 3D tilt. */
+.business-card-angle {
+  transform: rotate(-4deg);
+}
+
+.business-card-surface {
+  position: relative;
+  overflow: hidden;
+  border-radius: 4.25% / 7%;
+  box-shadow: 0 12px 22px -8px rgb(0 0 0 / 35%);
+}
+
+.business-card {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1.65;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  user-select: none;
+}
+
+/* Frame the supplied artwork without changing its file or showing its margins. */
+.reference-card {
+  position: relative;
+  aspect-ratio: 1320 / 795;
+  overflow: hidden;
+  user-select: none;
+}
+
+.reference-card img {
+  position: absolute;
+  width: 116.364%;
+  max-width: none;
+  height: auto;
+  left: -8.333%;
+  top: -14.465%;
+}

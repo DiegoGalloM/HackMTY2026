@@ -8,12 +8,14 @@ import {
   useSpring,
   useTransform,
 } from "framer-motion";
-import cardImage from "../assets/capital-one-venture-card.png";
+import mainPageCard from "../assets/capital-one-main-page-card.png";
+import welcomeCard from "../assets/capital-one-welcome-demo-card.png";
+import "./BusinessCard.css";
 
 /** Inclinación máxima en grados, en cada eje. */
 const MAX_TILT = 14;
 
-export default function CreditCardTile() {
+export default function CreditCardTile({ artwork = "original" }: { artwork?: "original" | "demo" }) {
   const ref = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
 
@@ -39,7 +41,7 @@ export default function CreditCardTile() {
   // donde la tarjeta se levanta.
   const glareX = useTransform(sx, [-0.5, 0.5], ["0%", "100%"]);
   const glareY = useTransform(sy, [-0.5, 0.5], ["0%", "100%"]);
-  const glare = useMotionTemplate`radial-gradient(circle at ${glareX} ${glareY}, rgba(255,255,255,0.35), transparent 0%)`;
+  const glare = useMotionTemplate`radial-gradient(circle at ${glareX} ${glareY}, rgba(255,255,255,0.18), transparent 65%)`;
 
   // La opacidad se maneja a mano y no con whileHover: la capa del brillo es
   // pointer-events-none, así que nunca recibiría el hover ella misma.
@@ -51,8 +53,8 @@ export default function CreditCardTile() {
     if (event.pointerType !== "mouse" || reducedMotion) return;
     const rect = ref.current?.getBoundingClientRect();
     if (!rect) return;
-    px.set((event.clientX - rect.left) / rect.width - 0.5);
-    py.set((event.clientY - rect.top) / rect.height - 0.5);
+    px.set(Math.max(-0.5, Math.min(0.5, (event.clientX - rect.left) / rect.width - 0.5)));
+    py.set(Math.max(-0.5, Math.min(0.5, (event.clientY - rect.top) / rect.height - 0.5)));
     glareOpacity.set(1);
   };
 
@@ -68,29 +70,32 @@ export default function CreditCardTile() {
     // La perspectiva va en el CONTENEDOR, no en el elemento que rota: si se
     // pone en el mismo elemento, cada esquina se proyecta igual y el giro se
     // ve plano en vez de levantarse hacia el espectador.
-    <div className="mx-5 [perspective:900px]">
-      <motion.div
-        ref={ref}
-        onPointerMove={handlePointerMove}
-        onPointerLeave={handlePointerLeave}
-        style={{ rotateX, rotateY }}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        transition={{ type: "spring", stiffness: 400, damping: 30 }}
-        className="relative overflow-hidden rounded-2xl shadow-lg shadow-black/25"
-      >
-        <img
-          src={cardImage}
-          alt="Tarjeta Capital One Business Venture"
-          className="block h-auto w-full select-none"
-          draggable={false}
-        />
+    <div className="business-card-stage">
+      <div className="business-card-angle">
         <motion.div
-          aria-hidden
-          style={{ backgroundImage: glare, opacity: glareOpacity }}
-          className="pointer-events-none absolute inset-0"
-        />
-      </motion.div>
+          ref={ref}
+          onPointerMove={handlePointerMove}
+          onPointerLeave={handlePointerLeave}
+          style={{ rotateX, rotateY }}
+          whileHover={reducedMotion ? undefined : { scale: 1.02 }}
+          whileTap={reducedMotion ? undefined : { scale: 0.98 }}
+          transition={{ type: "spring", stiffness: 400, damping: 30 }}
+          className="business-card-surface"
+        >
+          <div className="reference-card">
+            <img
+              src={artwork === "demo" ? welcomeCard : mainPageCard}
+              alt={artwork === "demo" ? "Tarjeta Capital One Business Venture. NEGOCIO DEMO, terminada en 4242." : "Tarjeta Capital One Business Venture"}
+              draggable={false}
+            />
+          </div>
+          <motion.div
+            aria-hidden
+            style={{ backgroundImage: glare, opacity: glareOpacity }}
+            className="pointer-events-none absolute inset-0"
+          />
+        </motion.div>
+      </div>
     </div>
   );
 }

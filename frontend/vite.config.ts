@@ -39,6 +39,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
+        // The supplied main-page card is 2.58 MB; keep it available offline.
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
       },
       devOptions: {
         // Permite probar el service worker con `npm run dev`.

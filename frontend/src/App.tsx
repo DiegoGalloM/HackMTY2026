@@ -10,8 +10,8 @@ import Pagos from "./screens/Pagos";
 import Retiros from "./screens/Retiros";
 import Transferencias from "./screens/Transferencias";
 import PhoneFrame from "./onboarding/PhoneFrame.jsx";
-import Logo from "./onboarding/Logo.jsx";
 import Onboarding from "./onboarding/Onboarding.jsx";
+import Welcome from "./onboarding/Welcome";
 
 interface BusinessProfile {
   category: string | null;
@@ -51,27 +51,35 @@ function MainApp({ profile }: { profile: BusinessProfile | null }) {
 }
 
 export default function App() {
-  // Encuesta de onboarding primero; al terminar (o si el usuario decide
-  // seguir tras un error de guardado) se muestra la app principal, ambas
-  // dentro del mismo mockup de celular (PhoneFrame).
-  const [onboardingDone, setOnboardingDone] = useState(false);
+  const [stage, setStage] = useState<"welcome" | "survey" | "account">("welcome");
+  const [surveyStarted, setSurveyStarted] = useState(false);
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
 
+  // Un solo mockup de celular para toda la sesión: bienvenida, encuesta y app
+  // principal viven dentro del mismo PhoneFrame, así el marco no se desmonta
+  // ni cambia de tamaño al pasar de una etapa a otra.
   return (
     <PhoneFrame>
-      {onboardingDone ? (
+      {stage === "account" ? (
         <MainApp profile={profile} />
-      ) : (
-        <>
-          <Logo />
+      ) : <>
+        {stage === "welcome" && <Welcome
+          onStart={() => { setSurveyStarted(true); setStage("survey"); }}
+          onExplore={() => setStage("account")}
+        />}
+        {/* La encuesta se oculta (no se desmonta) para conservar las respuestas
+            si el usuario vuelve a la bienvenida. */}
+        {surveyStarted && <div className="phone-stage" hidden={stage !== "survey"}>
           <Onboarding
-            onComplete={(completedProfile: BusinessProfile) => {
-              setProfile(completedProfile);
-              setOnboardingDone(true);
+            active={stage === "survey"}
+            onExit={() => setStage("welcome")}
+            onComplete={(completedProfile?: BusinessProfile) => {
+              setProfile(completedProfile ?? null);
+              setStage("account");
             }}
           />
-        </>
-      )}
+        </div>}
+      </>}
     </PhoneFrame>
   );
 }
