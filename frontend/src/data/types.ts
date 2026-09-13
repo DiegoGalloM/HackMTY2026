@@ -10,6 +10,8 @@ export interface Account {
   currency: "MXN" | "USD";
   /** Cómo se etiqueta la cuenta en la UI ("Cuenta Monito"). */
   label: string;
+  /** CLABE interbancaria a 18 dígitos, destino de las fichas de depósito. */
+  clabe: string;
 }
 
 export interface CreditCard {
@@ -29,7 +31,7 @@ export interface QuickAction {
   label: string;
   caption: string;
   /** Nombre del ícono de lucide-react, resuelto en QuickActionsGrid. */
-  icon: "send" | "qr" | "education" | "receipt";
+  icon: "send" | "qr" | "education" | "cash";
   to: string;
 }
 

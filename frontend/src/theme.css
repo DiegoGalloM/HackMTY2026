@@ -12,6 +12,9 @@ button { appearance: none; -webkit-appearance: none; font-family: inherit; }
 .phone-frame { width: var(--phone-width); height: var(--phone-height); background: #1a1a1a; border-radius: 48px; padding: 14px; box-shadow: 0 30px 60px rgba(0,0,0,0.35); position: relative; flex-shrink: 0; }
 .phone-frame__notch { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); width: 120px; height: 26px; background: #1a1a1a; border-radius: 0 0 16px 16px; z-index: 2; }
 .phone-frame__screen { width: 100%; height: 100%; background: var(--c1-white); border-radius: 36px; overflow: hidden; position: relative; display: flex; flex-direction: column; }
+/* Etapa de la sesión (p. ej. la encuesta) que ocupa toda la pantalla del mockup. */
+.phone-stage { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.phone-stage[hidden] { display: none; }
 .phone-frame__home-indicator { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 120px; height: 4px; border-radius: 2px; background: #d0d0d0; z-index: 2; }
 @media (max-width: 480px) {
   .phone-frame-backdrop { padding: 0; }

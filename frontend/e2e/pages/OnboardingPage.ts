@@ -22,6 +22,8 @@ export class OnboardingPage {
 
   async goto() {
     await this.page.goto("/");
+    await this.page.getByRole("button", { name: "Registrarme", exact: true }).click();
+    await this.page.getByRole("button", { name: "Comenzar mi encuesta" }).click();
     await expect(this.page.getByText("Selecciona tu modelo de negocio")).toBeVisible();
   }
 
@@ -77,7 +79,7 @@ export class OnboardingPage {
 
   // --- pantalla final -------------------------------------------------------
   get successTitle() {
-    return this.page.getByText("¡Listo! 🎉");
+    return this.page.getByRole("heading", { name: /¡Listo!/ });
   }
   get failureTitle() {
     return this.page.getByText("No se pudo guardar");
