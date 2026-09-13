@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, ChartNoAxesCombined, Check, Clock3, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChartNoAxesCombined, Check, Sparkles } from "lucide-react";
 import CreditCardTile from "../components/CreditCardTile";
 import CapitalOneLogo from "../components/CapitalOneLogo";
 import "./entry.css";
@@ -52,7 +52,6 @@ export default function Welcome({ onStart, onExplore }: WelcomeProps) {
         <section className="entry-visual" aria-label="Tu tarjeta de negocio">
           <div className="entry-orbit entry-orbit--outer" aria-hidden />
           <div className="entry-orbit entry-orbit--inner" aria-hidden />
-          {isWelcome && <span className="entry-visual-caption">HECHA PARA TU SIGUIENTE PASO</span>}
           <div className="entry-card"><CreditCardTile artwork="demo" /></div>
           {isWelcome && (
             <div className="entry-floating-note">
@@ -67,12 +66,11 @@ export default function Welcome({ onStart, onExplore }: WelcomeProps) {
           {isWelcome ? (
             <>
               <p className="entry-eyebrow"><span /> PARA QUIENES MUEVEN EL MUNDO</p>
-              <h1 id="entry-title" ref={heading} tabIndex={-1}>Tu negocio.<br />Tu esfuerzo.<br /><em>Tu siguiente paso.</em></h1>
+              <h1 id="entry-title" ref={heading} tabIndex={-1}>Tu negocio<br /><em>en tus manos</em></h1>
               <p className="entry-description">Una nueva forma de entender tu dinero y hacer crecer lo que estás construyendo. Empecemos por conocerte.</p>
               <div className="entry-actions">
                 <button className="entry-primary" onClick={() => setMode("register")}>Registrarme <ArrowRight size={18} aria-hidden /></button>
                 <button className="entry-secondary" onClick={() => setMode("login")}>Ya tengo una cuenta</button>
-                <p className="entry-time"><Clock3 size={14} aria-hidden /> Una breve encuesta. Un espacio a tu medida.</p>
               </div>
             </>
           ) : (

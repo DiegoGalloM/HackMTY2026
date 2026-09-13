@@ -7,7 +7,7 @@ test("la bienvenida aparece tras la landing y ambos accesos demo llevan a la enc
   page.on("request", request => { if (request.method() === "POST") requests.push(request.url()); });
   await page.goto("/");
   await page.getByRole("button", { name: "Empezar" }).click();
-  await expect(page.getByRole("heading", { name: /Tu negocio. Tu esfuerzo./ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Tu negocio en tus manos/ })).toBeVisible();
   await expect(page.getByRole("img", { name: /NEGOCIO DEMO/ })).toBeVisible();
   await expect(page.getByText("Selecciona tu modelo de negocio")).toHaveCount(0);
   await page.getByRole("button", { name: "Iniciar sesión", exact: true }).click();
