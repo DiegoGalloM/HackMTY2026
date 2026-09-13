@@ -113,6 +113,11 @@ test("sin apellidos la tarjeta muestra solo el nombre", async ({ page }) => {
 });
 
 test("sin nombre la tarjeta dice USUARIO", async ({ page }) => {
+  // "Explorar la demo" intenta entrar con el negocio de ejemplo del backend
+  // (POST /demo/session). Se corta esa llamada para que el test sea
+  // determinista aunque alguien tenga el backend corriendo: sin sesión, la
+  // app entra igual y no hay nombre que saludar.
+  await page.route(/\/demo\/session\b/, (route) => route.abort("connectionrefused"));
   await goToWelcome(page);
   await page.getByRole("button", { name: /Explorar la demo/ }).click();
 

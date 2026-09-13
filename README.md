@@ -93,10 +93,18 @@ El pipeline de GitHub Actions (`.github/workflows/ci.yml`) corre lint + tests
 en cada PR — configúralo desde el primer commit, no al final (ver Fase 7 del
 framework: "no tener CI/CD" es uno de los errores más comunes).
 
-## Siguiente paso
+## El producto: Capital One Business
 
-Este repo es intencionalmente genérico — el dominio real (qué hace el
-producto) todavía no está definido. Una vez que el equipo elija la idea,
-lo que cambia es principalmente `backend/app/routers/`,
-`backend/app/services/insights.py` y las pantallas del frontend; el cliente
-de Nessie, el CI y el empaquetado de escritorio se quedan igual.
+Inteligencia de flujo de efectivo y capital de trabajo para micro-negocios.
+El dueño vende con QR y compra con su tarjeta de negocio; la app lleva sola el
+inventario (recetas, costo promedio), la contabilidad de partida doble, los
+estados financieros, las razones y un asistente que responde en lenguaje
+natural con los datos reales.
+
+- `docs/DEMO.md` — guion de 4 minutos para jueces.
+- `docs/FINANCIAL_CORE.md` — arquitectura, tablas, invariantes, rendimiento.
+- `docs/SNOWFLAKE_SETUP.md` — Snowflake como base autoritativa (las migraciones
+  003/004 se aplican solas al arrancar).
+
+Sin Snowflake (`USE_SNOWFLAKE=false`) todo funciona igual con sqlite en
+memoria; la demo se siembra en 1 s.

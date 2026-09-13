@@ -91,21 +91,37 @@ inspector).
   registrado todavía. Ver `docs/SNOWFLAKE_SETUP.md` — tiene el paso a
   paso completo, desde crear la cuenta hasta probar que sí guarda datos.
 
+## ✅ Núcleo financiero (2026-09-13)
+
+Implementado y verificado de punta a punta contra Snowflake real (ver
+`docs/FINANCIAL_CORE.md` y `docs/DEMO.md`):
+
+- Catálogo de cuentas por giro, diario de partida doble, mayor, balanza
+  (ajustada / sin ajustes), estado de resultados y balance general.
+- Inventario con costo promedio ponderado, bitácora y conteos; productos y
+  servicios con receta; capacidad producible.
+- Venta por QR: orden → token opaco → página pública `/pay/:token` → pago
+  (proveedor demo, mismo evento que un webhook) → inventario + asientos +
+  impuesto apartado, idempotente.
+- Compras con la tarjeta: proveedor demo/Nessie normalizado, clasificación
+  por reglas + memoria del negocio, revisión en lenguaje llano, tickets que
+  actualizan cantidades.
+- Análisis: razones explicadas, salud de caja, drivers de utilidad,
+  insights de educación basados en datos.
+- Asistente híbrido: intención → herramientas sobre el motor → conocimiento →
+  redacción (Snowflake Cortex o Anthropic; sin LLM, plantillas). Los números
+  nunca salen del LLM.
+- Demo: "Panadería La Espiga" con 10 semanas coherentes (`Explorar la demo`).
+- Tests: 113 backend (invariantes, flujo HTTP, tenant, asistente) + 25 e2e.
+
 ## ❌ No se ha empezado
 
-- **Análisis financiero con Nessie** — estados financieros (estado de
-  resultados, balance, flujo de efectivo) y razones financieras a partir
-  de las transacciones reales. Esta era la pieza "core" del track y
-  todavía no tiene código.
-- **Modelo de sugerencias con Gemini** — lo de "Pepito no te ha comprado
-  en 2 meses, contáctalo". Solo quedó como plan; no hay archivo ni
-  integración.
-- **Cuenta de Snowflake** — nadie se ha registrado aún. Es el primer
-  paso antes de que `snowflake_store.py` sirva de algo.
-- **Deploy en Vultr** — para el prize de MLH. No se ha tocado.
-- **Solana** — quedó sin decidir si se persigue. Dado el tiempo que
-  queda, probablemente no vale la pena a menos que alguien del equipo ya
-  sepa Solana de antes.
+- **Deploy en Vultr** — para el prize de MLH. No se ha tocado (Render está
+  configurado en `render.yaml`).
+- **Proveedor de pagos real** — sólo existe el proveedor demo; un Stripe/
+  Square entra por la interfaz `PaymentProvider` + webhook.
+- **OCR real de tickets** — hay tickets de muestra por comercio; un OCR entra
+  por `PurchaseService.attach_receipt`.
 
 ## Prioridad sugerida si el tiempo aprieta
 

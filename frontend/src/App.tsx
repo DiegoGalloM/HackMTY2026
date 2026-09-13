@@ -3,26 +3,48 @@ import { AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import BottomNav from "./components/BottomNav";
 import Analisis from "./screens/Analisis";
+import Asistente from "./screens/Asistente";
 import CobroEfectivo from "./screens/CobroEfectivo";
+import Compras from "./screens/Compras";
 import Cuenta from "./screens/Cuenta";
 import Educacion from "./screens/Educacion";
+import Inventario from "./screens/Inventario";
+import Libros from "./screens/Libros";
 import Mas from "./screens/Mas";
 import Pagos from "./screens/Pagos";
+import Pay from "./screens/Pay";
 import Retiros from "./screens/Retiros";
 import Transferencias from "./screens/Transferencias";
+import Vender from "./screens/Vender";
 import PhoneFrame from "./onboarding/PhoneFrame.jsx";
 import Onboarding from "./onboarding/Onboarding.jsx";
 import Welcome from "./onboarding/Welcome";
 import Landing from "./landing/Landing";
-import { readSession, saveSession, type Session } from "./auth/session";
+import { demoSession } from "./api/finance";
+import { readSession, saveSession, sessionFromAuth, type Session } from "./auth/session";
+import { BusinessProvider, type LocalProfile } from "./business/BusinessContext";
 
-interface BusinessProfile {
-  category: string | null;
-  answers: Record<string, boolean>;
-  /** Nombre(s) que el usuario escribió en el primer paso de la encuesta. */
-  name?: string;
-  /** Apellidos del mismo paso. Opcional: se puede continuar sin ellos. */
-  lastName?: string;
+type BusinessProfile = LocalProfile;
+
+/** El perfil local (nombre para el saludo, categoría para la educación) también sobrevive al refresh. */
+const PROFILE_KEY = "c1b.profile";
+
+function readProfile(): BusinessProfile | null {
+  try {
+    const raw = window.sessionStorage.getItem(PROFILE_KEY);
+    return raw ? (JSON.parse(raw) as BusinessProfile) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveProfile(profile: BusinessProfile | null) {
+  try {
+    if (profile) window.sessionStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    else window.sessionStorage.removeItem(PROFILE_KEY);
+  } catch {
+    // sin storage la app sigue; solo se pierde al refrescar
+  }
 }
 
 function MainApp({ profile }: { profile: BusinessProfile | null }) {
@@ -42,6 +64,11 @@ function MainApp({ profile }: { profile: BusinessProfile | null }) {
       <AnimatePresence mode="wait" initial={false}>
         <Routes location={location} key={location.pathname}>
           <Route path="/" element={<Cuenta profile={profile} />} />
+          <Route path="/vender" element={<Vender />} />
+          <Route path="/inventario" element={<Inventario />} />
+          <Route path="/compras" element={<Compras />} />
+          <Route path="/asistente" element={<Asistente />} />
+          <Route path="/libros" element={<Libros />} />
           <Route path="/retiros" element={<Retiros />} />
           <Route path="/transferencias" element={<Transferencias />} />
           <Route path="/analisis" element={<Analisis />} />
@@ -59,18 +86,58 @@ function MainApp({ profile }: { profile: BusinessProfile | null }) {
 }
 
 export default function App() {
+  const location = useLocation();
   // landing: logo animado + "Empezar"; de ahí a la bienvenida y el resto del flujo.
   const [stage, setStage] = useState<"landing" | "welcome" | "survey" | "account">("landing");
   const [surveyStarted, setSurveyStarted] = useState(false);
-  const [profile, setProfile] = useState<BusinessProfile | null>(null);
-  // La sesión vive aquí y no en un contexto: de momento el único consumidor es
-  // la encuesta, que necesita el user_id como owner y el token para el POST.
+  const [profile, setProfileState] = useState<BusinessProfile | null>(null);
+  // La sesión vive aquí y no en un contexto propio: la encuesta la necesita
+  // para el POST del perfil y el BusinessProvider para la API financiera.
   const [session, setSession] = useState<Session | null>(null);
+
+  const setProfile = (next: BusinessProfile | null) => {
+    setProfileState(next);
+    saveProfile(next);
+  };
 
   // Se rehidrata en el primer render del cliente (no en el estado inicial)
   // porque leer sessionStorage puede lanzar y useState no tiene dónde
-  // recuperarse. readSession() ya descarta un token caducado.
-  useEffect(() => { setSession(readSession()); }, []);
+  // recuperarse. readSession() ya descarta un token caducado. Con sesión viva
+  // (un refresh a media demo) se entra directo a la app.
+  useEffect(() => {
+    const live = readSession();
+    setSession(live);
+    if (live) {
+      setProfileState(readProfile());
+      setStage("account");
+    }
+  }, []);
+
+  // "Explorar la demo": entra con la panadería de ejemplo ya sembrada. Si el
+  // backend no responde, entra igual sin sesión (las pantallas lo explican).
+  const explore = async () => {
+    const res = await demoSession();
+    if (res.ok) {
+      const next = sessionFromAuth(res.data);
+      saveSession(next);
+      setSession(next);
+      const [name, ...rest] = res.data.user.full_name.split(" ");
+      setProfile({ category: "comida", answers: { guarda_inventario: true, se_ha_quedado_sin_stock: true, compra_mayoreo: true }, name, lastName: rest.join(" ") });
+    }
+    setStage("account");
+  };
+
+  // La página pública de pago (QR) vive fuera del flujo de sesión: la abre
+  // el cliente, sin cuenta, dentro del mismo mockup para que se vea como app.
+  if (location.pathname.startsWith("/pay/")) {
+    return (
+      <PhoneFrame>
+        <Routes>
+          <Route path="/pay/:token" element={<Pay />} />
+        </Routes>
+      </PhoneFrame>
+    );
+  }
 
   // Un solo mockup de celular para toda la sesión: landing, bienvenida, encuesta y app
   // principal viven dentro del mismo PhoneFrame, así el marco no se desmonta
@@ -78,7 +145,9 @@ export default function App() {
   return (
     <PhoneFrame>
       {stage === "account" ? (
-        <MainApp profile={profile} />
+        <BusinessProvider session={session} profile={profile}>
+          <MainApp profile={profile} />
+        </BusinessProvider>
       ) : <>
         {stage === "landing" && <Landing onStart={() => setStage("welcome")} />}
         {stage === "welcome" && <Welcome
@@ -88,9 +157,7 @@ export default function App() {
             setSurveyStarted(true);
             setStage("survey");
           }}
-          // "Explorar la demo" entra sin cuenta: no hay token, así que nada
-          // toca los endpoints protegidos de /business-profile.
-          onExplore={() => setStage("account")}
+          onExplore={() => { void explore(); }}
         />}
         {/* La encuesta se oculta (no se desmonta) para conservar las respuestas
             si el usuario vuelve a la bienvenida. */}

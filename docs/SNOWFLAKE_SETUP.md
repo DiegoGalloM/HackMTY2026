@@ -45,6 +45,14 @@ la parte antes de eso.
 |---|---|
 | `backend/sql/001_business_profiles.sql` | Warehouse `HACKMTY_WH`, base `HACKMTY`, schema `PUBLIC` y la tabla `business_profiles` (encuesta de onboarding) |
 | `backend/sql/002_users.sql` | Tabla `users` (registro / login) |
+| `backend/sql/003_financial_core.sql` | Las 16 tablas del núcleo financiero (cuentas, diario, inventario, productos, órdenes, pagos, compras, tickets, eventos) |
+| `backend/sql/004_financial_views.sql` | Vistas `v_general_ledger` y `v_account_balances` derivadas del diario |
+
+Con `USE_SNOWFLAKE=true` el backend aplica las migraciones pendientes solo al
+arrancar (misma lógica y misma tabla `schema_migrations`), así que el runner
+manual es opcional. El asistente usa `SNOWFLAKE.CORTEX.COMPLETE` con
+`CORTEX_MODEL` (por default `claude-sonnet-4-5`) para redactar; los números
+salen del diario, no del modelo.
 
 Corran el runner **desde `backend/`**, después de llenar el `.env` (Paso 5):
 

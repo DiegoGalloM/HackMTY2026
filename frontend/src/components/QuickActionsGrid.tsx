@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { GraduationCap, HandCoins, QrCode, Send } from "lucide-react";
+import { GraduationCap, HandCoins, MessageCircle, Package, QrCode, Send } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { quickActions } from "../data/mock";
 import type { QuickAction } from "../data/types";
@@ -10,6 +10,8 @@ const icons: Record<QuickAction["icon"], LucideIcon> = {
   qr: QrCode,
   education: GraduationCap,
   cash: HandCoins,
+  inventory: Package,
+  assistant: MessageCircle,
 };
 
 /** Grid 2x2 de accesos rápidos. */

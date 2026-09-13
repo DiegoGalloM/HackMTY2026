@@ -3,9 +3,8 @@
 import { describePasswordProblem } from "./passwordPolicy";
 import { sessionFromAuth, type Session, type UserPublic } from "./session";
 
-// Igual que en Onboarding.jsx: por default el backend local de cada quien y se
-// puede apuntar a otro con VITE_API_URL en frontend/.env.local.
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+// La URL del backend vive en api/config.ts (VITE_API_URL o el local de cada quien).
+import { API_BASE } from "../api/config";
 
 export interface RegisterInput {
   username: string;

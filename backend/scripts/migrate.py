@@ -8,9 +8,13 @@ Se usa desde `backend/`:
 Lee `backend/sql/*.sql` en orden alfabético (por eso van numerados), aplica los
 que falten y anota cada uno en la tabla `schema_migrations`. Correrlo dos veces
 seguidas es seguro: la segunda vez no hace nada.
+
+`apply_pending()` es la misma lógica reutilizable: el backend la llama al
+arrancar con USE_SNOWFLAKE=true, así un deploy nuevo se auto-migra.
 """
 
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 from app.config import get_settings
@@ -23,6 +27,39 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
   applied_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
 )
 """
+
+
+def apply_pending(conn, log_fn: Callable[[str], None] = print) -> int:
+    """Aplica las migraciones que falten sobre una conexión abierta. Regresa
+    cuántas aplicó."""
+    files = sorted(SQL_DIR.glob("*.sql"))
+    if not files:
+        log_fn(f"No se encontraron archivos .sql en {SQL_DIR}")
+        return 0
+
+    cur = conn.cursor()
+    cur.execute(MIGRATIONS_TABLE)
+    cur.execute("SELECT filename FROM schema_migrations")
+    applied = {row[0] for row in cur.fetchall()}
+
+    pending = [f for f in files if f.name not in applied]
+    if not pending:
+        log_fn(f"Todo al día: {len(files)} migración(es) ya aplicadas.")
+        return 0
+
+    for path in pending:
+        log_fn(f"Aplicando {path.name}...")
+        # execute_string y no execute: los archivos traen varias sentencias
+        # separadas por ';' y execute() solo acepta una.
+        conn.execute_string(path.read_text(encoding="utf-8"))
+        cur.execute(
+            "INSERT INTO schema_migrations (filename) VALUES (%(filename)s)",
+            {"filename": path.name},
+        )
+        log_fn(f"  OK {path.name}")
+
+    log_fn(f"Listo: {len(pending)} migración(es) aplicadas.")
+    return len(pending)
 
 
 def main() -> int:
@@ -42,11 +79,6 @@ def main() -> int:
     # el connector no está instalado todavía.
     import snowflake.connector
 
-    files = sorted(SQL_DIR.glob("*.sql"))
-    if not files:
-        print(f"No se encontraron archivos .sql en {SQL_DIR}")
-        return 0
-
     conn = snowflake.connector.connect(
         account=settings.snowflake_account,
         user=settings.snowflake_user,
@@ -57,29 +89,7 @@ def main() -> int:
         role=settings.snowflake_role or None,
     )
     try:
-        cur = conn.cursor()
-        cur.execute(MIGRATIONS_TABLE)
-
-        cur.execute("SELECT filename FROM schema_migrations")
-        applied = {row[0] for row in cur.fetchall()}
-
-        pending = [f for f in files if f.name not in applied]
-        if not pending:
-            print(f"Todo al día: {len(files)} migración(es) ya aplicadas.")
-            return 0
-
-        for path in pending:
-            print(f"Aplicando {path.name}...")
-            # execute_string y no execute: los archivos traen varias sentencias
-            # separadas por ';' y execute() solo acepta una.
-            conn.execute_string(path.read_text(encoding="utf-8"))
-            cur.execute(
-                "INSERT INTO schema_migrations (filename) VALUES (%(filename)s)",
-                {"filename": path.name},
-            )
-            print(f"  OK {path.name}")
-
-        print(f"\nListo: {len(pending)} migración(es) aplicadas.")
+        apply_pending(conn)
     finally:
         conn.close()
 

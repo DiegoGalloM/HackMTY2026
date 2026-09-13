@@ -11,6 +11,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from app.finance import cache
 from app.models.schemas import (
     AuthResponse,
     LoginRequest,
@@ -56,7 +57,15 @@ async def get_current_user(
 
     # El token puede estar bien firmado y vigente pero apuntar a un usuario que
     # ya no existe (borrado, o store en memoria reiniciado): también es 401.
-    user = await users.get_user_by_id(payload.get("sub", ""))
+    # El usuario se cachea unos minutos: se resuelve en CADA request y en
+    # Snowflake cuesta ~0.4 s; un usuario inexistente nunca se cachea.
+    user_id = payload.get("sub", "")
+    key = ("user", id(users), user_id)
+    user = cache.get(key, lambda: None)
+    if user is None:
+        user = await users.get_user_by_id(user_id)
+        if user is not None:
+            cache.get(key, lambda: user)
     if user is None:
         raise _INVALID_TOKEN
 

@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Banknote, ChartColumn, LayoutGrid, Landmark, Receipt } from "lucide-react";
+import { ChartColumn, CreditCard, Landmark, LayoutGrid, QrCode } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 interface NavItem {
@@ -10,16 +10,19 @@ interface NavItem {
   raised?: boolean;
 }
 
+// Vender y Compras son el día a día del dueño (entra dinero, sale dinero);
+// Análisis al centro es donde todo eso se vuelve inteligencia. Retiros,
+// transferencias y pagos de servicios siguen disponibles desde "Más".
 const items: NavItem[] = [
   { to: "/", label: "Cuenta", icon: Landmark },
-  { to: "/retiros", label: "Retiros", icon: Banknote },
+  { to: "/vender", label: "Vender", icon: QrCode },
   {
     to: "/analisis",
     label: "Análisis",
     icon: ChartColumn,
     raised: true,
   },
-  { to: "/pagos", label: "Pagos", icon: Receipt },
+  { to: "/compras", label: "Compras", icon: CreditCard },
   { to: "/mas", label: "Más", icon: LayoutGrid },
 ];
 

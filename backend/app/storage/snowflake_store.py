@@ -1,5 +1,7 @@
 import asyncio
 import json
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Any
 
 import snowflake.connector
@@ -20,24 +22,46 @@ PROFILE_COLUMNS = """
 USER_COLUMNS = "user_id, username, business_name, full_name, birthdate, password_hash"
 
 
+@contextmanager
+def _connection(settings: Settings) -> Iterator[Any]:
+    """Conexión a Snowflake. Si el núcleo financiero ya tiene su pool
+    (USE_SNOWFLAKE=true), se toma prestada una de ahí: abrir una conexión
+    nueva cuesta ~1 s y estos stores se consultan en cada request (token,
+    perfil). Si no, se abre y se cierra una, como antes."""
+    pooled = None
+    try:
+        from app.db import get_db
+
+        candidate = get_db()
+        if getattr(candidate, "dialect", "") == "snowflake":
+            pooled = candidate
+    except Exception:  # noqa: BLE001 - sin pool, conexión directa
+        pooled = None
+    if pooled is not None:
+        with pooled.connection() as conn:
+            yield conn
+        return
+    conn = snowflake.connector.connect(
+        account=settings.snowflake_account,
+        user=settings.snowflake_user,
+        password=settings.snowflake_password,
+        warehouse=settings.snowflake_warehouse,
+        database=settings.snowflake_database,
+        schema=settings.snowflake_schema,
+        role=settings.snowflake_role or None,
+    )
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+
 class SnowflakeProfileStore(ProfileStore):
     def __init__(self, settings: Settings):
         self._settings = settings
 
-    def _connect(self):
-        return snowflake.connector.connect(
-            account=self._settings.snowflake_account,
-            user=self._settings.snowflake_user,
-            password=self._settings.snowflake_password,
-            warehouse=self._settings.snowflake_warehouse,
-            database=self._settings.snowflake_database,
-            schema=self._settings.snowflake_schema,
-            role=self._settings.snowflake_role or None,
-        )
-
     def _save_profile_sync(self, owner_id: str, profile: BusinessProfile) -> None:
-        conn = self._connect()
-        try:
+        with _connection(self._settings) as conn:
             conn.cursor().execute(
                 """
                 MERGE INTO business_profiles AS target
@@ -72,8 +96,6 @@ class SnowflakeProfileStore(ProfileStore):
                     "week_description_audio_mime": profile.week_description_audio_mime,
                 },
             )
-        finally:
-            conn.close()
 
     async def save_profile(self, owner_id: str, profile: BusinessProfile) -> None:
         await asyncio.to_thread(self._save_profile_sync, owner_id, profile)
@@ -94,8 +116,7 @@ class SnowflakeProfileStore(ProfileStore):
         )
 
     def _get_profile_sync(self, owner_id: str) -> BusinessProfile | None:
-        conn = self._connect()
-        try:
+        with _connection(self._settings) as conn:
             cur = conn.cursor()
             cur.execute(
                 f"SELECT {PROFILE_COLUMNS} FROM business_profiles WHERE owner_id = %(owner_id)s",
@@ -103,15 +124,12 @@ class SnowflakeProfileStore(ProfileStore):
             )
             row = cur.fetchone()
             return self._row_to_profile(row) if row else None
-        finally:
-            conn.close()
 
     async def get_profile(self, owner_id: str) -> BusinessProfile | None:
         return await asyncio.to_thread(self._get_profile_sync, owner_id)
 
     def _list_profiles_sync(self, category: str | None) -> list[BusinessProfile]:
-        conn = self._connect()
-        try:
+        with _connection(self._settings) as conn:
             cur = conn.cursor()
             if category:
                 cur.execute(
@@ -121,8 +139,6 @@ class SnowflakeProfileStore(ProfileStore):
             else:
                 cur.execute(f"SELECT {PROFILE_COLUMNS} FROM business_profiles")
             return [self._row_to_profile(row) for row in cur.fetchall()]
-        finally:
-            conn.close()
 
     async def list_profiles(self, category: str | None = None) -> list[BusinessProfile]:
         return await asyncio.to_thread(self._list_profiles_sync, category)
@@ -131,8 +147,7 @@ class SnowflakeProfileStore(ProfileStore):
         # FLATTEN sobre el VARIANT en vez de una lista fija de preguntas: así las
         # preguntas por categoría (ingredientes_perecederos, etc.) también cuentan,
         # igual que en MemoryProfileStore. Denominador = negocios de la categoría.
-        conn = self._connect()
-        try:
+        with _connection(self._settings) as conn:
             cur = conn.cursor()
             cur.execute(
                 "SELECT COUNT(*) FROM business_profiles WHERE category = %(category)s",
@@ -152,8 +167,6 @@ class SnowflakeProfileStore(ProfileStore):
                 {"category": category},
             )
             rows = cur.fetchall()
-        finally:
-            conn.close()
 
         return {
             "category": category,
@@ -169,17 +182,6 @@ class SnowflakeUserStore(UserStore):
     def __init__(self, settings: Settings):
         self._settings = settings
 
-    def _connect(self):
-        return snowflake.connector.connect(
-            account=self._settings.snowflake_account,
-            user=self._settings.snowflake_user,
-            password=self._settings.snowflake_password,
-            warehouse=self._settings.snowflake_warehouse,
-            database=self._settings.snowflake_database,
-            schema=self._settings.snowflake_schema,
-            role=self._settings.snowflake_role or None,
-        )
-
     def _create_user_sync(self, user: StoredUser) -> bool:
         # OJO: en Snowflake PRIMARY KEY y UNIQUE son *solo metadata*, no se
         # imponen — puedes insertar dos filas con el mismo username sin que la
@@ -189,8 +191,7 @@ class SnowflakeUserStore(UserStore):
         # el NOT EXISTS cada uno contra su propio snapshot, los dos ven "no
         # existe" y los dos entran. MERGE sí serializa sobre el destino (es la
         # razón por la que el MERGE de los perfiles ya era seguro).
-        conn = self._connect()
-        try:
+        with _connection(self._settings) as conn:
             cur = conn.cursor()
             cur.execute(
                 """
@@ -218,8 +219,6 @@ class SnowflakeUserStore(UserStore):
             row = cur.fetchone()
             inserted = int(row[0]) if row and row[0] is not None else (cur.rowcount or 0)
             return inserted > 0
-        finally:
-            conn.close()
 
     async def create_user(self, user: StoredUser) -> bool:
         return await asyncio.to_thread(self._create_user_sync, user)
@@ -238,8 +237,7 @@ class SnowflakeUserStore(UserStore):
         )
 
     def _get_user_by_username_sync(self, username: str) -> StoredUser | None:
-        conn = self._connect()
-        try:
+        with _connection(self._settings) as conn:
             cur = conn.cursor()
             cur.execute(
                 # ORDER BY + LIMIT 1: si alguna vez llegaran a existir dos filas
@@ -252,15 +250,12 @@ class SnowflakeUserStore(UserStore):
             )
             row = cur.fetchone()
             return self._row_to_user(row) if row else None
-        finally:
-            conn.close()
 
     async def get_user_by_username(self, username: str) -> StoredUser | None:
         return await asyncio.to_thread(self._get_user_by_username_sync, username)
 
     def _get_user_by_id_sync(self, user_id: str) -> StoredUser | None:
-        conn = self._connect()
-        try:
+        with _connection(self._settings) as conn:
             cur = conn.cursor()
             cur.execute(
                 f"SELECT {USER_COLUMNS} FROM users WHERE user_id = %(user_id)s",
@@ -268,8 +263,6 @@ class SnowflakeUserStore(UserStore):
             )
             row = cur.fetchone()
             return self._row_to_user(row) if row else None
-        finally:
-            conn.close()
 
     async def get_user_by_id(self, user_id: str) -> StoredUser | None:
         return await asyncio.to_thread(self._get_user_by_id_sync, user_id)

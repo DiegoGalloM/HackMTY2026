@@ -38,6 +38,31 @@ class Settings(BaseSettings):
 
     cors_origins: str = "http://localhost:5173"
 
+    # Núcleo financiero sin Snowflake: sqlite en memoria por default (se
+    # reinicia con el proceso, igual que los stores en memoria). Un path lo
+    # vuelve persistente entre reinicios: LOCAL_DB_PATH=./data/local.db
+    local_db_path: str = ""
+
+    # Proveedor de pagos para el cobro con QR. "demo" confirma el pago sin
+    # tocar ningún servicio externo, pero produce el MISMO evento autoritativo
+    # que produciría un webhook real.
+    payment_provider: str = "demo"
+
+    # Fuente de transacciones de la tarjeta de negocio: "demo" | "nessie".
+    transaction_provider: str = "demo"
+
+    # Capa de explicación del asistente: "auto" prueba Anthropic (si hay key),
+    # luego Snowflake Cortex (si Snowflake está activo) y si no, plantillas
+    # deterministas. También: "anthropic" | "cortex" | "none".
+    llm_provider: str = "auto"
+    cortex_model: str = "claude-sonnet-4-5"
+    anthropic_model: str = "claude-opus-5"
+
+    # URL pública del frontend, para armar el link del QR desde el backend
+    # cuando el cliente escanea desde otro dispositivo. Vacío = el frontend usa
+    # su propio origen.
+    public_app_url: str = ""
+
     # Auth. jwt_secret vacío = se genera uno efímero al arrancar (ver validador).
     jwt_secret: str = ""
     jwt_algorithm: str = "HS256"
