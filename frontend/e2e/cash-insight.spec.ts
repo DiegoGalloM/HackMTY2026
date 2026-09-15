@@ -95,11 +95,16 @@ test.describe("Cash Insight después de la encuesta", () => {
     await finishSurveyAndEnterAccount(page);
 
     await page.getByRole("link", { name: /ONE Education/ }).click();
+    await expect(page).toHaveURL(/#\/educacion$/);
     const titles = page.locator(".cash-insight-card__title");
-    await expect(titles.filter({ hasText: "Cuándo volver a pedir" })).toHaveCount(1);
-    // La encuesta también dispara "quiebre de stock" (cubierto por los datos),
-    // así que su lección pasa a la siguiente que aplica: la sobrecompra.
+    // Primero se espera la lección de la encuesta: sólo existe en Educación y
+    // sale en el mismo render que los insights de datos. Contar antes daba
+    // falsos positivos con la tarjeta de Cuenta que sigue en pantalla durante
+    // la transición. La encuesta también dispara "quiebre de stock" (cubierto
+    // por los datos), así que su lección pasa a la siguiente: la sobrecompra.
+    await expect(titles.filter({ hasText: "Tu efectivo también se queda atrapado en una caja" })).toBeVisible({ timeout: 15_000 });
     await expect(titles.filter({ hasText: "Tu efectivo también se queda atrapado en una caja" })).toHaveCount(1);
+    await expect(titles.filter({ hasText: "Cuándo volver a pedir" })).toHaveCount(1);
     await expect(titles.filter({ hasText: SURVEY_TITLE })).toHaveCount(0);
     await expectNoReload(page);
   });

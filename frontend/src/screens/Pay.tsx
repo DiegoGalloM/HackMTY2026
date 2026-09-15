@@ -5,6 +5,7 @@ import { getCheckout, payCheckout } from "../api/finance";
 import { formatMoney } from "../api/format";
 import type { CheckoutView } from "../api/types";
 import CapitalOneLogo from "../components/CapitalOneLogo";
+import DemoNotice from "../components/DemoNotice";
 
 /**
  * Página pública de pago: lo que abre el cliente al escanear el QR.
@@ -138,7 +139,7 @@ export default function Pay() {
             </p>
           )}
 
-          <div className="mt-auto pb-8 pt-6">
+          <div className="mt-auto pb-4 pt-6">
             <button type="button" onClick={pay} disabled={paying} aria-busy={paying} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-brand text-base font-semibold text-white shadow-[0_8px_20px_rgba(0,73,119,.28)] transition-transform active:scale-[.98] disabled:opacity-50">
               {paying ? <LoaderCircle size={18} className="animate-spin" aria-hidden /> : <ShieldCheck size={18} aria-hidden />}
               {paying ? "Procesando…" : `Pagar ${formatMoney(view.total)}`}
@@ -149,6 +150,9 @@ export default function Pay() {
           </div>
         </div>
       )}
+
+      {/* Quien abre el QR no vio la landing: el aviso va en cualquier estado de la orden. */}
+      <DemoNotice className="mt-auto px-5 pt-4 pb-[calc(var(--safe-bottom)+1.5rem)]" />
     </div>
   );
 }

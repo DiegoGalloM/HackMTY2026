@@ -7,6 +7,11 @@ estados financieros, las razones y un asistente que responde en lenguaje
 natural con los datos reales del negocio. Una encuesta de 2 minutos perfila el
 negocio y decide qué lección de educación financiera ("Cash Insight") ver.
 
+> **Es una demo: todo el dinero es simulado.** No se procesa dinero real, no se
+> conecta a cuentas bancarias reales y los cobros por QR usan un proveedor de
+> pago de prueba. Tampoco es un producto de Capital One (ver
+> [Créditos y transparencia](#créditos-y-transparencia)).
+
 Construido durante HackMTY 2026 para el track de Capital One (SMB Cash-Flow &
 Working Capital Intelligence), con Nessie (el sandbox bancario de Capital One)
 detrás de una interfaz intercambiable por un mock.
@@ -79,7 +84,7 @@ también sirven en *Iniciar sesión*. Detalle en [`docs/DEV.md`](docs/DEV.md).
 
 ```bash
 cd backend && ruff check . && pytest -q     # 151 tests, siempre en memoria/sqlite
-cd frontend && npm run build && npm run e2e # 34 specs de Playwright × 2 proyectos
+cd frontend && npm run build && npm run e2e # 40 specs de Playwright × 2 proyectos
 ```
 
 GitHub Actions (`.github/workflows/ci.yml`) corre en cada push a `main` y en
@@ -97,3 +102,34 @@ API Nessie). De esa etapa se conservan dos decisiones:
   media competencia y no volvió. Aquí todo pasa por `Depends(get_nessie_client)`
   y `USE_MOCK_NESSIE=true` cambia al mock sin tocar la lógica.
 - **CI desde el primer commit**, en vez de dejarlo para el final.
+
+## Estado y hoja de ruta
+
+- Estado verificado y lo que falta confirmar contra Snowflake real:
+  [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md).
+- Plan de pulido post-hackathon: [`docs/ROADMAP_PULIDO.md`](docs/ROADMAP_PULIDO.md).
+- **Alcance a propósito:** sigue siendo una demo con datos simulados. No mueve
+  dinero real ni se conecta a bancos reales.
+- **Rebranding condicional:** si este proyecto evoluciona más allá de ser la
+  entrega de HackMTY 2026 (presencia pública sostenida, usuarios reales de forma
+  continua, financiamiento), el nombre, el logo y la paleta se reemplazan por
+  unos propios antes de ese paso.
+
+## Créditos y transparencia
+
+- Todas las imágenes de la presentación (incluida la tarjeta de crédito y la
+  fachada de oficina) fueron generadas con IA a partir de prompts que incluían
+  "Capital One Business"; ninguna es una fotografía real, un render oficial ni
+  un asset proporcionado por Capital One.
+- Descripciones del proyecto listas para reutilizar (Devpost, LinkedIn,
+  presentación), con el mismo aviso de demo y de no afiliación:
+  [`docs/DESCRIPCIONES_PUBLICAS.md`](docs/DESCRIPCIONES_PUBLICAS.md).
+
+---
+
+*Capital One Business fue construido en 36 horas para el reto de Capital One en
+HackMTY 2026. Es una demo: todas las transacciones son simuladas; no se procesa
+dinero real ni se conecta a cuentas bancarias reales. No es un producto de
+Capital One ni está afiliado, respaldado o patrocinado por Capital One, N.A. — el
+nombre y la identidad visual se usan únicamente para describir honestamente el
+reto para el que fue construido.*

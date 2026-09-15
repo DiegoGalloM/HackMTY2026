@@ -18,7 +18,7 @@ recorrido a mano · ⏳ pendiente de verificar contra Snowflake real (Fase 9).
 
 - **Todo lo que se puede probar sin Snowflake funciona:** 151 tests de backend
   en verde (eran 119; se agregaron 14 de fechas y 18 de la Fase 5), `ruff`
-  limpio, build del frontend OK, e2e de 34 specs × 2 proyectos (un `skip`
+  limpio, build del frontend OK, e2e de 40 specs × 2 proyectos (un `skip`
   intencional en móvil).
 - **CI dependía del día en que corriera.** Había seis tests que pasaban o
   fallaban según la fecha real, y uno de ellos ya había puesto CI en rojo el
@@ -45,7 +45,7 @@ se crearon desde cero para esta auditoría.
 | Lint backend | `cd backend && ruff check .` | ✅ `All checks passed!` |
 | Tests backend | `cd backend && pytest -q` (con `USE_SNOWFLAKE=false`) | ✅ **119 passed** en ~51 s al auditar; **133 passed** tras las correcciones (warnings: `JWT_SECRET` efímero y un deprecation de starlette) |
 | Build frontend | `cd frontend && npm run build` | ✅ OK (aviso de tamaño de chunk, no bloqueante) |
-| E2E | `cd frontend && npm run e2e` | ✅ **57 passed, 1 skipped** (29 specs × 2 proyectos) al auditar; **63 passed, 1 skipped** (32 specs) tras la Fase 4. Ver nota de intermitencia abajo |
+| E2E | `cd frontend && npm run e2e` | ✅ **57 passed, 1 skipped** (29 specs × 2 proyectos) al auditar; **63 passed, 1 skipped** (32 specs) tras la Fase 4; **40 specs** tras integrar las Fases 1 y 8 sobre la Fase 5 (CI en chromium: 40/40). Ver nota de intermitencia abajo |
 | Stack en vivo | `python dev.py` (API :8000, web :5173) | ✅ arranca; `/health` → `{"storage":"memory","nessie_mode":"mock","payment_provider":"demo",...}`; siembra la demo al arrancar |
 | Recorrido real sin stubs | script de Playwright contra el stack vivo (no está en el repo) | ✅ 8/8 pasos, detallados en la siguiente sección |
 
@@ -112,8 +112,37 @@ Orden creada por API → página pública → *Pagar* → la orden queda `PAID`
 `/pay/{token}` es la ruta del API. Abrir `/pay/<token>` sin `#` muestra la
 landing. El link que genera la app (`api/config.ts`) ya usa el `#`.
 
-La página de pago **no menciona en ningún lado** que es una demo o que el pago
-es simulado (insumo para las Fases 1 y 8).
+~~La página de pago no mencionaba que es una demo.~~ **Resuelto en las Fases 1
+y 8 (2026-09-15):** en cualquier estado de la orden lleva al pie el aviso de
+dinero simulado y el disclaimer de no afiliación.
+
+### Transparencia: demo y no afiliación ✅
+
+Fases 1 y 8, 2026-09-15. Los textos viven en un solo lugar,
+`frontend/src/components/DemoNotice.tsx`.
+
+| Superficie | Qué dice |
+|---|---|
+| Landing | Aviso de demo legible y disclaimer al pie, visibles desde el primer instante (fuera de la intro animada); se alcanza en un celular de 320×568 |
+| Página de pago `/#/pay/:token` | Mismo pie en cualquier estado de la orden, además de "Pago de prueba" |
+| Dentro de la app | Franja persistente "Modo demo — datos simulados" bajo los íconos de la barra inferior, con su alto reservado para no tapar contenido |
+| Registro (bienvenida) | "Todas las transacciones son simuladas: no se procesa dinero real…" |
+| `README.md` | Frase al inicio, "Estado y hoja de ruta" (rebranding condicional), "Créditos y transparencia" y disclaimer al pie |
+| Fuera del repo | `docs/DESCRIPCIONES_PUBLICAS.md` para Devpost, LinkedIn y presentación (se pegan a mano); `og:description`, manifiesto PWA y `/docs` del API ya lo dicen |
+
+Verificado con `e2e/demo-transparency.spec.ts`, que revisa cada superficie por
+separado, y con capturas de la landing, la app y la página de pago.
+
+**Decisión pendiente (no se tocó por el criterio de la Fase 1):**
+
+- `frontend/public/logo-capital-one-business.jpeg` es prácticamente el
+  logotipo real de Capital One (wordmark y swoosh) y sólo lo usa
+  `onboarding/Logo.jsx`, que nadie importa.
+- `components/CapitalOneLogo.tsx`, que sí se ve en la landing, la bienvenida y
+  el pago, recrea el mismo swoosh a partir de `public/swoosh.svg`.
+
+Es justo el riesgo (2) de la Fase 1: el logotipo real usado como asset gráfico.
+Retirarlo o sustituirlo es decisión de Diego.
 
 ### Asistente 🧪 + ✅ puntual
 
@@ -277,8 +306,9 @@ Sin tocar a propósito:
 - **Fase 4:** hecha (ver arriba). Consecuencia para el guion: las dos demos
   muestran hoy la **misma** tarjeta de datos en Cuenta (inventario atorado), y la
   lección propia de cada giro quedó en ONE Education. `DEMO.md` ya lo refleja.
-- **Fases 1 y 8:** la página pública de pago no dice que sea demo ni simulado.
-  Su ruta en el frontend es `/#/pay/:token`.
+- **Fases 1 y 8:** hechas (ver "Transparencia"). Pendiente de Diego: decidir qué
+  hacer con la réplica del logotipo y pegar las descripciones públicas en Devpost,
+  LinkedIn y la presentación.
 - **Fase 5:** hecha (ver "Datos y seguridad del demo público"). Lo que queda
   para la Fase 9 está en los puntos 7–9 de la lista de pendientes.
 - **Fase 9:** la lista de pendientes de arriba.

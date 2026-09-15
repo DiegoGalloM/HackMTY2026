@@ -40,6 +40,8 @@ El producto se llama "Capital One Business", usa la paleta de marca de Capital O
 
 **Criterio de terminado:** disclaimer visible en los tres lugares, sección de créditos de imágenes en el README, nota de rebranding condicional registrada. Cero cambios de nombre, logo o dominio en esta fase.
 
+**Hecha junto con la Fase 8 (2026-09-15).** El disclaimer está al pie del `README.md`, en la landing y al pie de `/#/pay/:token`, con el texto en un solo lugar: `frontend/src/components/DemoNotice.tsx`. El README tiene "Estado y hoja de ruta", con la nota de rebranding, y "Créditos y transparencia". Sin cambios de nombre, logo ni dominio. Queda **una decisión pendiente para Diego**: `frontend/public/logo-capital-one-business.jpeg` y el swoosh vectorizado de `CapitalOneLogo.tsx` reproducen el logotipo real de Capital One, que es el riesgo (2) de esta fase. Detalle en `docs/PROJECT_STATUS.md`. ✅
+
 ---
 
 ## 2. 🔴 Reflejar el análisis profundo en el README
@@ -112,7 +114,7 @@ No hace falta una torre de observabilidad para un demo — sí conviene enterart
 
 ## 7. 🟡 Ampliar cobertura de pruebas
 
-La base ya es sólida (151 backend + 34 e2e) — esto no es para "producción", es para poder decir con toda confianza en LinkedIn o en una entrevista técnica que el sistema está probado a fondo, y para que cualquiera que revise el repo no encuentre un hueco.
+La base ya es sólida (151 backend + 40 e2e) — esto no es para "producción", es para poder decir con toda confianza en LinkedIn o en una entrevista técnica que el sistema está probado a fondo, y para que cualquiera que revise el repo no encuentre un hueco.
 
 - Suite de "preguntas doradas" para el asistente (30-50 preguntas con la respuesta/evidencia esperada) corrida en CI, para detectar regresiones de la guardia anti-alucinación.
 - Una pasada explícita de checklist de seguridad tipo OWASP para APIs (inyección, límites de tamaño de payload, exposición de stack traces en errores 500).
@@ -131,6 +133,16 @@ Esto no es una fase técnica compleja, es una lista de verificación de mensaje 
 - Cualquier descripción reutilizada del proyecto (Devpost, el propio post de LinkedIn, la presentación si se vuelve a compartir).
 
 **Criterio de terminado:** una persona que sólo ve una de estas cinco superficies (sin ver las otras cuatro) ya entiende, sin ambigüedad, que es un demo con dinero simulado.
+
+**Hecha (2026-09-15).** Estado de cada superficie:
+
+1. El disclaimer dice "todas las transacciones son simuladas; no se procesa dinero real ni se conecta a cuentas bancarias reales".
+2. La landing muestra esa línea legible, fuera de la animación.
+3. La franja "Modo demo — datos simulados" está en `BottomNav.tsx`, en todas las pantallas de la app.
+4. El README tiene la frase al inicio.
+5. `docs/DESCRIPCIONES_PUBLICAS.md` tiene textos para Devpost, LinkedIn y la presentación, que Diego tiene que pegar a mano. Además, `og:description` y el manifiesto PWA (la preview al compartir el link) y la descripción del API en `/docs` ya lo dicen.
+
+La nota del registro en la bienvenida también menciona el dinero simulado. El e2e `frontend/e2e/demo-transparency.spec.ts` verifica cada superficie por separado. ✅
 
 ---
 

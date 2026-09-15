@@ -2,6 +2,7 @@
 import { useEffect, useRef } from "react";
 import { createTimeline } from "animejs";
 import CapitalOneLogo from "../components/CapitalOneLogo";
+import DemoNotice from "../components/DemoNotice";
 
 interface LandingProps {
   onStart: () => void;
@@ -77,27 +78,33 @@ export default function Landing({ onStart }: LandingProps) {
   }, []);
 
   return (
-    // overflow-hidden: las piezas arrancan fuera de la pantalla y no deben
-    // provocar scroll mientras vuelan hacia su lugar.
-    <section className="flex flex-1 flex-col items-center justify-center gap-12 overflow-hidden bg-white px-6">
-      <CapitalOneLogo
-        business
-        className="text-[44px]"
-        partRefs={{
-          capital: capitalRef,
-          one: oneRef,
-          swoosh: swooshRef,
-          business: businessRef,
-        }}
-      />
-      <button
-        ref={buttonRef}
-        type="button"
-        onClick={onStart}
-        className="min-h-12 w-full max-w-[280px] rounded-full bg-brand text-base font-semibold text-white shadow-[0_8px_20px_rgba(0,73,119,.28)] transition-transform active:scale-[.97] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-accent"
-      >
-        Empezar
-      </button>
+    // La pantalla scrollea (overflow-y-auto) para que el aviso de demo nunca
+    // quede cortado en un celular chico; la animación vive en su propio bloque
+    // con overflow-hidden, porque las piezas arrancan fuera de la pantalla y no
+    // deben provocar scroll mientras vuelan hacia su lugar.
+    <section className="flex flex-1 flex-col overflow-y-auto bg-white">
+      <div className="flex flex-1 flex-col items-center justify-center gap-12 overflow-hidden px-6 py-10">
+        <CapitalOneLogo
+          business
+          className="text-[44px]"
+          partRefs={{
+            capital: capitalRef,
+            one: oneRef,
+            swoosh: swooshRef,
+            business: businessRef,
+          }}
+        />
+        <button
+          ref={buttonRef}
+          type="button"
+          onClick={onStart}
+          className="min-h-12 w-full max-w-[280px] rounded-full bg-brand text-base font-semibold text-white shadow-[0_8px_20px_rgba(0,73,119,.28)] transition-transform active:scale-[.97] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-accent"
+        >
+          Empezar
+        </button>
+      </div>
+      {/* Fuera de la animación: se ve desde el primer instante, sin esperar la intro. */}
+      <DemoNotice className="px-6 pb-[calc(var(--safe-bottom)+1.25rem)]" />
     </section>
   );
 }
