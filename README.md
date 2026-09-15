@@ -83,8 +83,8 @@ también sirven en *Iniciar sesión*. Detalle en [`docs/DEV.md`](docs/DEV.md).
 ## Tests y CI
 
 ```bash
-cd backend && ruff check . && pytest -q     # 151 tests, siempre en memoria/sqlite
-cd frontend && npm run build && npm run e2e # 40 specs de Playwright × 2 proyectos
+cd backend && ruff check . && pytest -q     # 164 tests, siempre en memoria/sqlite
+cd frontend && npm run build && npm run e2e # 43 specs de Playwright × 2 proyectos
 ```
 
 GitHub Actions (`.github/workflows/ci.yml`) corre en cada push a `main` y en

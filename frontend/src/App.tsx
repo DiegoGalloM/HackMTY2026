@@ -2,6 +2,7 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-
 import { AnimatePresence } from "framer-motion";
 import { useCallback, useEffect, useState } from "react";
 import BottomNav from "./components/BottomNav";
+import ErrorBoundary from "./components/ErrorBoundary";
 import Asistente from "./screens/Asistente";
 import CobroEfectivo from "./screens/CobroEfectivo";
 import Compras from "./screens/Compras";
@@ -62,6 +63,7 @@ function localProfileFrom(remote: RemoteProfile, fullName: string): BusinessProf
 
 function MainApp({ profile }: { profile: BusinessProfile | null }) {
   const location = useLocation();
+  const navigate = useNavigate();
 
   return (
     // w-full y NO `mx-auto max-w-md`: el ancho ya lo fija el mockup de celular
@@ -72,29 +74,33 @@ function MainApp({ profile }: { profile: BusinessProfile | null }) {
     // El shell no scrollea; el scroll vive dentro de cada pantalla
     // (ver Screen.tsx), así la barra inferior nunca se mueve.
     <div className="relative flex h-full w-full flex-col overflow-hidden bg-surface">
-      {/* mode="wait" evita que dos pantallas se solapen durante la transición.
-          La key es la ruta: sin ella AnimatePresence no detecta el cambio. */}
-      <AnimatePresence mode="wait" initial={false}>
-        <Routes location={location} key={location.pathname}>
-          <Route path="/" element={<Cuenta profile={profile} />} />
-          <Route path="/vender" element={<Vender />} />
-          <Route path="/inventario" element={<Inventario />} />
-          <Route path="/compras" element={<Compras />} />
-          {/* El botón central abre la conversación; los datos viven en /resumen
-              y los indicadores en /libros. /asistente se conserva como alias. */}
-          <Route path="/analisis" element={<Asistente />} />
-          <Route path="/asistente" element={<Navigate to="/analisis" replace />} />
-          <Route path="/resumen" element={<Resumen />} />
-          <Route path="/libros" element={<Libros />} />
-          <Route path="/retiros" element={<Retiros />} />
-          <Route path="/transferencias" element={<Transferencias />} />
-          <Route path="/cobro-efectivo" element={<CobroEfectivo />} />
-          <Route path="/pagos" element={<Pagos />} />
-          <Route path="/educacion" element={<Educacion profile={profile} />} />
-          <Route path="/mas" element={<Mas />} />
-          <Route path="*" element={<Cuenta profile={profile} />} />
-        </Routes>
-      </AnimatePresence>
+      {/* Si una pantalla truena, el error se queda en ella: la barra inferior
+          sigue ahí y cambiar de ruta (resetKey) vuelve a intentar. */}
+      <ErrorBoundary resetKey={location.pathname} actionLabel="Ir a Cuenta" onAction={() => navigate("/")}>
+        {/* mode="wait" evita que dos pantallas se solapen durante la transición.
+            La key es la ruta: sin ella AnimatePresence no detecta el cambio. */}
+        <AnimatePresence mode="wait" initial={false}>
+          <Routes location={location} key={location.pathname}>
+            <Route path="/" element={<Cuenta profile={profile} />} />
+            <Route path="/vender" element={<Vender />} />
+            <Route path="/inventario" element={<Inventario />} />
+            <Route path="/compras" element={<Compras />} />
+            {/* El botón central abre la conversación; los datos viven en /resumen
+                y los indicadores en /libros. /asistente se conserva como alias. */}
+            <Route path="/analisis" element={<Asistente />} />
+            <Route path="/asistente" element={<Navigate to="/analisis" replace />} />
+            <Route path="/resumen" element={<Resumen />} />
+            <Route path="/libros" element={<Libros />} />
+            <Route path="/retiros" element={<Retiros />} />
+            <Route path="/transferencias" element={<Transferencias />} />
+            <Route path="/cobro-efectivo" element={<CobroEfectivo />} />
+            <Route path="/pagos" element={<Pagos />} />
+            <Route path="/educacion" element={<Educacion profile={profile} />} />
+            <Route path="/mas" element={<Mas />} />
+            <Route path="*" element={<Cuenta profile={profile} />} />
+          </Routes>
+        </AnimatePresence>
+      </ErrorBoundary>
 
       <BottomNav />
     </div>

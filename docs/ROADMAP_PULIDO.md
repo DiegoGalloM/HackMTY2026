@@ -110,11 +110,24 @@ No hace falta una torre de observabilidad para un demo — sí conviene enterart
 
 **Tarea para Claude Code:** agregar tracking de errores básico (Sentry en su capa gratuita, o incluso un canal de logs centralizado simple) en frontend y backend, y un endpoint de salud que revise Snowflake/Nessie/LLM (en modo mock está bien simularlo) y no sólo "el proceso está vivo".
 
+**Hecha (2026-09-15), en modo mock/sqlite.**
+
+- **Backend.** Sentry es opcional: con `SENTRY_DSN` se activa, y sin él no se importa. Un error no controlado responde 500 con `error_id` y sin stack trace; ese id es el inicio del event id de Sentry y queda en el log de Render.
+- **Frontend.** Sentry también es opcional, con `VITE_SENTRY_DSN`. Sin DSN el SDK ni se descarga (import dinámico). Hay dos `ErrorBoundary`: uno por pantalla, que deja la barra inferior navegable, y uno global. Ambos muestran un mensaje con salida y la referencia del error.
+- **Datos que nunca salen hacia Sentry.** Verificado con un transporte en memoria:
+  - cuerpos de las peticiones, cookies y headers de autenticación;
+  - query strings (la key de Nessie);
+  - el token del QR y las variables locales de los frames.
+- **`GET /health/ready`** revisa la base con `SELECT 1` (sqlite o Snowflake), Nessie (mock: se reporta como mock; real: llama a la API) y el LLM (plantillas; Anthropic: valida la key listando modelos, sin gastar tokens; Cortex: no se invoca, para no gastar créditos). Responde `ok`, `degraded` (200) o `down` (503). Cache de 30 s y rate limit. `/health` sigue siendo el liveness rápido de Render.
+- **Pasos manuales de Diego.** Crear dos proyectos en Sentry y poner los DSN en Render. Apuntar un monitor de uptime gratuito a `/health/ready`.
+
+Tests: `backend/tests/test_error_visibility.py` y `frontend/e2e/error-visibility.spec.ts`. ✅
+
 ---
 
 ## 7. 🟡 Ampliar cobertura de pruebas
 
-La base ya es sólida (151 backend + 40 e2e) — esto no es para "producción", es para poder decir con toda confianza en LinkedIn o en una entrevista técnica que el sistema está probado a fondo, y para que cualquiera que revise el repo no encuentre un hueco.
+La base ya es sólida (164 backend + 43 e2e) — esto no es para "producción", es para poder decir con toda confianza en LinkedIn o en una entrevista técnica que el sistema está probado a fondo, y para que cualquiera que revise el repo no encuentre un hueco.
 
 - Suite de "preguntas doradas" para el asistente (30-50 preguntas con la respuesta/evidencia esperada) corrida en CI, para detectar regresiones de la guardia anti-alucinación.
 - Una pasada explícita de checklist de seguridad tipo OWASP para APIs (inyección, límites de tamaño de payload, exposición de stack traces en errores 500).

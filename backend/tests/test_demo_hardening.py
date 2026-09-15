@@ -194,6 +194,7 @@ PUBLIC_ROUTES = {
     ("POST", "/demo/session"): "demo_session",
     ("POST", "/auth/register"): "auth_register",
     ("POST", "/auth/login"): "auth_login",
+    ("GET", "/health/ready"): "health",
 }
 
 

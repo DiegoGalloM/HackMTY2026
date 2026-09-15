@@ -86,6 +86,14 @@ class Settings(BaseSettings):
     # Sólo debe activarse cuando el backend NO es alcanzable sin ese proxy.
     trust_proxy_headers: bool = False
 
+    # Tracking de errores (Sentry, capa gratuita). Vacío = apagado: los errores
+    # sólo quedan en el log del proceso, con un error_id para buscarlos.
+    sentry_dsn: str = ""
+    # Versión que se reporta con cada error. Vacío = el commit que Render
+    # expone solo en cada deploy (RENDER_GIT_COMMIT).
+    release: str = ""
+    render_git_commit: str = ""
+
     @property
     def is_production(self) -> bool:
         return self.environment.strip().lower() == "production"

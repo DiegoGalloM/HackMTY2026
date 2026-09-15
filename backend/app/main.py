@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import get_settings
 from app.db import get_db
+from app.observability import init_error_tracking, unhandled_exception_handler
 from app.routers import (
     accounts,
     auth,
@@ -17,11 +18,15 @@ from app.routers import (
     checkout,
     demo,
     finance,
+    health,
     transactions,
 )
 from app.storage.audio_store import OnboardingAudioStore
 
 settings = get_settings()
+# Antes de crear la app: así la integración de Sentry con FastAPI se engancha
+# desde el primer request. Sin SENTRY_DSN no hace nada.
+init_error_tracking(settings)
 
 
 @asynccontextmanager
@@ -95,6 +100,10 @@ async def validation_error_handler(request: Request, exc: RequestValidationError
     errors = [{k: v for k, v in error.items() if k != "input"} for error in exc.errors()]
     return JSONResponse(status_code=422, content=jsonable_encoder({"detail": errors}))
 
+
+# Cualquier error no controlado: 500 con error_id, sin stack trace al cliente.
+app.add_exception_handler(Exception, unhandled_exception_handler)
+
 app.include_router(accounts.router)
 app.include_router(auth.router)
 app.include_router(business_profile.public_router)
@@ -104,14 +113,4 @@ app.include_router(finance.router)
 app.include_router(checkout.router)
 app.include_router(demo.public_router)
 app.include_router(demo.router)
-
-
-@app.get("/health")
-async def health():
-    return {
-        "status": "ok",
-        "nessie_mode": "mock" if settings.use_mock_nessie or not settings.nessie_api_key else "real",
-        "storage": "snowflake" if settings.use_snowflake and settings.snowflake_account else "memory",
-        "payment_provider": settings.payment_provider,
-        "transaction_provider": settings.transaction_provider,
-    }
+app.include_router(health.router)
