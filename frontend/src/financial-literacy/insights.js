@@ -79,7 +79,39 @@ export const TRIGGERS = [
   },
 ];
 
-export function pickBestTrigger(profile) {
+// Triggers de la encuesta que tratan el MISMO tema que un insight de datos del
+// backend (GET /analytics/insights). Si ese insight ya está en pantalla, repetir
+// la lección de la encuesta sería mostrar dos veces la misma idea.
+const COVERED_BY_DATA = {
+  data_stockout: ["stockout_y_sobrecompra", "stockout"],
+  data_overstock: ["stockout_y_sobrecompra", "sobrecompra", "guarda_inventario"],
+  data_low_margin: ["categoria_comida", "categoria_retail", "categoria_belleza"],
+};
+
+/**
+ * La lección que dispara SÓLO la encuesta (categoría + respuestas), saltando
+ * los temas que ya cubren los insights de datos que se muestran.
+ *
+ * @param {any} profile
+ * @param {Array<{ id: string }>} [dataInsights]
+ */
+export function pickSurveyTrigger(profile, dataInsights = []) {
   if (!profile) return null;
-  return TRIGGERS.find((t) => t.match(profile)) ?? null;
+  const covered = new Set(dataInsights.flatMap((insight) => COVERED_BY_DATA[insight.id] ?? []));
+  const trigger = TRIGGERS.find((t) => !covered.has(t.id) && t.match(profile));
+  return trigger ? { ...trigger, source: "survey" } : null;
+}
+
+/**
+ * UNA sola lección para Cuenta. Un trigger de datos reales tiene prioridad
+ * sobre uno de sólo-encuesta: lo que el negocio está viviendo (se le acaba un
+ * insumo, la caja no alcanza) pesa más que lo que respondió al registrarse.
+ * Sin datos todavía (cuenta nueva, backend caído), decide la encuesta.
+ *
+ * @param {any} profile
+ * @param {Array<{ id: string }>} [dataInsights]
+ */
+export function pickBestTrigger(profile, dataInsights = []) {
+  if (dataInsights.length > 0) return { ...dataInsights[0], source: "data" };
+  return pickSurveyTrigger(profile);
 }
