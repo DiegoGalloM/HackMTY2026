@@ -31,7 +31,9 @@ recorrido a mano · ⏳ pendiente de verificar contra Snowflake real (Fase 9).
 - **Lo que no se puede afirmar todavía:** que el sistema corre de punta a punta
   sobre Snowflake real. Hay evidencia indirecta de que la tabla de perfiles sí
   llegó a escribirse en una cuenta real, pero nada verificable hoy sobre el
-  núcleo financiero. Queda anotado abajo para la Fase 9.
+  núcleo financiero. El demo desplegado ya guarda en Snowflake, pero la Fase 9,
+  que lo habría verificado, se pospuso por decisión; ver
+  [Fase 9: pospuesta por decisión](#fase-9-pospuesta-por-decisión).
 
 ---
 
@@ -310,10 +312,36 @@ entraría.
 
 ---
 
-## ⏳ Pendiente de verificar contra Snowflake real (Fase 9)
+## Fase 9: pospuesta por decisión
 
-Nada de esto se intentó responder conectándose a la cuenta. Se cierra en la
-Fase 9, reemplazando esta sección por el resultado verificado.
+2026-09-15. Diego decidió no correr la Fase 9 y dejar el proyecto como está.
+
+**Por qué.** El demo desplegado ya guarda en Snowflake (`/health` →
+`"storage": "snowflake"`, revisado por Diego) y es lo que prueba la gente. Varias
+tareas de la fase escribirían en esa cuenta, y no se quiso alterar esos datos.
+El código de las fases anteriores está en `main` y no depende de esta fase.
+
+**Qué no se hizo y qué implica:**
+
+| Tarea | Qué habría cambiado en la cuenta | Consecuencia de no hacerla |
+|---|---|---|
+| Verificación de punta a punta (migraciones, registro → onboarding → venta → compra, Cortex, tiempos) | Casi nada: sólo lectura, más un usuario de prueba | La lista de abajo sigue sin confirmar. No conviene afirmar en público que está "verificado contra Snowflake real" |
+| Volver a sembrar las cuentas demo | Reemplaza la historia de las dos demos y borra lo que hicieron los visitantes dentro de ellas | `provision()` sólo siembra un negocio vacío, así que la historia queda fija en la fecha en que se sembró. Con los días, "esta semana" y "este mes" salen en $0 o casi, y el asistente contesta con datos viejos |
+| Purgar el audio viejo (`scripts.purge_legacy_profile_audio --apply`) | Vacía las grabaciones que quedaron en `business_profiles`; no se puede deshacer | Las grabaciones de antes de la Fase 5 siguen en la base. La API ya no las devuelve, pero el aviso de "se borra a los 7 días" sólo se cumple para las grabaciones nuevas |
+| Rol de mínimo privilegio (`backend/scripts/snowflake/rol_minimo_privilegio.sql`) | Ningún dato: sólo permisos y el usuario con el que conecta Render | El backend público sigue conectando como `ACCOUNTADMIN`. Si esa contraseña se filtra, quien la tenga controla toda la cuenta de Snowflake |
+| `AUTO_SUSPEND` del warehouse; `JWT_SECRET` y rate limit en Render | Configuración, no datos | Sin revisar: la primera visita puede tardar mientras el warehouse despierta |
+
+**Lo que sí pasa sin la fase:** la migración `005_onboarding_audio.sql` se
+aplica sola cuando Render despliega `main`. Es aditiva: sólo crea una tabla y no
+toca datos existentes.
+
+**Si se retoma:** los pasos siguen en la §9 de `ROADMAP_PULIDO.md`, en
+`SNOWFLAKE_SETUP.md` (rol) y en la lista de abajo.
+
+## ⏳ Sin verificar contra Snowflake real (Fase 9, pospuesta)
+
+Nada de esto se intentó responder conectándose a la cuenta. Si la Fase 9 se
+retoma, esta sección se reemplaza por el resultado verificado.
 
 1. **¿`SnowflakeProfileStore` corrió alguna vez contra una cuenta Snowflake
    real?** La versión anterior de este documento decía las dos cosas: "nunca se
@@ -431,7 +459,9 @@ Sin tocar a propósito:
   LinkedIn y la presentación.
 - **Fase 5:** hecha (ver "Datos y seguridad del demo público"). Lo que queda
   para la Fase 9 está en los puntos 7–9 de la lista de pendientes.
-- **Fase 9:** la lista de pendientes de arriba.
+- **Fase 11:** hecha (ver "Hallazgos de la Fase 7 resueltos e ideas de producto").
+- **Fase 9:** pospuesta por decisión (ver arriba). Si se retoma, la lista de
+  pendientes de arriba es el punto de partida.
 
 ---
 

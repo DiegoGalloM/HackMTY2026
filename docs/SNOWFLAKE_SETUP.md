@@ -218,7 +218,8 @@ texto legible algo está muy mal y hay que reportarlo de inmediato.
 Usar `ACCOUNTADMIN` sirve para las 36 horas del hackathon, pero no para un demo
 con link público: si esa contraseña se filtra desde Render, quien la tenga
 administra la cuenta entera. El reemplazo ya está escrito y **todavía no se ha
-aplicado**. Se aplica en la Fase 9, con la cuenta real.
+aplicado**. Iba a aplicarse en la Fase 9, que se pospuso por decisión (ver
+`docs/PROJECT_STATUS.md`). Los pasos quedan aquí por si se retoma.
 
 `backend/scripts/snowflake/rol_minimo_privilegio.sql` crea:
 

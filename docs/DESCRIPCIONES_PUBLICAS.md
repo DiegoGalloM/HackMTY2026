@@ -8,8 +8,11 @@ que no es un producto de Capital One.
 Estos textos no se publican solos: hay que pegarlos a mano en cada lugar (ver
 [la lista del final](#dónde-pegarlos)).
 
-> Antes de publicar, no afirmes que corre sobre Snowflake real hasta cerrar la
-> Fase 9: hoy está verificado en modo sqlite/mock (ver `PROJECT_STATUS.md`).
+> Antes de publicar: el demo desplegado guarda en Snowflake, así que decir que
+> "usa Snowflake" es cierto. Lo que no conviene afirmar es que está "verificado
+> de punta a punta contra Snowflake real": esa verificación (Fase 9) se pospuso
+> por decisión, y lo verificado con tests es el modo sqlite/mock (ver
+> `PROJECT_STATUS.md`).
 
 ---
 

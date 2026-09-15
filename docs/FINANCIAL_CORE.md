@@ -104,9 +104,10 @@ respuesta de respaldo, a propósito.
 > `ask()` y el contrato sería un `history` en `AssistantAsk`.
 
 **El LLM sólo redacta.** `_rewrite` recibe la pregunta, los hechos y la
-respuesta base, y devuelve una versión más cálida. La **guardia de montos**
-descarta la reescritura completa si aparece una cifra con `$` que no esté en
-la evidencia o en la respuesta base, así que el LLM no puede introducir
+respuesta base, y devuelve una versión más cálida. La **guardia de cifras**
+descarta la reescritura completa si aparece un número (monto, porcentaje,
+cantidad o días, comparado por valor) o una palabra de magnitud ("millón") que
+no esté en la evidencia o en la respuesta base. Así el LLM no puede introducir
 números nuevos ni por error ni por inyección. Sin proveedor disponible
 (`NoLLM`) la respuesta es la plantilla determinista y todo sigue funcionando.
 
