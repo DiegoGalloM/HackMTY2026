@@ -79,9 +79,8 @@ def test_salon_assistant_answers_with_salon_evidence():
     assert otro["intent"] == "runout" and otro["evidence"][0]["label"] == "Esmalte en gel"
 
 
-def test_bakery_seed_is_unchanged(monkeypatch):
-    """Cifras capturadas antes de refactorizar demo.py en un registro. Con la
-    fecha fija, la historia de la panadería es reproducible al centavo."""
+def test_bakery_seed_is_reproducible(monkeypatch):
+    """Con la fecha fija, la historia de la panadería es reproducible al centavo."""
     monkeypatch.setattr(demo, "today", lambda: date(2026, 9, 13))
     db = SqliteDatabase(":memory:")
     db.ensure_schema()
@@ -92,8 +91,8 @@ def test_bakery_seed_is_unchanged(monkeypatch):
     ctx = _ctx(db, "biz_bakery", "panaderia")
     income = ctx.accounting.income_statement(None, None)
     assert (q2(income["total_revenue"]), q2(income["total_cogs"]), q2(income["total_operating_expenses"])) == (Decimal("8676.00"), Decimal("1691.86"), Decimal("4642.54"))
-    assert q2(ctx.accounting.balance_sheet()["total_assets"]) == Decimal("10206.03")
-    assert q2(ctx.accounting.trial_balance()["total_debit"]) == Decimal("16616.43")
+    assert q2(ctx.accounting.balance_sheet()["total_assets"]) == Decimal("10263.43")
+    assert q2(ctx.accounting.trial_balance()["total_debit"]) == Decimal("16673.83")
 
 
 def test_demo_session_selects_the_business():

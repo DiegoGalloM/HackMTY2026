@@ -328,11 +328,11 @@ def build_history(db: Database, business_id: str, weeks: int = 10, existing_acco
     leche = item("Leche", "l", "20", "0.92", "8")
     vainilla = item("Vainilla", "l", "1", "18.00", "0.3")
     levadura = item("Levadura", "kg", "2", "9.00", "0.5")
-    fresa = item("Fresa", "kg", "4", "6.00", "2")
-    crema = item("Crema para batir", "l", "6", "3.00", "2")
+    fresa = item("Fresa", "kg", "11", "6.3543", "2")
+    crema = item("Crema para batir", "l", "7", "3.00", "2")
     cafe = item("Café en grano", "kg", "4", "14.00", "1")
     vaso = item("Vaso con tapa", "pieza", "300", "0.12", "100")
-    caja = item("Caja para pastel", "pieza", "40", "0.85", "15")
+    caja = item("Caja para pastel", "pieza", "50", "0.85", "15")
 
     tax = "0.0825"
     pastel_choco = cat.create_item(name="Pastel de chocolate", item_type="PRODUCT", selling_price=D("28"), tax_rate=tax, emoji="🎂", description="Pastel de 8 porciones",
