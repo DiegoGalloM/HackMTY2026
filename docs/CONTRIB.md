@@ -107,7 +107,7 @@ El backend no tiene `package.json`; sus comandos son directos:
 | `SNOWFLAKE_WAREHOUSE` | vacio | `HACKMTY_WH` segun [SNOWFLAKE_SETUP.md](./SNOWFLAKE_SETUP.md). |
 | `SNOWFLAKE_DATABASE` | vacio | `HACKMTY`. |
 | `SNOWFLAKE_SCHEMA` | vacio | `PUBLIC`. |
-| `SNOWFLAKE_ROLE` | vacio | `ACCOUNTADMIN` para el hackathon; `HACKMTY_APP` (minimo privilegio) desde la Fase 9, ver [SNOWFLAKE_SETUP.md](./SNOWFLAKE_SETUP.md#rol-de-mínimo-privilegio-fase-9). |
+| `SNOWFLAKE_ROLE` | vacio | `ACCOUNTADMIN` para el hackathon; `HACKMTY_APP` (minimo privilegio) si se retoma la Fase 9, ver [SNOWFLAKE_SETUP.md](./SNOWFLAKE_SETUP.md#rol-de-mínimo-privilegio-fase-9). |
 | `ENVIRONMENT` | `development` | `production` en el servicio desplegado: ahi `JWT_SECRET` es obligatorio y el backend no arranca sin el. |
 | `ONBOARDING_AUDIO_RETENTION_DAYS` | `7` | Dias que se conserva el audio de "narra tu semana" (tabla `onboarding_audio`); despues se borra solo. `0` = no se guarda. |
 | `RATE_LIMIT_ENABLED` | `true` | Limite por IP en rutas publicas (`/pay`, stats, `/demo/session`, `/auth`). Ver `app/ratelimit.py`. |

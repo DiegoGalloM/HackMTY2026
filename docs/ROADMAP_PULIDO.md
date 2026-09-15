@@ -182,6 +182,8 @@ Todo lo anterior se construyó y se probó sin tocar tu cuenta de Snowflake. Est
 
 **Criterio de terminado:** migraciones aplicadas limpias contra la cuenta real, un flujo completo (registro → onboarding → venta → compra) verificado en Snowsight, warehouse configurado a tu gusto, y `PROJECT_STATUS.md` reflejando el estado real y no uno aspiracional.
 
+**Pospuesta por decisión (2026-09-15).** El demo desplegado ya guarda en Snowflake y es lo que prueba la gente. Varias tareas de esta fase modificarían esos datos: volver a sembrar las cuentas demo, vaciar el audio viejo y cambiar el rol de conexión. Diego decidió no correrla y dejar el proyecto como está. Qué no se hizo y qué implica cada cosa está en `docs/PROJECT_STATUS.md` ("Fase 9: pospuesta por decisión"). Las tareas de arriba quedan intactas por si se retoma.
+
 ---
 
 ## 10. Un solo listón: "listo para enseñar y mostrar de lo que somos capaces"

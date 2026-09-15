@@ -52,7 +52,8 @@ y no la del proxy de Render.
 El warehouse, database, schema y rol ya vienen con valor en `render.yaml`
 (`HACKMTY_WH` / `HACKMTY` / `PUBLIC` / `ACCOUNTADMIN`). Cambienlos ahi si su
 cuenta usa otros. `ACCOUNTADMIN` es provisional: el rol de minimo privilegio
-(`HACKMTY_APP`) ya esta escrito y se aplica en la Fase 9. Ver
+(`HACKMTY_APP`) ya esta escrito, pero no se aplico: la Fase 9 se pospuso por
+decision (ver `PROJECT_STATUS.md`). Ver
 [SNOWFLAKE_SETUP.md](./SNOWFLAKE_SETUP.md#rol-de-mínimo-privilegio-fase-9).
 
 ## Paso 4 — Amarrar las dos URLs

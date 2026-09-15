@@ -239,10 +239,12 @@ real, crearía compras usando la API key del equipo.
   `backend/scripts/snowflake/rol_minimo_privilegio.sql`: el rol `HACKMTY_APP`
   sólo tiene uso del warehouse, lectura y escritura de datos en
   `HACKMTY.PUBLIC`, creación de tablas y vistas en ese schema y Cortex. Lo
-  vigila `tests/test_snowflake_role_script.py` sin conectarse. Se aplica en la
-  Fase 9 con la cuenta real; los pasos están en
-  [`SNOWFLAKE_SETUP.md`](SNOWFLAKE_SETUP.md#rol-de-mínimo-privilegio-fase-9).
-  `render.yaml` cambia sólo cuando `/health/ready` responda bien con el rol nuevo.
+  vigila `tests/test_snowflake_role_script.py` sin conectarse. **No se aplicó:**
+  la Fase 9, donde iba a aplicarse, se pospuso por decisión (ver
+  `PROJECT_STATUS.md`). Riesgo aceptado: si la contraseña del servicio se
+  filtra, da control de toda la cuenta. Los pasos para aplicarlo siguen en
+  [`SNOWFLAKE_SETUP.md`](SNOWFLAKE_SETUP.md#rol-de-mínimo-privilegio-fase-9);
+  `render.yaml` cambiaría sólo cuando `/health/ready` responda bien con el rol nuevo.
 - ✅ **Geolocalización (Fase 11):** el paso de ciudad avisa, antes del clic, que
   "Usar mi ubicación" manda las coordenadas a OpenStreetMap (Nominatim) sólo
   para obtener el nombre de la ciudad. Nada se consulta si la persona no pulsa
