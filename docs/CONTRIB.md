@@ -76,7 +76,7 @@ Fuente: `frontend/package.json`. Se corren desde `frontend/`.
 | `npm run build` | `tsc -b && vite build` | Typecheck + build de produccion a `dist/`. Tambien genera el service worker de la PWA. |
 | `npm run preview` | `vite preview` | Sirve el `dist/` ya construido, para revisar el build real. |
 | `npm run typecheck` | `tsc -b --noEmit` | Solo tipos, sin generar archivos. |
-| `npm run e2e` | `playwright test` | Los 40 specs x 2 proyectos (desktop + movil). Levanta el dev server solo. |
+| `npm run e2e` | `playwright test` | Los 43 specs x 2 proyectos (desktop + movil). Levanta el dev server solo. |
 | `npm run e2e:ui` | `playwright test --ui` | Modo interactivo: se ve el navegador y se puede repetir paso por paso. |
 | `npm run e2e:report` | `playwright show-report` | Abre el reporte HTML del ultimo corrida. |
 
@@ -112,6 +112,8 @@ El backend no tiene `package.json`; sus comandos son directos:
 | `ONBOARDING_AUDIO_RETENTION_DAYS` | `7` | Dias que se conserva el audio de "narra tu semana" (tabla `onboarding_audio`); despues se borra solo. `0` = no se guarda. |
 | `RATE_LIMIT_ENABLED` | `true` | Limite por IP en rutas publicas (`/pay`, stats, `/demo/session`, `/auth`). Ver `app/ratelimit.py`. |
 | `TRUST_PROXY_HEADERS` | `false` | `true` solo detras de un proxy de confianza (Render): toma la IP real del ultimo salto de `X-Forwarded-For`. |
+| `SENTRY_DSN` | vacio | DSN del proyecto Python/FastAPI en Sentry (capa gratuita). Vacio = errores solo en el log, con `error_id`. Nunca manda cuerpos, headers de auth, query strings ni el token del QR. |
+| `RELEASE` | vacio | Version reportada con cada error; si esta vacio se usa `RENDER_GIT_COMMIT`. |
 
 `USE_SNOWFLAKE=true` requiere ademas que la tabla tenga **todas** las columnas
 de `BusinessProfile` — ver el `ALTER TABLE` en `SNOWFLAKE_SETUP.md`.
@@ -121,13 +123,14 @@ de `BusinessProfile` — ver el `ALTER TABLE` en `SNOWFLAKE_SETUP.md`.
 | Variable | Default | Para que |
 |---|---|---|
 | `VITE_API_URL` | `http://localhost:8000` | URL del backend. Vite la **hornea en el build**, asi que cambiarla exige rebuild, no basta reiniciar. |
+| `VITE_SENTRY_DSN` | vacio | DSN del proyecto React en Sentry. Vacio = el SDK ni se descarga (import dinamico). Tambien se hornea en el build. |
 
 ## Tests
 
 ### Backend — `pytest`
 
 ```bash
-cd backend && pytest -q          # 151 tests (antes de los de fechas y la Fase 5, CI tardaba ~16 s; en una laptop ~2 min)
+cd backend && pytest -q          # 164 tests (antes de los de fechas y las Fases 5 y 6, CI tardaba ~16 s; en una laptop ~2 min)
 ```
 
 **Los tests nunca tocan Snowflake**, aunque `backend/.env` tenga
@@ -150,7 +153,7 @@ responde `ok` y el campo se pierde).
 ### Frontend — Playwright
 
 ```bash
-cd frontend && npm run e2e       # 40 specs x 2 proyectos (1 skip en movil: hover)
+cd frontend && npm run e2e       # 43 specs x 2 proyectos (1 skip en movil: hover)
 ```
 
 Los tests **no necesitan backend**: interceptan con `page.route()` las

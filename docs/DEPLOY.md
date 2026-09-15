@@ -75,7 +75,24 @@ deploy, cuando Render ya asigno los dominios:
 curl https://hackmty2026-api.onrender.com/health
 ```
 
-Debe responder `{"status":"ok","nessie_mode":"mock"}`. Luego abran la URL del
+Debe responder `{"status":"ok",…}`. Despues, que las dependencias funcionen:
+
+```bash
+curl https://hackmty2026-api.onrender.com/health/ready
+```
+
+`"status":"ok"` es todo bien, `degraded` es que falla algo opcional (Nessie o
+el LLM) y `down` con 503 es que no hay base. Ese mismo endpoint es el que
+conviene apuntar a un monitor de uptime gratuito para enterarse si se cae
+mientras el demo esta compartido.
+
+**Opcional, tracking de errores:** creen dos proyectos en Sentry (capa
+gratuita): uno Python/FastAPI y uno React. Pongan sus DSN en `SENTRY_DSN`
+(`hackmty2026-api`) y `VITE_SENTRY_DSN` (`hackmty2026-web`; se hornea en el
+build, asi que despues hay que redesplegar el frontend). Sin DSN todo funciona
+igual y los errores quedan en los logs de Render con un `error_id`.
+
+Luego abran la URL del
 frontend, completen el onboarding, y confirmen en Snowsight:
 
 ```sql

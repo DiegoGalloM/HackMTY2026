@@ -41,6 +41,9 @@ LIMITS = {
     "demo_session": 20,
     "auth_register": 20,
     "auth_login": 20,
+    # /health/ready: un monitor de uptime pega cada minuto; esto frena a quien
+    # lo use para martillar Snowflake/Nessie (además tiene caché de 30 s).
+    "health": 60,
 }
 
 

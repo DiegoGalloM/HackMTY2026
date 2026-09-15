@@ -55,7 +55,11 @@ frontend, reiniciar no sirve de nada.
 
 | Que | Donde |
 |---|---|
-| Backend vivo | `GET /health` → `{"status":"ok","nessie_mode":"mock\|real","storage":"memory\|snowflake","payment_provider":…,"transaction_provider":…}` |
+| Backend vivo | `GET /health` → `{"status":"ok","nessie_mode":"mock\|real","storage":"memory\|snowflake",…,"error_tracking":"sentry\|logs"}`. Es el health check de Render: no revisa dependencias a proposito |
+| Backend funcionando de verdad | `GET /health/ready` → revisa base (sqlite/Snowflake), Nessie y LLM. `ok`, `degraded` (falla algo opcional; responde 200) o `down` (falla la base; responde **503**). Cache de 30 s |
+| Aviso si se cae | Un monitor de uptime gratuito (UptimeRobot, Better Stack…) apuntado a `/health/ready`, alertando con cualquier respuesta que no sea 200 |
+| Errores del backend y del frontend | Sentry, si `SENTRY_DSN` / `VITE_SENTRY_DSN` estan definidos (avisa por correo). Sin DSN: logs de Render |
+| Un usuario reporta "Referencia del error: abc123…" o un 500 con `error_id` | Buscar ese id en Render → Logs (`error_id=abc123…`) o en Sentry (es el inicio del event id) |
 | Logs del backend | Render → `hackmty2026-api` → Logs |
 | Que consultas llegaron a Snowflake | Snowsight → Activity → Query History |
 | Cuantos creditos van | Snowsight → Admin → Cost Management |
@@ -64,8 +68,15 @@ frontend, reiniciar no sirve de nada.
 
 `nessie_mode` en `/health` refleja Nessie; `storage` dice si el backend quedo
 configurado con Snowflake (`USE_SNOWFLAKE=true` y cuenta definida) o en
-memoria/sqlite. `storage` lee la configuracion, no prueba la conexion: para
-confirmar que de verdad escribe, guarden un perfil y busquenlo en Snowsight.
+memoria/sqlite. `storage` lee la configuracion, no prueba la conexion:
+`/health/ready` si la prueba (`SELECT 1`). Para confirmar que de verdad
+escribe, guarden un perfil y busquenlo en Snowsight.
+
+Que nunca sale hacia Sentry, ni del backend ni del frontend: cuerpos de las
+peticiones (contraseñas, audio), cookies, headers de autenticacion, query
+strings (la key de Nessie), el token del QR (`/pay/<token>` → `/pay/[token]`),
+variables locales de los frames ni datos de usuario. Lo cubren
+`backend/tests/test_error_visibility.py` y `frontend/e2e/error-visibility.spec.ts`.
 
 ## Problemas comunes
 

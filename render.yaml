@@ -29,6 +29,11 @@ services:
       # a todos.
       - key: TRUST_PROXY_HEADERS
         value: "true"
+      # Tracking de errores (opcional): DSN del proyecto Python/FastAPI en
+      # Sentry (capa gratuita). Vacío = sólo logs con error_id. La versión se
+      # toma sola de RENDER_GIT_COMMIT.
+      - key: SENTRY_DSN
+        sync: false
       - key: USE_MOCK_NESSIE
         value: "true"
       - key: USE_SNOWFLAKE
@@ -81,6 +86,10 @@ services:
       # URL del backend de arriba. Ej: https://hackmty2026-api.onrender.com
       # Vite la hornea en el build, asi que cambiarla requiere redeploy.
       - key: VITE_API_URL
+        sync: false
+      # DSN del proyecto React en Sentry (opcional). Se hornea en el build: al
+      # cambiarlo hay que redesplegar. Vacío = el SDK ni se descarga.
+      - key: VITE_SENTRY_DSN
         sync: false
     routes:
       # SPA: react-router maneja las rutas del lado del cliente, asi que

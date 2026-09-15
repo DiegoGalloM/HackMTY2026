@@ -16,9 +16,9 @@ recorrido a mano · ⏳ pendiente de verificar contra Snowflake real (Fase 9).
 
 ## En 30 segundos
 
-- **Todo lo que se puede probar sin Snowflake funciona:** 151 tests de backend
-  en verde (eran 119; se agregaron 14 de fechas y 18 de la Fase 5), `ruff`
-  limpio, build del frontend OK, e2e de 40 specs × 2 proyectos (un `skip`
+- **Todo lo que se puede probar sin Snowflake funciona:** 164 tests de backend
+  en verde (eran 119; se agregaron 14 de fechas, 18 de la Fase 5 y 13 de la Fase 6), `ruff`
+  limpio, build del frontend OK, e2e de 43 specs × 2 proyectos (un `skip`
   intencional en móvil).
 - **CI dependía del día en que corriera.** Había seis tests que pasaban o
   fallaban según la fecha real, y uno de ellos ya había puesto CI en rojo el
@@ -45,7 +45,7 @@ se crearon desde cero para esta auditoría.
 | Lint backend | `cd backend && ruff check .` | ✅ `All checks passed!` |
 | Tests backend | `cd backend && pytest -q` (con `USE_SNOWFLAKE=false`) | ✅ **119 passed** en ~51 s al auditar; **133 passed** tras las correcciones (warnings: `JWT_SECRET` efímero y un deprecation de starlette) |
 | Build frontend | `cd frontend && npm run build` | ✅ OK (aviso de tamaño de chunk, no bloqueante) |
-| E2E | `cd frontend && npm run e2e` | ✅ **57 passed, 1 skipped** (29 specs × 2 proyectos) al auditar; **63 passed, 1 skipped** (32 specs) tras la Fase 4; **40 specs** tras integrar las Fases 1 y 8 sobre la Fase 5 (CI en chromium: 40/40). Ver nota de intermitencia abajo |
+| E2E | `cd frontend && npm run e2e` | ✅ **57 passed, 1 skipped** (29 specs × 2 proyectos) al auditar; **63 passed, 1 skipped** (32 specs) tras la Fase 4; **40 specs** tras integrar las Fases 1 y 8 sobre la Fase 5; **43** tras la Fase 6. Ver nota de intermitencia abajo |
 | Stack en vivo | `python dev.py` (API :8000, web :5173) | ✅ arranca; `/health` → `{"storage":"memory","nessie_mode":"mock","payment_provider":"demo",...}`; siembra la demo al arrancar |
 | Recorrido real sin stubs | script de Playwright contra el stack vivo (no está en el repo) | ✅ 8/8 pasos, detallados en la siguiente sección |
 
@@ -190,6 +190,27 @@ Verificado en vivo contra el stack real:
 - El contador es por proceso: con varios workers el límite efectivo se multiplica.
 - En una red compartida (una sala con la misma IP pública) todos cuentan juntos.
 
+### Visibilidad de errores 🧪 + ✅ verificado
+
+Fase 6, 2026-09-15. Todo en modo sqlite/mock y sin cuenta de Sentry.
+
+| Pieza | Estado |
+|---|---|
+| Errores del backend | Un error no controlado responde `500 {"detail":"internal_error","error_id":…}`, sin stack trace. El `error_id` queda en el log con la traza; con `SENTRY_DSN` es además el inicio del event id de Sentry |
+| Errores del frontend | `ErrorBoundary` por pantalla (la barra inferior sigue navegable y cambiar de ruta se recupera) y uno global. Mensaje con salida y "Referencia del error" cuando Sentry está activo |
+| Sentry | Opcional en los dos lados (`SENTRY_DSN`, `VITE_SENTRY_DSN`). Sin DSN el backend no lo importa y el frontend no descarga el SDK |
+| Datos que nunca salen | Verificado con un transporte en memoria: cuerpos (contraseñas, audio), cookies, `Authorization`, query strings (key de Nessie), token del QR y variables locales de los frames. La primera versión **sí** filtraba el token, la key y el JWT en las variables locales; se corrigió con `include_local_variables=False` y un test lo vigila |
+| `GET /health/ready` | Revisa base (`SELECT 1`), Nessie (mock o llamada real) y LLM (plantillas; Anthropic: valida la key sin gastar tokens; Cortex: no se invoca). `ok` / `degraded` (200) / `down` (503). Cache de 30 s y rate limit de 60/min. `/health` sigue siendo el liveness rápido de Render |
+
+Verificado además con DSN (falso y bloqueado): el SDK del frontend se carga, el
+error de pantalla llega a Sentry con su referencia visible y el envío no trae
+tokens.
+
+**Pendiente de Diego (manual):**
+
+- Crear en Sentry un proyecto Python/FastAPI y otro React, y poner los DSN en Render.
+- Apuntar un monitor de uptime gratuito a `/health/ready`.
+
 ---
 
 ## ⏳ Pendiente de verificar contra Snowflake real (Fase 9)
@@ -225,6 +246,8 @@ Fase 9, reemplazando esta sección por el resultado verificado.
 9. **De la Fase 5:** en el servicio de Render, que `JWT_SECRET` tenga valor
    (con `ENVIRONMENT=production` sin él no arranca) y que el rate limiting vea
    IPs distintas detrás del proxy.
+10. **De la Fase 6:** que `/health/ready` reporte `database: snowflake` y `llm:
+    cortex` en `ok` contra la cuenta real, con latencias razonables.
 
 ---
 
