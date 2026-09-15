@@ -58,9 +58,8 @@ def seed_user(
     """Mete un usuario con user_id **fijo** en el store.
 
     Hace falta porque /auth/register genera un uuid aleatorio, y los tests de
-    business-profile necesitan owner_id determinista: con USE_SNOWFLAKE=true
-    escriben en la tabla real y un id nuevo por corrida haría crecer
-    n_negocios en cada ejecución.
+    business-profile necesitan owner_id determinista para poder armar el token
+    y comparar lo que se guardó bajo ese dueño.
     """
     user = StoredUser(
         user_id=user_id,

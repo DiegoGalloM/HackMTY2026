@@ -37,8 +37,11 @@ frontend/src/            # Vite + React + TS + Tailwind v4, mobile-first PWA
   App.tsx                # rutas (HashRouter) + AnimatePresence + BottomNav
   components/            # BalanceHeader, CreditCardTile, QuickActionsGrid,
                          # BottomNav, Screen (wrapper de transición + padding)
-  screens/               # Cuenta, Vender (QR), Inventario, Compras, Analisis, Libros,
-                         # Asistente, Educacion, Pay (public checkout), Retiros, Transferencias, Pagos, Mas
+  screens/               # Cuenta, Vender (QR), CobroEfectivo, Inventario, Compras, Libros,
+                         # Asistente (/analisis: chat + opening brief), Resumen, Educacion,
+                         # Pay (public checkout, /#/pay/:token), Retiros, Transferencias, Pagos, Mas
+  onboarding/, auth/     # landing → welcome, register/login forms and the onboarding survey
+  financial-literacy/    # survey-driven Cash Insight triggers (insights.js) + micro-lessons
   api/                   # config (API_BASE), client, types (API contracts), finance (typed endpoints), format (USD)
   business/              # BusinessContext (session + api + refresh) and useBusinessQuery
   data/mock.ts           # demo data for the legacy banking screens only
@@ -81,12 +84,17 @@ npm run build
   subset (runs on sqlite and Snowflake). Tests never touch Snowflake.
 * Only a `PaymentEvent` with status SUCCEEDED changes books/inventory.
 
-## When the team decides on the final idea
+## Legacy pieces still in the repo
 
-What will probably change:
+The final idea is built (see above). A few pieces from the pre-hackathon
+template remain on purpose and are not the product path:
 
-* New routers in `backend/app/routers/` for the specific domain.
-* `services/insights.py` stops being a placeholder and actually calls Gemini/Claude.
-* `frontend/src/data/mock.ts` stops being mock data and starts calling FastAPI (the types in `data/types.ts` already match the intended response shapes).
+* `services/insights.py` is an unused placeholder; the real intelligence lives
+  in `backend/app/finance/` (analytics + assistant, LLM via `finance/llm.py`).
+  `GEMINI_API_KEY` is read by config but nothing uses it.
+* `frontend/src/data/mock.ts` still feeds the legacy banking screens (Retiros,
+  Pagos, CobroEfectivo sheets…) and the no-session fallback in Cuenta; financial
+  screens call FastAPI through `api/finance.ts`.
+* `routers/accounts.py` / `transactions.py` are the Nessie passthrough.
 
-What will probably NOT change: `nessie/`, the CI, the config pattern.
+Current project state and pending checks: `docs/PROJECT_STATUS.md`.

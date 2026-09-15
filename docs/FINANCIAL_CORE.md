@@ -143,6 +143,9 @@ público → libros → análisis → asistente, y guardia de tenant),
 `test_assistant.py` (enrutamiento, cifras del motor, aislamiento, guardia del
 LLM), `test_demo.py` (las dos demos: libros que cuadran, insumo por agotarse,
 causa real de la caída de utilidad, idempotencia, la panadería reproducible al
-centavo con fecha fija, y que las cuentas demo existan sin pasar por
-"Explorar la demo"). Todo corre contra sqlite en memoria; Snowflake se
+centavo con fecha fija, que ninguna demo deje existencias negativas sin
+importar la fecha en que se siembre, y que las cuentas demo existan sin pasar
+por "Explorar la demo"). La historia demo termina "hoy": un test que compare
+contra "esta semana" o "este mes" tiene que aguantar cualquier día o fijar la
+fecha. Todo corre contra sqlite en memoria; Snowflake se
 verifica a mano con el backend real (ver `docs/DEMO.md`).

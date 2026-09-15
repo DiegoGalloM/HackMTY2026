@@ -55,15 +55,16 @@ frontend, reiniciar no sirve de nada.
 
 | Que | Donde |
 |---|---|
-| Backend vivo | `GET /health` → `{"status":"ok","nessie_mode":"mock\|real"}` |
+| Backend vivo | `GET /health` → `{"status":"ok","nessie_mode":"mock\|real","storage":"memory\|snowflake","payment_provider":…,"transaction_provider":…}` |
 | Logs del backend | Render → `hackmty2026-api` → Logs |
 | Que consultas llegaron a Snowflake | Snowsight → Activity → Query History |
 | Cuantos creditos van | Snowsight → Admin → Cost Management |
 | Datos guardados | `SELECT * FROM business_profiles ORDER BY created_at DESC LIMIT 10;` |
 
-`nessie_mode` en `/health` refleja Nessie, **no** el modo de almacenamiento. No
-hay endpoint que diga si esta usando Snowflake o memoria — para saberlo,
-guarden un perfil y busquenlo en Snowsight.
+`nessie_mode` en `/health` refleja Nessie; `storage` dice si el backend quedo
+configurado con Snowflake (`USE_SNOWFLAKE=true` y cuenta definida) o en
+memoria/sqlite. `storage` lee la configuracion, no prueba la conexion: para
+confirmar que de verdad escribe, guarden un perfil y busquenlo en Snowsight.
 
 ## Problemas comunes
 
@@ -78,12 +79,13 @@ Todos estos ya nos pasaron. Ordenados por que tan seguido muerden.
 | Cambiaron `.env` y no pasa nada | `get_settings()` esta cacheado con `lru_cache`; `--reload` no basta | Reinicio real del proceso |
 | El navegador bloquea todas las llamadas | `CORS_ORIGINS` con diagonal final, o sin el origen desplegado | Origen exacto, sin `/` al final |
 | `ModuleNotFoundError: fastapi` en una terminal pero no en otra | `.venv` construido con dos interpretes distintos | Borrar `.venv` y rehacerlo con Python 3.12 |
-| `pydantic-core` / `cffi` no compilan al instalar | Python 3.13+; los pins no tienen wheels para esa version | Usen Python 3.12 |
+| `pydantic-core` / `cffi` no compilan al instalar | Python 3.14+; los pins no tienen wheels para esa version | Usen Python 3.12 (el de CI); 3.13 tambien funciona |
 | `USE_MOCK_NESSIE=true : The term ... is not recognized` | Sintaxis de bash en PowerShell | `$env:USE_MOCK_NESSIE = "true"` en una linea aparte |
 | Primera llamada tarda ~1 min | Render y/o el warehouse dormidos | Normal. Despiertenlos antes (checklist de arriba) |
 | `250001: Could not connect to Snowflake backend` | Account identifier mal escrito | Sin `.snowflakecomputing.com` al final |
 | `Warehouse 'HACKMTY_WH' does not exist or not authorized` | Falto el Paso 3 del setup, o el rol no alcanza | Corran el Paso 3 completo y en orden |
-| Los tests tardan 15s en vez de 1s | `backend/.env` tiene `USE_SNOWFLAKE=true` y estan pegandole a Snowflake real | Es esperado. Para correr en memoria: `$env:USE_SNOWFLAKE = "false"` |
+| `pytest` tarda mas de un minuto en la laptop | `test_demo.py` siembra las demos varias veces (incluida una semana de fechas simuladas) | Es esperado; en CI tarda menos. Los tests nunca tocan Snowflake, aunque `backend/.env` tenga `USE_SNOWFLAKE=true` |
+| CI falla un dia y al siguiente pasa sin cambios | Un test que depende de la fecha real (la historia demo termina "hoy") | Reproducirlo fijando la fecha (`monkeypatch.setattr(demo, "today", ...)`, como en `test_demo.py`) y volver el test independiente del dia |
 
 ### Si Nessie se cae
 
@@ -102,7 +104,8 @@ pasa por `Depends(get_nessie_client)`.
 USE_SNOWFLAKE=false
 ```
 
-La app sigue completa con los perfiles en memoria. Se pierde la elegibilidad
+La app sigue completa con los perfiles y usuarios en memoria y el nucleo
+financiero en sqlite (las cuentas demo se vuelven a sembrar al arrancar). Se pierde la elegibilidad
 del premio de Snowflake y los datos no sobreviven un reinicio, pero el producto
 principal queda de pie. Es la misma idea que el mock de Nessie: un toggle, cero
 cambios de codigo.

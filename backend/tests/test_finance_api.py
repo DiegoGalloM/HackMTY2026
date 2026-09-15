@@ -132,7 +132,11 @@ def test_demo_session_provisions_seeded_bakery():
     demo_id = body["user"]["user_id"]
     h = {"Authorization": f"Bearer {body['access_token']}"}
     overview = client.get(f"/business/{demo_id}/overview", headers=h).json()
-    assert overview["has_data"] and overview["health"]["revenue"]["value"] > 0
+    assert overview["has_data"] and overview["recent_orders"]
+    # Ventas de los últimos 30 días y no del mes en curso (lo que trae
+    # overview): el día 1, si cae en lunes, el mes todavía va en $0.
+    last_30 = client.get(f"/business/{demo_id}/analytics/health?period=30d", headers=h).json()
+    assert last_30["revenue"]["value"] > 0
     assert overview["health"]["integrity"] == {"trial_balance_balanced": True, "balance_sheet_balanced": True}
     # El onboarding ya había creado el catálogo: la semilla lo reutiliza, no lo duplica.
     accounts = client.get(f"/business/{demo_id}/books/accounts", headers=h).json()

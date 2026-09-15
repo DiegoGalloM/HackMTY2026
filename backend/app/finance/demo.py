@@ -222,6 +222,7 @@ class Pipeline:
         self.day0 = self.start_day
         self.orders = 0
         self.receipts = 0
+        self._recipes: dict[str, list[dict[str, Any]]] = {}
 
     # --- capital e insumos ---
 
@@ -285,9 +286,40 @@ class Pipeline:
 
     # --- ventas ---
 
-    def sell(self, lines: list[dict[str, Any]], day: datetime, hour: int, ref: str, customers: list[tuple[str, str]], customer_chance: float, currency: str = "USD") -> dict[str, Any]:
+    def producible(self, lines: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Recorta las líneas a lo que la existencia del momento alcanza a
+        producir; una línea sin nada que producir se quita.
+
+        Sin esto la historia depende del día en que se siembra: la ventana de
+        10 semanas termina hoy, así que cuántos fines de semana (y pasteles)
+        caen antes de cada resurtido cambia con la fecha, y algunos días un
+        insumo que no se resurte (la caja para pastel) acababa en negativo.
+        Nunca consume el rng: cuando alcanza para todo, la historia es idéntica.
+        """
+        on_hand = {i["inventory_item_id"]: D(i["quantity_on_hand"]) for i in self.inv.list_items(include_inactive=True)}
+        missing = [ln["item_id"] for ln in lines if ln["item_id"] not in self._recipes]
+        self._recipes.update({iid: [] for iid in missing})
+        self._recipes.update(self.cat._components_for(missing))
+        kept: list[dict[str, Any]] = []
+        for line in lines:
+            recipe = self._recipes[line["item_id"]]
+            quantity = line["quantity"]
+            while quantity > 0 and any(on_hand[c["inventory_item_id"]] < D(c["quantity_per_unit"]) * quantity for c in recipe):
+                quantity -= 1
+            if quantity <= 0:
+                continue
+            for c in recipe:
+                on_hand[c["inventory_item_id"]] -= D(c["quantity_per_unit"]) * quantity
+            kept.append({**line, "quantity": quantity})
+        return kept
+
+    def sell(self, lines: list[dict[str, Any]], day: datetime, hour: int, ref: str, customers: list[tuple[str, str]], customer_chance: float, currency: str = "USD") -> dict[str, Any] | None:
         """Orden + pago con el proveedor demo. Consume el rng en este orden:
-        minuto, tirada de cliente, cliente, últimos 4 dígitos."""
+        minuto, tirada de cliente, cliente, últimos 4 dígitos. Si la existencia
+        no alcanza para ninguna línea, no hay venta (y no se consume el rng)."""
+        lines = self.producible(lines)
+        if not lines:
+            return None
         rng = self.rng
         when = _ts(day, hour, rng.randint(0, 59))
         order = self.sales.create_order(lines, created_at=when, currency=currency)

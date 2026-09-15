@@ -5,9 +5,10 @@ caída de utilidad, catálogo de cuentas de belleza); sembrar dos veces no
 duplica; y la panadería sigue produciendo exactamente la misma historia.
 """
 
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.config import Settings
@@ -93,6 +94,23 @@ def test_bakery_seed_is_reproducible(monkeypatch):
     assert (q2(income["total_revenue"]), q2(income["total_cogs"]), q2(income["total_operating_expenses"])) == (Decimal("8676.00"), Decimal("1691.86"), Decimal("4642.54"))
     assert q2(ctx.accounting.balance_sheet()["total_assets"]) == Decimal("10263.43")
     assert q2(ctx.accounting.trial_balance()["total_debit"]) == Decimal("16673.83")
+
+
+@pytest.mark.parametrize("business", ["panaderia", "estetica"])
+@pytest.mark.parametrize("day", [date(2026, 9, 24) + timedelta(days=i) for i in range(7)])
+def test_demo_seed_never_leaves_negative_stock(monkeypatch, business, day):
+    """La historia termina hoy, así que depende de la fecha en que se siembra.
+    Una semana completa cubre todos los días de la semana; con la panadería
+    estas siete fechas dejaban la caja para pastel en negativo (y CI fallaba
+    según el día en que corriera)."""
+    monkeypatch.setattr(demo, "today", lambda: day)
+    db = SqliteDatabase(":memory:")
+    db.ensure_schema()
+    demo.DemoSeeder(db, f"biz_{business}", business).seed()
+    ctx = _ctx(db, f"biz_{business}", business)
+    assert ctx.accounting.trial_balance()["balanced"]
+    negative = {i["name"]: i["quantity_on_hand"] for i in ctx.inventory.list_items(include_inactive=True) if D(i["quantity_on_hand"]) < 0}
+    assert negative == {}
 
 
 def test_demo_session_selects_the_business():

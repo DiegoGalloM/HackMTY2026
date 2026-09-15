@@ -59,7 +59,7 @@ con medio stack corriendo sin notarlo cuesta más tiempo que volver a arrancar.
 setup:
 
 ```powershell
-# Backend — Python 3.12, NO 3.13+ (los pins no traen wheels para esa versión)
+# Backend — Python 3.12 como CI (3.13 también funciona; 3.14 no trae wheels para los pins)
 py -3.12 -m venv backend\.venv
 backend\.venv\Scripts\pip install -r backend\requirements.txt
 
@@ -71,18 +71,18 @@ npm install
 En macOS/Linux es lo mismo con `python3.12 -m venv backend/.venv` y
 `backend/.venv/bin/pip`.
 
-### ⚠️ Estado actual del venv en esta máquina
+### ⚠️ Si el venv existe pero `dev.py` dice que no puede importar uvicorn
 
-Ahorita `backend/.venv` **no sirve**: tiene las dependencias instaladas (fastapi,
-uvicorn, snowflake, compiladas para 3.12) pero su `pyvenv.cfg` quedó apuntando al
-Python 3.14 de MSYS2 (`C:\msys64\ucrt64\bin\python3.exe`). Ese intérprete busca
-sus paquetes en `Lib/python3.14/site-packages` y no ve el `Lib/site-packages` que
-ya existe, así que `import uvicorn` falla.
+Casi siempre es un venv que quedó apuntando a otro intérprete: tiene las
+dependencias instaladas para una versión de Python, pero su `pyvenv.cfg` apunta
+a otra (por ejemplo al Python de MSYS2/Git Bash). Ese intérprete busca sus
+paquetes en otra carpeta y no ve los que ya están, así que `import uvicorn`
+falla.
 
 Pasa cuando corres `python -m venv` encima de un venv existente con otro
 intérprete: se reescribe el `pyvenv.cfg` y las dependencias viejas quedan
-invisibles. `dev.py` lo detecta y te dice exactamente esto en vez de tronar con
-un `ModuleNotFoundError` suelto.
+invisibles. `dev.py` lo detecta y te lo dice en vez de tronar con un
+`ModuleNotFoundError` suelto.
 
 La reparación es rehacerlo:
 
@@ -92,9 +92,8 @@ py -3.12 -m venv backend\.venv
 backend\.venv\Scripts\pip install -r backend\requirements.txt
 ```
 
-Hay un `.venv` en la raíz del repo con el mismo problema. `dev.py` prueba los dos
-y usa el primero que de verdad pueda importar uvicorn, así que puedes arreglar
-cualquiera de los dos.
+`dev.py` también prueba un `.venv` en la raíz del repo y usa el primero que de
+verdad pueda importar uvicorn, así que basta con que uno de los dos sirva.
 
 ## Si prefieres no usar el script
 

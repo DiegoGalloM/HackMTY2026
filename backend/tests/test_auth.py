@@ -167,10 +167,12 @@ def test_invalid_birthdate_returns_422(bad_birthdate):
 def test_minor_cannot_register():
     """La regla de edad (>=18) es de negocio pero se valida en el schema, así que
     sale como 422 igual que una fecha con formato malo."""
-    from datetime import UTC, datetime
+    from datetime import UTC, datetime, timedelta
 
+    # Con timedelta y no replace(year=...): un 29 de febrero, "hace 10 años"
+    # con replace no existe y el test tronaba con ValueError.
     today = datetime.now(UTC).date()
-    recent = today.replace(year=today.year - 10).isoformat()
+    recent = (today - timedelta(days=10 * 365)).isoformat()
     assert _register(username="menor_edad", birthdate=recent).status_code == 422
 
 

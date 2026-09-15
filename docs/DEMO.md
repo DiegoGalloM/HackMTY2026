@@ -21,7 +21,7 @@ otro país y otro catálogo de cuentas.
 | Giro | `comida`, 1 persona | `belleza`, 2 personas |
 | Usuario | `demo_panaderia` / `PanDeCadaDia2026` | `demo_estetica` / `BellezaConNumeros2026` |
 | Qué demuestra | Productos con receta, inventario perecedero, compras al mayoreo con ticket; el proveedor sube precios y bajan los pasteles. | Servicios que consumen insumos (tinte = 2 tubos + oxidante), venta de producto al público, IVA 16 %, cifras en pesos; el proveedor se queda sin tinte y bajan las citas. |
-| Preguntas que lucen | "¿Cuántos pasteles de chocolate puedo hacer?", "¿Por qué bajó mi utilidad?" | "¿Qué servicio me deja más ganancia?", "¿Cuándo se me acaba el tinte?" → "¿y el esmalte?" |
+| Preguntas que lucen | "¿Cuántos pasteles de chocolate puedo hacer?", "¿Por qué bajó mi utilidad?" | "¿Qué servicio me deja más ganancia?", "¿Cuándo se me acaba el tinte?" y luego "¿Cuándo se me acaba el esmalte?" (completa: el asistente no recuerda la pregunta anterior) |
 
 Las dos cuentas también sirven en *Iniciar sesión*: se aprovisionan al
 arrancar el backend (no hay que pulsar antes "Explorar la demo") y, como ya

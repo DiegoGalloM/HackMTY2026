@@ -11,8 +11,8 @@ Para desplegar y para incidencias en vivo, vean [RUNBOOK.md](./RUNBOOK.md).
 
 | Herramienta | Version | Por que esa |
 |---|---|---|
-| Python | **3.12.x** | CI corre 3.12. Los pins de `requirements.txt` (`pydantic==2.9.2`) **no compilan en 3.13+**: no hay wheels y `pydantic-core` truena al compilar. |
-| Node | 20 | Es la que usa el job `frontend-build` del CI. |
+| Python | **3.12.x** | CI corre 3.12. 3.13 también instala y pasa los tests (verificado en Windows, 2026-09-14); 3.14 no se ha probado y los pins (`pydantic==2.9.2`) no traen wheels para esa versión. |
+| Node | 20 | Es la que usan los jobs `frontend-build` y `e2e` del CI. |
 
 ⚠️ **Un solo interprete por venv.** Si crean `.venv` con un Python y luego
 corren `venv` otra vez encima con otro (por ejemplo el de MSYS2/Git Bash), el
@@ -76,7 +76,7 @@ Fuente: `frontend/package.json`. Se corren desde `frontend/`.
 | `npm run build` | `tsc -b && vite build` | Typecheck + build de produccion a `dist/`. Tambien genera el service worker de la PWA. |
 | `npm run preview` | `vite preview` | Sirve el `dist/` ya construido, para revisar el build real. |
 | `npm run typecheck` | `tsc -b --noEmit` | Solo tipos, sin generar archivos. |
-| `npm run e2e` | `playwright test` | Los 4 journeys x 2 proyectos (desktop + movil). Levanta el dev server solo. |
+| `npm run e2e` | `playwright test` | Los 29 specs x 2 proyectos (desktop + movil). Levanta el dev server solo. |
 | `npm run e2e:ui` | `playwright test --ui` | Modo interactivo: se ve el navegador y se puede repetir paso por paso. |
 | `npm run e2e:report` | `playwright show-report` | Abre el reporte HTML del ultimo corrida. |
 
@@ -97,10 +97,10 @@ El backend no tiene `package.json`; sus comandos son directos:
 | `NESSIE_API_KEY` | — | Key de la API de Nessie. Se saca en api.nessieisreal.com con login de GitHub. |
 | `NESSIE_BASE_URL` | `http://api.nessieisreal.com` | Base de la API real. |
 | `USE_MOCK_NESSIE` | `true` | `true` usa el cliente mock en memoria con la misma interfaz. Es el seguro contra que Nessie se caiga a media competencia, como paso en 2025. |
-| `GEMINI_API_KEY` | vacio | Opcional, para la capa de insights/IA. |
-| `ANTHROPIC_API_KEY` | vacio | Opcional, igual que la anterior. |
+| `GEMINI_API_KEY` | vacio | Hoy no la usa nada (quedó del placeholder `services/insights.py`). |
+| `ANTHROPIC_API_KEY` | vacio | Opcional. Con key, el asistente redacta con Anthropic; sin key, Cortex (si `USE_SNOWFLAKE=true`) o plantillas. |
 | `CORS_ORIGINS` | `http://localhost:5173` | Origenes permitidos, separados por coma. **Sin diagonal final** o el navegador bloquea todo. |
-| `USE_SNOWFLAKE` | `false` | `false` guarda los perfiles en memoria; `true` los guarda en Snowflake real. |
+| `USE_SNOWFLAKE` | `false` | `false`: perfiles y usuarios en memoria, núcleo financiero en sqlite. `true`: todo en Snowflake real. |
 | `SNOWFLAKE_ACCOUNT` | vacio | Account Identifier, formato `ORG-CUENTA`. **Sin** `.snowflakecomputing.com`. |
 | `SNOWFLAKE_USER` | vacio | Usuario de Snowsight. |
 | `SNOWFLAKE_PASSWORD` | vacio | Password. Nunca en git ni en el chat del equipo. |
@@ -123,20 +123,19 @@ de `BusinessProfile` — ver el `ALTER TABLE` en `SNOWFLAKE_SETUP.md`.
 ### Backend — `pytest`
 
 ```bash
-cd backend && pytest -q          # 7 tests
+cd backend && pytest -q          # 133 tests (antes de los 14 de fechas, CI tardaba ~16 s; en una laptop ~1.5 min)
 ```
 
-⚠️ **Si `backend/.env` tiene `USE_SNOWFLAKE=true`, los tests escriben en
-Snowflake real** (y tardan ~15s en vez de ~1s). Por eso las pruebas usan
-categorias inventadas (`test_categoria`, `stats_test`): asi no ensucian las
-stats de una categoria de verdad que se vaya a usar en la demo. Si agregan
-tests que guarden perfiles, respeten esa convencion.
+**Los tests nunca tocan Snowflake**, aunque `backend/.env` tenga
+`USE_SNOWFLAKE=true`: `tests/conftest.py` sustituye los stores de usuarios y
+perfiles por los de memoria y la base del núcleo por sqlite en memoria, y
+ningún test levanta el `lifespan` que siembra las demos. Aun así, las pruebas
+de perfiles usan categorias inventadas (`test_categoria`, `stats_test`); si
+agregan tests que guarden perfiles, respeten esa convencion.
 
-Para correrlos como el CI, en memoria:
-
-```powershell
-$env:USE_SNOWFLAKE = "false"; pytest -q
-```
+La mayor parte del tiempo se va en `test_demo.py`, que siembra las dos demos
+varias veces, incluida una semana completa de fechas simuladas: la historia
+termina "hoy", así que sin ese test CI podía pasar o fallar según el día.
 
 `test_snowflake_store_covers_all_profile_fields` compara el SQL del store
 contra `BusinessProfile.model_fields` **sin conectarse a Snowflake**. Si
@@ -147,12 +146,17 @@ responde `ok` y el campo se pierde).
 ### Frontend — Playwright
 
 ```bash
-cd frontend && npm run e2e       # 4 tests x 2 proyectos = 8
+cd frontend && npm run e2e       # 29 specs x 2 proyectos (1 skip en movil: hover)
 ```
 
-Los tests **no necesitan backend**: interceptan `/business-profile/**` con
-`page.route()`. Son deterministas, no escriben en Snowflake, y corren en CI
-sin credenciales. Cubren el happy path, un 500, sin conexion, y el reintento.
+Los tests **no necesitan backend**: interceptan con `page.route()` las
+llamadas a `/auth/*`, `/business-profile/*`, `/demo/session` y las de
+`/business/{id}/...` que leen las pantallas. Son deterministas, no escriben en
+Snowflake, y corren en CI sin credenciales (CI sólo corre el proyecto
+`chromium`). Cubren registro y login, la encuesta (happy path, 500, sin
+conexión, reintento), login de una cuenta existente, el selector de demos, la
+tarjeta que se voltea y la bienvenida. La contracara: ningún e2e ejercita el
+contrato real frontend ↔ backend.
 
 Cuando agreguen tests, usen selectores por **rol y texto visible**
 (`getByRole("button", { name: "Continuar" })`), no por clase CSS: las clases

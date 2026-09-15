@@ -62,11 +62,15 @@ El producto se llama "Capital One Business", usa la paleta de marca de Capital O
 - Anotar como pendiente-para-Fase-9 la pregunta de si `SnowflakeProfileStore` corrió alguna vez contra una cuenta Snowflake real — no intentar responderla ahora conectándose a la cuenta.
 - Producir un `docs/PROJECT_STATUS.md` actualizado con la fecha de hoy, archivando (no borrando) la versión anterior en `docs/archive/`, y dejando explícito qué quedó pendiente de verificar contra Snowflake real.
 
+**Hecha (2026-09-14).** Resultado en `docs/PROJECT_STATUS.md`; la versión anterior quedó en `docs/archive/PROJECT_STATUS_2026-09-13.md`. De paso se reconciliaron las contradicciones entre documentos y se corrigieron dos tests que hacían que CI pasara o fallara según el día. ✅
+
 ---
 
 ## 4. 🔴 Cerrar el hueco de producto más visible
 
 La encuesta de onboarding guarda `category` y `answers`, pero (según `PROJECT_STATUS.md`) `Cuenta.tsx` no los recibía como props, así que `CashInsightCard` no tenía con qué decidir qué mostrar.
+
+> **Actualización tras la Fase 3 (2026-09-14):** en `main` esto ya funciona. `Cuenta.tsx` recibe el perfil y `CashInsightCard` muestra la lección correcta justo después de la encuesta, sin recargar (verificado en vivo). Además, la prioridad "dato real > sólo encuesta" **no** está en `insights.js`: los insights basados en datos vienen del backend (`/analytics/insights`) y sólo se muestran en `/educacion`. Lo que sigue pendiente de esta fase: el e2e de "termino la encuesta → aparece la tarjeta correcta", decidir si Cuenta debe preferir el insight de datos y quitar el título duplicado en `/educacion`. Detalle en `docs/PROJECT_STATUS.md`.
 
 **Tarea para Claude Code:**
 - Trazar el flujo desde `frontend/src/onboarding/OnboardingFlow.jsx` hasta `frontend/src/screens/Cuenta.tsx`, pasando por `frontend/src/business/BusinessContext.tsx`.
@@ -97,7 +101,7 @@ No hace falta una torre de observabilidad para un demo — sí conviene enterart
 
 ## 7. 🟡 Ampliar cobertura de pruebas
 
-La base ya es sólida (119 backend + 29 e2e) — esto no es para "producción", es para poder decir con toda confianza en LinkedIn o en una entrevista técnica que el sistema está probado a fondo, y para que cualquiera que revise el repo no encuentre un hueco.
+La base ya es sólida (133 backend + 29 e2e) — esto no es para "producción", es para poder decir con toda confianza en LinkedIn o en una entrevista técnica que el sistema está probado a fondo, y para que cualquiera que revise el repo no encuentre un hueco.
 
 - Suite de "preguntas doradas" para el asistente (30-50 preguntas con la respuesta/evidencia esperada) corrida en CI, para detectar regresiones de la guardia anti-alucinación.
 - Una pasada explícita de checklist de seguridad tipo OWASP para APIs (inyección, límites de tamaño de payload, exposición de stack traces en errores 500).
