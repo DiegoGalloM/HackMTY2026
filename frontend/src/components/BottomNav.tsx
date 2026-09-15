@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { ChartColumn, CreditCard, Landmark, LayoutGrid, QrCode } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { DEMO_BADGE } from "./DemoNotice";
 
 interface NavItem {
   to: string;
@@ -85,6 +86,16 @@ export default function BottomNav() {
           </li>
         ))}
       </ul>
+      {/* Franja persistente: va en la barra, así se ve en TODAS las pantallas de
+          la app y quien la prueba nunca pierde de vista que es una simulación.
+          Debajo de los íconos y no encima, porque el botón central sobresale
+          por arriba y la taparía. Su alto se reserva en Screen.tsx. */}
+      <p
+        role="note"
+        className="flex h-[var(--demo-band-height)] items-center justify-center bg-navy text-[10px] font-semibold tracking-[0.08em] text-white uppercase"
+      >
+        {DEMO_BADGE}
+      </p>
     </nav>
   );
 }

@@ -25,6 +25,8 @@
    barra inferior. Se declaran una sola vez para que no se desincronicen. */
 :root {
   --nav-height: 4rem;
+  /* Franja "Modo demo — datos simulados" bajo los íconos de la barra. */
+  --demo-band-height: 1.5rem;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
 }

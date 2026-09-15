@@ -6,6 +6,10 @@
 python dev.py            # backend (Snowflake si backend/.env lo tiene) + frontend
 ```
 
+Al presentar, dilo desde el inicio: **es una demo con dinero simulado** y no es un
+producto de Capital One. La app lo repite sola: aviso en la landing y en la página
+de pago, y la franja "Modo demo — datos simulados" en todas las pantallas.
+
 Primera vez con Snowflake: el backend aplica las migraciones 003/004 solo al
 arrancar; la primera entrada a cada negocio demo lo siembra (~10 s) y queda
 guardado, las siguientes entran al instante.

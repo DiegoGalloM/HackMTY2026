@@ -129,7 +129,7 @@ export default function Welcome({ onAuthenticated, onExplore }: WelcomeProps) {
               <p className="entry-description">{mode === "register" ? "Crea tu perfil y cuéntanos un poco sobre tu negocio para personalizar tu experiencia." : "Entra a la experiencia y comienza a construir el perfil de tu negocio."}</p>
               {mode === "register" ? (
                 <>
-                  <div className="entry-demo-note"><Sparkles size={18} aria-hidden /><p><strong>Estás en la versión de demostración.</strong><br />Tu cuenta y tus respuestas se guardan solo en el backend de esta demo.</p></div>
+                  <div className="entry-demo-note"><Sparkles size={18} aria-hidden /><p><strong>Estás en la versión de demostración.</strong><br />Todas las transacciones son simuladas: no se procesa dinero real ni se conecta a cuentas bancarias. Tu cuenta y tus respuestas se guardan solo en el backend de esta demo.</p></div>
                   <RegisterForm onAuthenticated={onAuthenticated} onSwitchToLogin={() => setMode("login")} />
                 </>
               ) : (
