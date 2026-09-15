@@ -177,6 +177,7 @@ Todo lo anterior se construyó y se probó sin tocar tu cuenta de Snowflake. Est
   - De la Fase 5 salieron dos pasos. Primero, la migración `005_onboarding_audio.sql` (aditiva; también se aplica sola al arrancar). Después, el paso manual `python -m scripts.purge_legacy_profile_audio`: sin `--apply` sólo cuenta cuántos perfiles tienen audio en la fila, y con `--apply` lo vacía.
 - Verificar de punta a punta contra la cuenta real: registrar un negocio de prueba, completar el onboarding, hacer una venta por QR y una compra con tarjeta, y confirmar en Snowsight que todo se guardó correctamente (perfiles, usuarios, diario, inventario).
 - Revisar la configuración de `AUTO_SUSPEND` y el tamaño del warehouse (`HACKMTY_WH`) en Snowsight, y ajustar el tiempo de auto-suspensión si vas a dejar el demo con un link fijo compartido en LinkedIn (para que la primera visita de alguien no espere varios segundos a que el warehouse "despierte").
+- Aplicar el rol de mínimo privilegio que dejó escrito la Fase 11 (`backend/scripts/snowflake/rol_minimo_privilegio.sql`, pasos en `docs/SNOWFLAKE_SETUP.md`). Pasar el backend de Render a `HACKMTY_APP_SVC` / `HACKMTY_APP`, confirmar `/health/ready` y sólo entonces quitar `ACCOUNTADMIN` de `render.yaml`.
 - Cerrar el pendiente que quedó anotado en la Fase 3 (`docs/PROJECT_STATUS.md`) sobre si esto ya corrió contra una cuenta real, reemplazándolo por el resultado verificado de esta fase.
 
 **Criterio de terminado:** migraciones aplicadas limpias contra la cuenta real, un flujo completo (registro → onboarding → venta → compra) verificado en Snowsight, warehouse configurado a tu gusto, y `PROJECT_STATUS.md` reflejando el estado real y no uno aspiracional.
@@ -202,6 +203,16 @@ Esto **no es una fase para Claude Code**, es contenido para una sección del pro
 - **Cumplimiento regulatorio** (KYC/AML, PCI-DSS, transmisión de dinero) — necesario sólo el día que exista dinero real de terceros moviéndose por la plataforma, que no es el plan actual.
 
 **Tarea para Claude Code:** redactar esta sección con el tono de "decisión de producto consciente", no de "lista de pendientes que no dio tiempo de hacer" — es una diferencia de framing importante para quien lo lea.
+
+**Hecha (2026-09-15).**
+
+- **La sección.** Está en el `README.md` como "Si esto fuera un producto real: lo que ya pensamos y decidimos no construir en 36 horas". Cada idea dice por qué se dejó fuera y en qué punto del código entraría: `NessieClient`, `PaymentProvider` / `get_payment_provider()`, `PurchaseService.attach_receipt(..., source="sample")`, la capa `Database` y la moneda por orden. Las referencias se verificaron contra el código.
+- **Hallazgos de la Fase 7.** En la misma sesión se resolvieron los que quedaron anotados, en modo sqlite/mock (detalle en `docs/PROJECT_STATUS.md`):
+  - Montos con separador de miles en todas las frases (`common.fmt_money`).
+  - Base de conocimiento y respuestas del asistente en inglés. Las preguntas doradas pasan de 45 a 50.
+  - Aviso de Nominatim en el paso de ciudad, con su e2e.
+  - `Onboarding.jsx` borrado.
+  - Script del rol de Snowflake de mínimo privilegio, que se aplica en la Fase 9.
 
 ---
 

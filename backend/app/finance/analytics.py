@@ -17,6 +17,7 @@ from app.finance.accounting import AccountingService
 from app.finance.common import (
     ZERO,
     D,
+    fmt_money,
     period_bounds,
     previous_period,
     q2,
@@ -146,7 +147,7 @@ class AnalyticsService:
             "current_ratio", "Razón circulante", "liquidez", cr,
             status=_status(cr, D("1.5"), D("1.0")),
             formula="Activo circulante ÷ Pasivo a corto plazo",
-            explanation=(f"Tienes ${q2(cr)} en recursos a corto plazo por cada $1.00 que debes pronto." if cr is not None else "No debes nada a corto plazo, así que la razón no aplica."),
+            explanation=(f"Tienes {fmt_money(cr)} en recursos a corto plazo por cada $1.00 que debes pronto." if cr is not None else "No debes nada a corto plazo, así que la razón no aplica."),
             reason=None if cl else "sin pasivos a corto plazo",
             inputs={"current_assets": pos["current_assets"], "current_liabilities": cl},
         )
@@ -156,7 +157,7 @@ class AnalyticsService:
             "quick_ratio", "Prueba ácida", "liquidez", qr,
             status=_status(qr, D("1.0"), D("0.5")),
             formula="(Efectivo + Cuentas por cobrar) ÷ Pasivo a corto plazo",
-            explanation=(f"Sin contar inventario, cubres ${q2(qr)} por cada $1.00 de deuda cercana." if qr is not None else "No hay deuda a corto plazo que cubrir."),
+            explanation=(f"Sin contar inventario, cubres {fmt_money(qr)} por cada $1.00 de deuda cercana." if qr is not None else "No hay deuda a corto plazo que cubrir."),
             reason=None if cl else "sin pasivos a corto plazo",
             inputs={"cash": pos["cash"], "receivables": pos["receivables"], "current_liabilities": cl},
         )
@@ -173,7 +174,7 @@ class AnalyticsService:
             "working_capital", "Capital de trabajo", "liquidez", wc,
             status="good" if wc > 0 else "critical",
             formula="Activo circulante − Pasivo a corto plazo",
-            explanation=(f"Después de pagar todo lo que debes pronto te quedarían ${q2(wc)} para operar." if wc >= 0 else f"Te faltarían ${q2(-wc)} para cubrir lo que debes pronto."),
+            explanation=(f"Después de pagar todo lo que debes pronto te quedarían {fmt_money(wc)} para operar." if wc >= 0 else f"Te faltarían {fmt_money(-wc)} para cubrir lo que debes pronto."),
             unit="$",
         )
 
@@ -186,7 +187,7 @@ class AnalyticsService:
             "gross_margin", "Margen bruto", "rentabilidad", gm_pct,
             status=_status(gm_pct, good_gm, good_gm - 20),
             formula="(Ventas − Costo de ventas) ÷ Ventas",
-            explanation=(f"De cada $100 vendidos, ${q2(gm_pct)} quedan después de pagar los insumos." if gm_pct is not None else "Todavía no hay ventas en el periodo."),
+            explanation=(f"De cada $100 vendidos, {fmt_money(gm_pct)} quedan después de pagar los insumos." if gm_pct is not None else "Todavía no hay ventas en el periodo."),
             reason=None if rev else "sin ventas en el periodo", unit="%",
             inputs={"revenue": rev, "cogs": income["total_cogs"]},
         )
@@ -196,7 +197,7 @@ class AnalyticsService:
             "net_margin", "Margen neto", "rentabilidad", om_pct,
             status=_status(om_pct, D("10"), D("0")),
             formula="Utilidad neta ÷ Ventas",
-            explanation=(f"De cada $100 vendidos, ${q2(om_pct)} son ganancia después de todos los gastos." if om_pct is not None else "Todavía no hay ventas en el periodo."),
+            explanation=(f"De cada $100 vendidos, {fmt_money(om_pct)} son ganancia después de todos los gastos." if om_pct is not None else "Todavía no hay ventas en el periodo."),
             reason=None if rev else "sin ventas en el periodo", unit="%",
             inputs={"revenue": rev, "net_income": income["net_income"]},
         )
@@ -206,7 +207,7 @@ class AnalyticsService:
             "return_on_assets", "Rendimiento sobre activos", "rentabilidad", roa_pct,
             status=_status(roa_pct, D("5"), D("0")),
             formula="Utilidad neta ÷ Activos totales",
-            explanation=(f"Cada $100 invertidos en el negocio produjeron ${q2(roa_pct)} de utilidad en {label}." if roa_pct is not None else "Sin activos registrados."),
+            explanation=(f"Cada $100 invertidos en el negocio produjeron {fmt_money(roa_pct)} de utilidad en {label}." if roa_pct is not None else "Sin activos registrados."),
             reason=None if pos["total_assets"] else "sin activos", unit="%",
         )
 
@@ -217,7 +218,7 @@ class AnalyticsService:
             "debt_to_equity", "Deuda sobre capital", "apalancamiento", de,
             status=_status(de, D("1.0"), D("2.0"), higher_is_better=False),
             formula="Pasivo total ÷ Capital",
-            explanation=(f"Debes ${q2(de)} por cada $1.00 que es tuyo en el negocio." if de is not None else "El capital es cero o negativo: la deuda supera lo que es tuyo."),
+            explanation=(f"Debes {fmt_money(de)} por cada $1.00 que es tuyo en el negocio." if de is not None else "El capital es cero o negativo: la deuda supera lo que es tuyo."),
             reason=None if eq > 0 else "capital no positivo",
         )
         dr = safe_div(pos["total_liabilities"], pos["total_assets"])
@@ -288,9 +289,9 @@ class AnalyticsService:
             "status": status,
             "headline": headline,
             "explanation": (
-                f"Tienes ${q2(cash)} disponibles y debes ${q2(obligations)} a corto plazo "
-                f"(tarjeta ${q2(pos['card_balance'])}, impuestos ${q2(pos['tax_payable'])}). "
-                f"En {label} entraron ${q2(flows['inflows'])} y salieron ${q2(flows['outflows'])}."
+                f"Tienes {fmt_money(cash)} disponibles y debes {fmt_money(obligations)} a corto plazo "
+                f"(tarjeta {fmt_money(pos['card_balance'])}, impuestos {fmt_money(pos['tax_payable'])}). "
+                f"En {label} entraron {fmt_money(flows['inflows'])} y salieron {fmt_money(flows['outflows'])}."
             ),
             "operating_flows": flows["by_source"],
         }
@@ -401,12 +402,12 @@ class AnalyticsService:
         cogs_delta = now["total_cogs"] - prev["total_cogs"]
         opex_delta = now["total_operating_expenses"] - prev["total_operating_expenses"]
         if rev_delta != 0:
-            drivers.append({"driver": "revenue", "label": "Ventas", "impact": rev_delta, "detail": f"Las ventas pasaron de ${q2(prev['total_revenue'])} a ${q2(now['total_revenue'])}."})
+            drivers.append({"driver": "revenue", "label": "Ventas", "impact": rev_delta, "detail": f"Las ventas pasaron de {fmt_money(prev['total_revenue'])} a {fmt_money(now['total_revenue'])}."})
         if cogs_delta != 0:
-            drivers.append({"driver": "cogs", "label": "Costo de insumos", "impact": -cogs_delta, "detail": f"El costo de lo vendido pasó de ${q2(prev['total_cogs'])} a ${q2(now['total_cogs'])}" + (f" (margen bruto {q2(gm_prev * 100)}% → {q2(gm_now * 100)}%)." if gm_now is not None and gm_prev is not None else ".")})
+            drivers.append({"driver": "cogs", "label": "Costo de insumos", "impact": -cogs_delta, "detail": f"El costo de lo vendido pasó de {fmt_money(prev['total_cogs'])} a {fmt_money(now['total_cogs'])}" + (f" (margen bruto {q2(gm_prev * 100)}% → {q2(gm_now * 100)}%)." if gm_now is not None and gm_prev is not None else ".")})
         if opex_delta != 0:
             top = expense_changes[0] if expense_changes else None
-            drivers.append({"driver": "expenses", "label": "Gastos de operación", "impact": -opex_delta, "detail": f"Los gastos pasaron de ${q2(prev['total_operating_expenses'])} a ${q2(now['total_operating_expenses'])}" + (f"; el mayor cambio fue {top['account_name']} ({'+' if top['delta'] > 0 else ''}${q2(top['delta'])})." if top else ".")})
+            drivers.append({"driver": "expenses", "label": "Gastos de operación", "impact": -opex_delta, "detail": f"Los gastos pasaron de {fmt_money(prev['total_operating_expenses'])} a {fmt_money(now['total_operating_expenses'])}" + (f"; el mayor cambio fue {top['account_name']} ({'+' if top['delta'] > 0 else ''}{fmt_money(top['delta'])})." if top else ".")})
         drivers.sort(key=lambda d: abs(d["impact"]), reverse=True)
         return {
             "period": {"key": period, "start": start, "end": end, "label": label},
@@ -444,7 +445,7 @@ class AnalyticsService:
             out.append({"id": "data_low_margin", "lesson": "margin", "title": "Cada venta te está dejando poco", "body": gm["explanation"] + " Revisa el precio o el costo de tus productos más vendidos.", "action": "Calcular mi margen por producto", "evidence": {"gross_margin_pct": gm["value"]}})
         dio = health["inventory"]["days_inventory"]
         if dio["available"] and dio["status"] != "good":
-            out.append({"id": "data_overstock", "lesson": "inventory", "title": "Tu efectivo también se queda atrapado en el almacén", "body": dio["explanation"] + f" Hoy tienes ${q2(health['inventory']['value'])} en inventario.", "action": "Ver qué se está moviendo lento", "evidence": {"days_inventory": dio["value"], "inventory_value": health["inventory"]["value"]}})
+            out.append({"id": "data_overstock", "lesson": "inventory", "title": "Tu efectivo también se queda atrapado en el almacén", "body": dio["explanation"] + f" Hoy tienes {fmt_money(health['inventory']['value'])} en inventario.", "action": "Ver qué se está moviendo lento", "evidence": {"days_inventory": dio["value"], "inventory_value": health["inventory"]["value"]}})
         if health["inventory"]["low_stock"]:
             out.append({"id": "data_stockout", "lesson": "inventory", "title": "Cuándo volver a pedir", "body": "Estos insumos ya tocaron su punto de reorden: " + ", ".join(health["inventory"]["low_stock"][:4]) + ". Pedir a tiempo evita perder ventas.", "action": "Calcular mi punto de reorden", "evidence": {"low_stock": health["inventory"]["low_stock"]}})
         ratios = {r["key"]: r for r in health["ratios"]}

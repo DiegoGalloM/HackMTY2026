@@ -76,7 +76,7 @@ Fuente: `frontend/package.json`. Se corren desde `frontend/`.
 | `npm run build` | `tsc -b && vite build` | Typecheck + build de produccion a `dist/`. Tambien genera el service worker de la PWA. |
 | `npm run preview` | `vite preview` | Sirve el `dist/` ya construido, para revisar el build real. |
 | `npm run typecheck` | `tsc -b --noEmit` | Solo tipos, sin generar archivos. |
-| `npm run e2e` | `playwright test` | Los 44 specs x 2 proyectos (desktop + movil). Levanta el dev server solo. |
+| `npm run e2e` | `playwright test` | Los 45 specs x 2 proyectos (desktop + movil). Levanta el dev server solo. |
 | `npm run e2e:ui` | `playwright test --ui` | Modo interactivo: se ve el navegador y se puede repetir paso por paso. |
 | `npm run e2e:report` | `playwright show-report` | Abre el reporte HTML del ultimo corrida. |
 
@@ -107,7 +107,7 @@ El backend no tiene `package.json`; sus comandos son directos:
 | `SNOWFLAKE_WAREHOUSE` | vacio | `HACKMTY_WH` segun [SNOWFLAKE_SETUP.md](./SNOWFLAKE_SETUP.md). |
 | `SNOWFLAKE_DATABASE` | vacio | `HACKMTY`. |
 | `SNOWFLAKE_SCHEMA` | vacio | `PUBLIC`. |
-| `SNOWFLAKE_ROLE` | vacio | `ACCOUNTADMIN` para el hackathon. |
+| `SNOWFLAKE_ROLE` | vacio | `ACCOUNTADMIN` para el hackathon; `HACKMTY_APP` (minimo privilegio) desde la Fase 9, ver [SNOWFLAKE_SETUP.md](./SNOWFLAKE_SETUP.md#rol-de-mínimo-privilegio-fase-9). |
 | `ENVIRONMENT` | `development` | `production` en el servicio desplegado: ahi `JWT_SECRET` es obligatorio y el backend no arranca sin el. |
 | `ONBOARDING_AUDIO_RETENTION_DAYS` | `7` | Dias que se conserva el audio de "narra tu semana" (tabla `onboarding_audio`); despues se borra solo. `0` = no se guarda. |
 | `RATE_LIMIT_ENABLED` | `true` | Limite por IP en rutas publicas (`/pay`, stats, `/demo/session`, `/auth`). Ver `app/ratelimit.py`. |
@@ -132,7 +132,7 @@ de `BusinessProfile` — ver el `ALTER TABLE` en `SNOWFLAKE_SETUP.md`.
 ### Backend — `pytest`
 
 ```bash
-cd backend && pytest -q          # 280 tests (antes de los de fechas y las Fases 5 a 7, CI tardaba ~16 s; en una laptop ~2 min)
+cd backend && pytest -q          # 295 tests (antes de los de fechas y las Fases 5 a 7 y 11, CI tardaba ~16 s; en una laptop ~2 min)
 ```
 
 **Los tests nunca tocan Snowflake**, aunque `backend/.env` tenga
@@ -167,7 +167,7 @@ responde `ok` y el campo se pierde).
 ### Frontend — Playwright
 
 ```bash
-cd frontend && npm run e2e       # 44 specs x 2 proyectos (1 skip en movil: hover)
+cd frontend && npm run e2e       # 45 specs x 2 proyectos (1 skip en movil: hover)
 ```
 
 Los tests **no necesitan backend**: interceptan con `page.route()` las

@@ -16,10 +16,10 @@ recorrido a mano · ⏳ pendiente de verificar contra Snowflake real (Fase 9).
 
 ## En 30 segundos
 
-- **Todo lo que se puede probar sin Snowflake funciona:** 280 tests de backend
+- **Todo lo que se puede probar sin Snowflake funciona:** 295 tests de backend
   en verde (eran 119; se agregaron 14 de fechas, 18 de la Fase 5, 13 de la Fase 6
-  y 116 de la Fase 7), `ruff`
-  limpio, build del frontend OK, e2e de 44 specs × 2 proyectos (un `skip`
+  116 de la Fase 7 y 15 de la Fase 11), `ruff`
+  limpio, build del frontend OK, e2e de 45 specs × 2 proyectos (un `skip`
   intencional en móvil).
 - **CI dependía del día en que corriera.** Había seis tests que pasaban o
   fallaban según la fecha real, y uno de ellos ya había puesto CI en rojo el
@@ -46,7 +46,7 @@ se crearon desde cero para esta auditoría.
 | Lint backend | `cd backend && ruff check .` | ✅ `All checks passed!` |
 | Tests backend | `cd backend && pytest -q` (con `USE_SNOWFLAKE=false`) | ✅ **119 passed** en ~51 s al auditar; **133 passed** tras las correcciones (warnings: `JWT_SECRET` efímero y un deprecation de starlette) |
 | Build frontend | `cd frontend && npm run build` | ✅ OK (aviso de tamaño de chunk, no bloqueante) |
-| E2E | `cd frontend && npm run e2e` | ✅ **57 passed, 1 skipped** (29 specs × 2 proyectos) al auditar; **63 passed, 1 skipped** (32 specs) tras la Fase 4; **40 specs** tras integrar las Fases 1 y 8 sobre la Fase 5; **43** tras la Fase 6; **44** tras la Fase 7. Ver nota de intermitencia abajo |
+| E2E | `cd frontend && npm run e2e` | ✅ **57 passed, 1 skipped** (29 specs × 2 proyectos) al auditar; **63 passed, 1 skipped** (32 specs) tras la Fase 4; **40 specs** tras integrar las Fases 1 y 8 sobre la Fase 5; **43** tras la Fase 6; **44** tras la Fase 7; **45** tras la Fase 11. Ver nota de intermitencia abajo |
 | Stack en vivo | `python dev.py` (API :8000, web :5173) | ✅ arranca; `/health` → `{"storage":"memory","nessie_mode":"mock","payment_provider":"demo",...}`; siembra la demo al arrancar |
 | Recorrido real sin stubs | script de Playwright contra el stack vivo (no está en el repo) | ✅ 8/8 pasos, detallados en la siguiente sección |
 
@@ -87,8 +87,8 @@ Hallazgos de la auditoría, **resueltos en la Fase 4 (2026-09-15)**:
 Flujo trazado: `OnboardingFlow.jsx` → `onComplete({category, answers, name,
 lastName})` → `App.setProfile` (estado + `sessionStorage`) → `BusinessProvider`
 y `MainApp` → `<Cuenta profile>` → `CashInsightCard`. El login arma el mismo
-perfil con `localProfileFrom`. `frontend/src/onboarding/Onboarding.jsx` es una
-copia vieja de la encuesta que no importa nadie.
+perfil con `localProfileFrom`. La copia vieja de la encuesta que nadie
+importaba, `frontend/src/onboarding/Onboarding.jsx`, se borró en la Fase 11.
 
 Verificado en vivo (sqlite/mock) el 2026-09-15:
 
@@ -249,7 +249,7 @@ Prueba de mutación: contra el asistente anterior fallan 45 tests.
 - Mutaciones verificadas: sin los middlewares, con las rutas heredadas
   encendidas y con una ruta sin token, falla el test correspondiente.
 
-**Hallazgos anotados, sin corregir:**
+**Hallazgos anotados** (los cuatro se atendieron en la Fase 11, abajo):
 
 - Algunas respuestas escriben montos sin separador de miles (`$7989.04`) porque
   vienen de las explicaciones de `analytics.py`. La guardia ya lo tolera.
@@ -257,6 +257,56 @@ Prueba de mutación: contra el asistente anterior fallan 45 tests.
   está en español.
 - La encuesta manda coordenadas del GPS a Nominatim sin avisarlo.
 - `ACCOUNTADMIN` como rol de Snowflake (Fase 9).
+
+### Hallazgos de la Fase 7 resueltos e ideas de producto 🧪
+
+Fase 11, 2026-09-15, en modo sqlite/mock.
+
+**Formato de dinero.**
+
+- Todas las frases del backend usan ahora `common.fmt_money`: `$7,989.04` y
+  `-$14.25`. Antes, las explicaciones de razones, efectivo y factores de
+  utilidad decían `$7989.04`.
+- Cada pregunta dorada revisa que ni la respuesta ni la evidencia traigan un
+  monto de cuatro cifras o más sin separador.
+
+**Asistente en inglés.**
+
+- Los 15 conceptos de la base de conocimiento tienen título y texto en inglés
+  (`knowledge.EN`), y la búsqueda indexa los dos idiomas.
+- Una pregunta en inglés recibe en inglés la definición, las etiquetas de
+  razones y factores de utilidad, los títulos de las fuentes y el resumen del
+  perfil.
+- Siguen en español los nombres que capturó el dueño: insumos, productos y su
+  descripción de la semana.
+- Además se corrigieron tres problemas de enrutamiento:
+  - "When will I run out of flour?" se detectaba como español.
+  - "What are my financial ratios?" / "What is my working capital?" daban la
+    definición en vez del dato.
+  - "How much flour do I have left?" no se entendía.
+- La suite dorada pasa de 45 a 50 casos; cada caso en inglés falla si aparece
+  una frase o etiqueta de plantilla en español.
+- Prueba de mutación: contra el código anterior fallan 15 tests.
+
+**Privacidad y limpieza.**
+
+- El paso de ciudad avisa que "Usar mi ubicación" manda las coordenadas a
+  OpenStreetMap (Nominatim) y que no se guardan. El e2e comprueba que no hay
+  consulta hasta que se pulsa el botón.
+- Se borró `Onboarding.jsx`. `onboarding/Logo.jsx` se queda: va con la decisión
+  pendiente sobre el JPEG del logotipo.
+
+**Rol de Snowflake.**
+
+- `backend/scripts/snowflake/rol_minimo_privilegio.sql` (rol `HACKMTY_APP`) está
+  escrito y documentado en `docs/SNOWFLAKE_SETUP.md`. Lo vigila
+  `tests/test_snowflake_role_script.py`.
+- **No se ha aplicado:** se aplica en la Fase 9 y `render.yaml` sigue con
+  `ACCOUNTADMIN` hasta entonces.
+
+**README.** Tiene la sección "Si esto fuera un producto real", con las ideas
+evaluadas y no construidas (§11 del roadmap), y cada una apunta al código donde
+entraría.
 
 ---
 

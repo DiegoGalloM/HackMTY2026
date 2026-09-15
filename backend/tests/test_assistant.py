@@ -134,3 +134,20 @@ def test_knowledge_search_finds_concepts_in_both_languages():
     assert knowledge.search("what is liquidity")[0]["id"] == "liquidez"
     assert knowledge.search("por qué es peligroso el exceso de inventario")[0]["id"] == "inventario"
     assert knowledge.search("explain gross margin")[0]["id"] == "margen_bruto"
+
+
+def test_every_knowledge_document_has_an_english_version():
+    """Una pregunta en inglés se contesta en inglés: ningún concepto queda solo en español."""
+    for doc in knowledge.DOCUMENTS:
+        assert doc["title_en"].strip() and doc["text_en"].strip(), doc["id"]
+        assert doc["text_en"] != doc["text"], doc["id"]
+    assert knowledge.search("what is a reorder point")[0]["id"] == "punto_reorden"
+    assert knowledge.search("depreciation")[0]["id"] == "depreciacion"
+
+
+def test_english_concept_answers_are_in_english(ctx):
+    answer = ctx.assistant.ask("What is gross margin?")
+    assert answer["language"] == "en"
+    assert answer["answer"].startswith("Gross margin is")
+    assert "margen" not in answer["answer"].lower()
+    assert answer["sources"][0]["title"] == "Gross margin"

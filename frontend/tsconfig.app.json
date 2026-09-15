@@ -25,6 +25,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src"],
-  "exclude": ["src/onboarding/Onboarding.jsx"]
+  "include": ["src"]
 }

@@ -83,8 +83,8 @@ también sirven en *Iniciar sesión*. Detalle en [`docs/DEV.md`](docs/DEV.md).
 ## Tests y CI
 
 ```bash
-cd backend && ruff check . && pytest -q     # 280 tests, siempre en memoria/sqlite
-cd frontend && npm run build && npm run e2e # 44 specs de Playwright × 2 proyectos
+cd backend && ruff check . && pytest -q     # 295 tests, siempre en memoria/sqlite
+cd frontend && npm run build && npm run e2e # 45 specs de Playwright × 2 proyectos
 ```
 
 GitHub Actions (`.github/workflows/ci.yml`) corre en cada push a `main` y en
@@ -94,7 +94,7 @@ pruebas usa sqlite y los e2e simulan las respuestas del API.
 
 Dos suites vale la pena mirar:
 
-- **Preguntas doradas del asistente:** 45 preguntas con su respuesta y
+- **Preguntas doradas del asistente:** 50 preguntas con su respuesta y
   evidencia esperadas, en `backend/tests/golden/`. Cada una pasa además por un
   LLM tramposo que la guardia anti-alucinación debe detener.
 - **Checklist OWASP API Security Top 10:** qué se cubre y con qué test, en
@@ -122,6 +122,49 @@ API Nessie). De esa etapa se conservan dos decisiones:
   entrega de HackMTY 2026 (presencia pública sostenida, usuarios reales de forma
   continua, financiamiento), el nombre, el logo y la paleta se reemplazan por
   unos propios antes de ese paso.
+
+## Si esto fuera un producto real: lo que ya pensamos y decidimos no construir en 36 horas
+
+En un hackathon, cada hora que se va a una integración que el jurado no puede
+ver es una hora que no llega al problema del dueño del negocio. Por eso estas
+piezas se evaluaron y se dejaron fuera a propósito. Para cada una, el código
+ya deja listo el punto donde entraría.
+
+- **Bancos y pagos reales.** Nessie, el sandbox de Capital One, y el proveedor
+  de pagos demo recorren el flujo completo sin mover un peso. Un producto real
+  pondría Plaid o Finicity detrás de `NessieClient` (`backend/app/nessie/base.py`,
+  que ya tiene su versión mock y la real de Nessie) y Stripe o Square detrás de
+  `PaymentProvider` (`backend/app/finance/payments.py`). El webhook de ese
+  proveedor construiría el mismo `PaymentEvent` que hoy arma el demo, y
+  `get_payment_provider()` es el único lugar que cambia. No se integró porque
+  exige cuentas verificadas y dinero de terceros, justo lo que esta demo no
+  debe tocar.
+- **OCR de tickets.** Hoy los tickets son de muestra (`SAMPLE_RECEIPTS`). Todo
+  lo que viene después ya funciona: emparejar artículos con insumos, dar
+  entrada al inventario y reclasificar la compra. Todo eso pasa por
+  `PurchaseService.attach_receipt(..., source="sample")`. Un OCR sólo cambia de
+  dónde llegan los renglones y el valor de `source`. Construirlo en 36 horas
+  habría significado demostrar un modelo de visión en vez del producto.
+- **Datos híbridos a escala.** Snowflake es la fuente de verdad, corre Cortex
+  para el asistente y permite comparar negocios. Ese uso le queda bien. Pero
+  no está hecho para miles de escrituras pequeñas por segundo con latencia
+  baja. A escala, las tablas de alta frecuencia (órdenes, pagos, diario,
+  movimientos de inventario) vivirían en una base OLTP y se replicarían a
+  Snowflake para la analítica. La capa `Database` (sqlite y Snowflake detrás
+  de la misma interfaz) es la costura para esa separación. Esta tensión se
+  documenta y no se resuelve ahora: con el volumen de una demo no existe.
+- **Multi-moneda.** Cada orden guarda su moneda (la panadería vende en USD y
+  la estética en MXN), pero los libros de cada negocio suman en una sola
+  moneda y la app muestra `$` para ambas. Aquí funciona porque los dos
+  símbolos coinciden y ningún negocio mezcla monedas. Un producto real
+  necesitaría tipos de cambio con fecha, una moneda funcional por negocio y
+  reportes que no sumen pesos con dólares.
+- **Cumplimiento regulatorio.** KYC/AML, PCI-DSS y licencias de transmisión de
+  dinero son obligatorios el día que pase dinero real de terceros por la
+  plataforma. Como la decisión de producto es que eso no pase, construir ese
+  cumplimiento ahora sería trabajo sin objeto. Lo que sí se hizo es lo que una
+  demo pública necesita: contraseñas con bcrypt, rutas con dueño, rate limiting
+  y el checklist OWASP de [`docs/SECURITY_CHECKLIST.md`](docs/SECURITY_CHECKLIST.md).
 
 ## Créditos y transparencia
 
