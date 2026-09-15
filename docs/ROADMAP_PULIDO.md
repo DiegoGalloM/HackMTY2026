@@ -91,6 +91,15 @@ Esto ya no es "para cuando haya usuarios reales" — es para que un demo que de 
 - **Rate limiting en rutas públicas** (`/pay/{token}`, `/business-profile/stats/{category}`) — barato de agregar, evita que un enlace viral en LinkedIn se preste a abuso.
 - **Consentimiento explícito para el benchmarking cross-negocio**, aunque sea sólo texto informativo en el onboarding ("estas respuestas, de forma agregada y anónima, ayudan a comparar tu categoría de negocio").
 
+**Hecha (2026-09-15), en modo mock/sqlite.**
+
+- **Audio.** Ya no se guarda en la fila del perfil. Vive en la tabla `onboarding_audio` (migración portable `005`, aditiva) con `expires_at` y se borra solo a los `ONBOARDING_AUDIO_RETENTION_DAYS` días (default 7; `0` = no se guarda). La purga corre al arrancar y, como mucho, cada 10 minutos en el GET o POST del perfil. El GET nunca devuelve audio. Limpiar el audio que ya existía en `business_profiles` es destructivo, así que **no** va en `backend/sql/`, que se aplica solo al arrancar con `USE_SNOWFLAKE=true`: es un paso manual de la Fase 9, `python -m scripts.purge_legacy_profile_audio --apply`.
+- **`JWT_SECRET`.** Con `ENVIRONMENT=production` el backend no arranca sin él. `render.yaml` ya declara `ENVIRONMENT=production` y `JWT_SECRET` con `generateValue`. Paso manual de Diego: confirmar en el dashboard de Render que la variable tiene valor.
+- **Rate limiting por IP.** Cubre `/pay/{token}` (GET y POST), `/business-profile/stats/{category}`, `/demo/session`, `/auth/register` y `/auth/login`. Responde 429 con `Retry-After`, expuesto por CORS, y el frontend dice cuánto esperar. Es en memoria y por proceso; detrás de Render toma la IP real con `TRUST_PROXY_HEADERS=true`.
+- **Consentimiento.** Cada pregunta de la encuesta explica que las respuestas se usan de forma agregada y anónima, y que sólo se publican con 5 o más negocios. La grabadora avisa que el audio se borra a los 7 días.
+
+Tests: `backend/tests/test_demo_hardening.py`, más e2e en `auth.spec.ts` (429) y `onboarding.spec.ts` (avisos). ✅
+
 ---
 
 ## 6. 🟡 Visibilidad básica de errores
@@ -103,7 +112,7 @@ No hace falta una torre de observabilidad para un demo — sí conviene enterart
 
 ## 7. 🟡 Ampliar cobertura de pruebas
 
-La base ya es sólida (133 backend + 32 e2e) — esto no es para "producción", es para poder decir con toda confianza en LinkedIn o en una entrevista técnica que el sistema está probado a fondo, y para que cualquiera que revise el repo no encuentre un hueco.
+La base ya es sólida (151 backend + 34 e2e) — esto no es para "producción", es para poder decir con toda confianza en LinkedIn o en una entrevista técnica que el sistema está probado a fondo, y para que cualquiera que revise el repo no encuentre un hueco.
 
 - Suite de "preguntas doradas" para el asistente (30-50 preguntas con la respuesta/evidencia esperada) corrida en CI, para detectar regresiones de la guardia anti-alucinación.
 - Una pasada explícita de checklist de seguridad tipo OWASP para APIs (inyección, límites de tamaño de payload, exposición de stack traces en errores 500).
@@ -131,6 +140,7 @@ Todo lo anterior se construyó y se probó sin tocar tu cuenta de Snowflake. Est
 
 **Tarea para Claude Code:**
 - Con `USE_SNOWFLAKE=true` y tus credenciales reales en `backend/.env`, correr `python -m scripts.migrate` y confirmar que las migraciones (incluida cualquier migración nueva que haya salido de la Fase 5, como mover el audio del onboarding) se aplican sin error.
+  - De la Fase 5 salieron dos pasos. Primero, la migración `005_onboarding_audio.sql` (aditiva; también se aplica sola al arrancar). Después, el paso manual `python -m scripts.purge_legacy_profile_audio`: sin `--apply` sólo cuenta cuántos perfiles tienen audio en la fila, y con `--apply` lo vacía.
 - Verificar de punta a punta contra la cuenta real: registrar un negocio de prueba, completar el onboarding, hacer una venta por QR y una compra con tarjeta, y confirmar en Snowsight que todo se guardó correctamente (perfiles, usuarios, diario, inventario).
 - Revisar la configuración de `AUTO_SUSPEND` y el tamaño del warehouse (`HACKMTY_WH`) en Snowsight, y ajustar el tiempo de auto-suspensión si vas a dejar el demo con un link fijo compartido en LinkedIn (para que la primera visita de alguien no espere varios segundos a que el warehouse "despierte").
 - Cerrar el pendiente que quedó anotado en la Fase 3 (`docs/PROJECT_STATUS.md`) sobre si esto ya corrió contra una cuenta real, reemplazándolo por el resultado verificado de esta fase.

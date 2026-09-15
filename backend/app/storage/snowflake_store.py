@@ -14,9 +14,14 @@ from app.storage.base import ProfileStore, UserStore
 # El orden tiene que coincidir con _row_to_profile().
 PROFILE_COLUMNS = """
     category, category_detail, operating_days, city, employees, answers,
-    week_description_mode, week_description_text,
-    week_description_audio_base64, week_description_audio_mime
+    week_description_mode, week_description_text
 """
+
+# Campos de BusinessProfile que a propósito NO viven en business_profiles: el
+# audio de la encuesta va a onboarding_audio, con caducidad (app/storage/
+# audio_store.py). Las columnas siguen en la tabla sólo por compatibilidad con
+# filas viejas; el MERGE las vacía y nunca se leen.
+AUDIO_FIELDS_OUTSIDE_ROW = ("week_description_audio_base64", "week_description_audio_mime")
 
 # Igual que PROFILE_COLUMNS: el orden tiene que coincidir con _row_to_user().
 USER_COLUMNS = "user_id, username, business_name, full_name, birthdate, password_hash"
@@ -73,16 +78,14 @@ class SnowflakeProfileStore(ProfileStore):
                     city = %(city)s, employees = %(employees)s, answers = PARSE_JSON(%(answers)s),
                     week_description_mode = %(week_description_mode)s,
                     week_description_text = %(week_description_text)s,
-                    week_description_audio_base64 = %(week_description_audio_base64)s,
-                    week_description_audio_mime = %(week_description_audio_mime)s
+                    week_description_audio_base64 = NULL,
+                    week_description_audio_mime = NULL
                 WHEN NOT MATCHED THEN INSERT (
                     owner_id, category, category_detail, operating_days, city, employees, answers,
-                    week_description_mode, week_description_text,
-                    week_description_audio_base64, week_description_audio_mime)
+                    week_description_mode, week_description_text)
                 VALUES (%(owner_id)s, %(category)s, %(category_detail)s, PARSE_JSON(%(operating_days)s),
                         %(city)s, %(employees)s, PARSE_JSON(%(answers)s),
-                        %(week_description_mode)s, %(week_description_text)s,
-                        %(week_description_audio_base64)s, %(week_description_audio_mime)s)
+                        %(week_description_mode)s, %(week_description_text)s)
                 """,
                 {
                     "owner_id": owner_id, "category": profile.category,
@@ -92,8 +95,6 @@ class SnowflakeProfileStore(ProfileStore):
                     "answers": json.dumps(profile.answers),
                     "week_description_mode": profile.week_description_mode,
                     "week_description_text": profile.week_description_text,
-                    "week_description_audio_base64": profile.week_description_audio_base64,
-                    "week_description_audio_mime": profile.week_description_audio_mime,
                 },
             )
 
@@ -102,7 +103,7 @@ class SnowflakeProfileStore(ProfileStore):
 
     def _row_to_profile(self, row) -> BusinessProfile:
         (category, category_detail, operating_days, city, employees, answers,
-         week_mode, week_text, week_audio_b64, week_audio_mime) = row
+         week_mode, week_text) = row
         return BusinessProfile(
             category=category,
             category_detail=category_detail,
@@ -111,8 +112,6 @@ class SnowflakeProfileStore(ProfileStore):
             answers=json.loads(answers) if isinstance(answers, str) else answers,
             week_description_mode=week_mode,
             week_description_text=week_text,
-            week_description_audio_base64=week_audio_b64,
-            week_description_audio_mime=week_audio_mime,
         )
 
     def _get_profile_sync(self, owner_id: str) -> BusinessProfile | None:

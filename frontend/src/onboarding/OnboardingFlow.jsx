@@ -278,6 +278,10 @@ export default function Onboarding({ ownerId = "demo-owner", token = "", onCompl
         <button className="survey-choice" aria-pressed={answers[question.id] === true} onClick={() => answerQuestion(true)}><Check size={22} aria-hidden /> Sí</button>
       </div>
       <p className="survey-auto-note">Al elegir, pasas a la siguiente pregunta.</p>
+      {/* Consentimiento para el benchmarking entre negocios: las respuestas
+          alimentan /business-profile/stats/{categoría}, que sólo publica
+          porcentajes con 5 o más negocios (MIN_COHORT en el backend). */}
+      <p className="survey-auto-note survey-consent-note">Tus respuestas, de forma agregada y anónima, ayudan a comparar tu categoría de negocio. Sólo se publican porcentajes cuando hay 5 o más negocios, nunca respuestas de uno solo.</p>
       {controls()}
     </>;
   } else if (step === "week_description") {
@@ -299,6 +303,8 @@ export default function Onboarding({ ownerId = "demo-owner", token = "", onCompl
         <p className="ob-recorder-status" role="status">{recording ? `Grabando… ${formatTime(recordSeconds)}` : audioUrl ? "Grabación lista" : "Toca para grabar"}</p>
         {recordError && <p className="ob-error" role="alert">{recordError}</p>}
         {audioUrl && !recording && <div className="ob-recorder-playback"><audio controls src={audioUrl} /><button className="ob-link-btn" onClick={resetRecording}>Grabar de nuevo</button></div>}
+        {/* Espejo de ONBOARDING_AUDIO_RETENTION_DAYS (default 7) en el backend. */}
+        <p className="survey-auto-note">Tu grabación se guarda aparte de tu perfil y se borra automáticamente a los 7 días. No se comparte ni se usa en las comparaciones.</p>
       </div>}
       {controls(() => goToStep("schedule"), "Continuar", weekMode === "text" ? !weekText.trim() : !audioBlob || recording)}
     </>;

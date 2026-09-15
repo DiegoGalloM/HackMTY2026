@@ -109,6 +109,28 @@ test.describe("Registro e inicio de sesión", () => {
     await expect(page.getByLabel("Usuario", { exact: true })).toHaveValue(AUTH_USER.username);
   });
 
+  test("demasiados intentos (429) dicen cuánto esperar, no un error genérico", async ({ page }) => {
+    // El backend limita /auth/login por IP (backend/app/ratelimit.py). El API
+    // vive en otro origen: sin Access-Control-Expose-Headers el navegador
+    // esconde Retry-After (el backend lo expone en su CORSMiddleware).
+    await page.route(LOGIN_ROUTE, (route) =>
+      route.fulfill({
+        status: 429,
+        contentType: "application/json",
+        headers: { "Retry-After": "42", "Access-Control-Expose-Headers": "Retry-After" },
+        body: '{"detail":"rate_limited"}',
+      }),
+    );
+
+    const onboarding = new OnboardingPage(page);
+    await openWelcome(page);
+    await page.getByRole("button", { name: "Iniciar sesión", exact: true }).click();
+    await onboarding.login();
+
+    await expect(page.getByRole("alert")).toContainText("Demasiados intentos seguidos. Intenta de nuevo en 42 s.");
+    await expect(page.getByLabel("Usuario", { exact: true })).toHaveValue(AUTH_USER.username);
+  });
+
   test("si el backend no responde, el registro explica que no hay conexión", async ({ page }) => {
     await page.route(AUTH_ROUTE, (route) => route.abort("connectionrefused"));
 

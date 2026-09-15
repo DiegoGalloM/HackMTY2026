@@ -85,4 +85,19 @@ test.describe("Encuesta de onboarding", () => {
     expect(payloads[1]).toEqual(payloads[0]);
     expect(payloads[1].city).toBe("Guadalajara");
   });
+
+  test("avisa para qué se usan las respuestas y cuánto dura la grabación", async ({ page }) => {
+    const onboarding = new OnboardingPage(page);
+    await onboarding.goto();
+    await onboarding.pickCategory("Comida y bebidas");
+
+    // Consentimiento del benchmarking entre negocios, en cada pregunta.
+    await expect(page.getByText(/de forma agregada y anónima, ayudan a comparar tu categoría de negocio/)).toBeVisible();
+    await expect(page.getByText(/5 o más negocios, nunca respuestas de uno solo/)).toBeVisible();
+
+    await onboarding.answerAllQuestions("Sí");
+    await page.getByRole("button", { name: "Narrar" }).click();
+    // Espejo de ONBOARDING_AUDIO_RETENTION_DAYS: el audio caduca.
+    await expect(page.getByText(/se borra automáticamente a los 7 días/)).toBeVisible();
+  });
 });

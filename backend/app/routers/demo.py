@@ -31,6 +31,7 @@ from app.finance import demo
 from app.finance.deps import FinanceContext, get_finance_context, run
 from app.models.finance import jsonable
 from app.models.schemas import AuthResponse, BusinessProfile, StoredUser
+from app.ratelimit import rate_limit
 from app.routers.auth import _auth_response
 from app.routers.deps import require_owner
 from app.security import hash_password
@@ -102,7 +103,7 @@ async def list_demo_businesses():
     ]
 
 
-@public_router.post("/session", response_model=AuthResponse)
+@public_router.post("/session", response_model=AuthResponse, dependencies=[Depends(rate_limit("demo_session"))])
 async def demo_session(
     payload: DemoSessionRequest | None = None,
     users: UserStore = Depends(get_user_store),  # noqa: B008

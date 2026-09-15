@@ -63,10 +63,32 @@ class Settings(BaseSettings):
     # su propio origen.
     public_app_url: str = ""
 
-    # Auth. jwt_secret vacío = se genera uno efímero al arrancar (ver validador).
+    # "production" en el servicio desplegado (render.yaml). Ahí los atajos de
+    # desarrollo dejan de valer: sin JWT_SECRET el backend no arranca.
+    environment: str = "development"
+
+    # Auth. jwt_secret vacío = se genera uno efímero al arrancar (ver validador),
+    # salvo en producción, donde es obligatorio.
     jwt_secret: str = ""
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 720
+
+    # Audio de la encuesta ("narra tu semana"): es la voz de quien prueba el
+    # demo, así que no vive en la fila del perfil y se borra solo a los N días
+    # (tabla onboarding_audio). 0 = no se guarda nunca.
+    onboarding_audio_retention_days: int = 7
+
+    # Límite de peticiones por IP en las rutas públicas (pago por QR, stats,
+    # demo, registro y login). Ver app/ratelimit.py.
+    rate_limit_enabled: bool = True
+    # Detrás del proxy de Render todas las peticiones llegan desde la IP del
+    # proxy: con esto se toma la IP real del último salto de X-Forwarded-For.
+    # Sólo debe activarse cuando el backend NO es alcanzable sin ese proxy.
+    trust_proxy_headers: bool = False
+
+    @property
+    def is_production(self) -> bool:
+        return self.environment.strip().lower() == "production"
 
     @model_validator(mode="after")
     def _ensure_jwt_secret(self):
@@ -87,6 +109,17 @@ class Settings(BaseSettings):
             raise ValueError(
                 f"JWT_SECRET es demasiado corto ({len(self.jwt_secret)} caracteres): "
                 f"se requieren al menos {_MIN_JWT_SECRET_LENGTH}. "
+                'Genera uno con: python -c "import secrets; print(secrets.token_urlsafe(48))"'
+            )
+
+        # En producción un secreto efímero no es un atajo sino un bug: cada
+        # deploy o reinicio (el plan free de Render reinicia seguido) cerraría
+        # la sesión de todos, y con varios workers los tokens de uno no valen en
+        # otro. Mejor no arrancar y que el deploy falle a la vista.
+        if not self.jwt_secret and self.is_production:
+            raise ValueError(
+                "JWT_SECRET es obligatorio con ENVIRONMENT=production. "
+                "Defínelo en las variables del servicio (en Render: generateValue o a mano). "
                 'Genera uno con: python -c "import secrets; print(secrets.token_urlsafe(48))"'
             )
 
