@@ -105,6 +105,7 @@ natural con los datos reales.
 - `docs/FINANCIAL_CORE.md` — arquitectura, tablas, invariantes, rendimiento.
 - `docs/SNOWFLAKE_SETUP.md` — Snowflake como base autoritativa (las migraciones
   003/004 se aplican solas al arrancar).
+- `docs/ANALISIS_PROFUNDO.md` — análisis técnico y de mercado completo: arquitectura a fondo, el sistema Snowflake/IA explicado en detalle, tamaño de mercado verificado contra fuentes, y una evaluación honesta de qué tan listo está el proyecto.
 
 Sin Snowflake (`USE_SNOWFLAKE=false`) todo funciona igual con sqlite en
 memoria; la demo se siembra en 1 s.
