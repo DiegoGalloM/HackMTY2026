@@ -18,7 +18,7 @@ export default defineConfig({
         // arriba de ~12 caracteres el sistema lo trunca con puntos suspensivos.
         short_name: "C1 Business",
         description:
-          "Gestión de flujo de efectivo para microempresas: construye liquidez y aprende finanzas sobre la marcha.",
+          "Demo de HackMTY 2026 con dinero simulado (no es un producto de Capital One): flujo de efectivo para microempresas.",
         lang: "es",
         start_url: "./",
         scope: "./",

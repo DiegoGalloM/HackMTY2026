@@ -44,7 +44,10 @@ app = FastAPI(
     description=(
         "Inteligencia de flujo de efectivo y capital de trabajo para micro-negocios: "
         "ventas por QR, inventario con recetas, contabilidad de partida doble, estados "
-        "financieros, razones y un asistente que responde con los datos reales del negocio."
+        "financieros, razones y un asistente que responde con los datos reales del negocio.\n\n"
+        "**Demo de HackMTY 2026:** todas las transacciones son simuladas; no se procesa "
+        "dinero real ni se conecta a cuentas bancarias reales. No es un producto de "
+        "Capital One ni está afiliado, respaldado o patrocinado por Capital One, N.A."
     ),
     version="0.2.0",
 )
