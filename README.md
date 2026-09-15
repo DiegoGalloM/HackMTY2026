@@ -79,7 +79,7 @@ también sirven en *Iniciar sesión*. Detalle en [`docs/DEV.md`](docs/DEV.md).
 
 ```bash
 cd backend && ruff check . && pytest -q     # 133 tests, siempre en memoria/sqlite
-cd frontend && npm run build && npm run e2e # 29 specs de Playwright × 2 proyectos
+cd frontend && npm run build && npm run e2e # 32 specs de Playwright × 2 proyectos
 ```
 
 GitHub Actions (`.github/workflows/ci.yml`) corre en cada push a `main` y en

@@ -42,7 +42,11 @@ mismo origen.
 1. **Contexto del negocio.** Landing → *Empezar* → *Explorar la demo*.
    Entra "Panadería La Espiga" (María, Austin, comida). La pantalla Cuenta ya
    muestra efectivo real, ventas y ganancia del mes, y el último movimiento.
-   Todo eso sale del diario contable, no de mocks.
+   Todo eso sale del diario contable, no de mocks. La tarjeta de Cash Insight
+   dice **"Según tus datos"**: cuando los datos del negocio disparan una lección
+   (inventario atorado, insumos por agotarse, caja justa), gana sobre la de la
+   encuesta. *ONE Education* muestra las de datos y, después, la de la encuesta
+   de un tema distinto.
 
 2. **Una compra entra sola.** *Compras* → *Simular compra con la tarjeta*.
    Entra "Restaurant Depot $152.60", clasificada como inventario y ya
@@ -80,8 +84,9 @@ mismo origen.
    pasado?") en vez de "¿y el mes pasado?".
 
 7. **El mismo motor, otro negocio.** *Más → Cerrar sesión* → *Explorar la
-   demo* → *Estética Carolina*. Cuenta saluda a Carolina con la lección de
-   belleza; *Análisis* abre con el tinte por agotarse; pregunta "¿Cuándo se me
+   demo* → *Estética Carolina*. Cuenta saluda a Carolina con el insight de sus
+   datos; la lección de belleza de su encuesta está en *ONE Education*
+   ("¿Cuánto te deja realmente una cita?"); *Análisis* abre con el tinte por agotarse; pregunta "¿Cuándo se me
    acaba el tinte?" y después "¿Cuándo se me acaba el esmalte?".
 
 ## Si algo falla

@@ -78,6 +78,8 @@ La encuesta de onboarding guarda `category` y `answers`, pero (según `PROJECT_S
 - Añadir un test de Playwright que registre un negocio, complete la encuesta con una respuesta que dispare un trigger conocido, y verifique que la tarjeta correcta aparece sin recargar.
 - Criterio de terminado: ese e2e pasa en CI, corriendo contra sqlite/mock.
 
+**Hecha (2026-09-15).** La prioridad quedó escrita en `insights.js` (`pickBestTrigger`: insight de datos de `/analytics/insights` primero, encuesta después; `pickSurveyTrigger` salta los temas que ya cubren los datos). Cuenta la aplica y `/educacion` ya no repite temas. El e2e `frontend/e2e/cash-insight.spec.ts` registra, completa la encuesta y verifica la tarjeta sin recargar, con y sin insights de datos, contra el API simulado como el resto de la suite. También se verificó en vivo contra el backend en sqlite. ✅
+
 ---
 
 ## 5. 🟡 Cerrar costuras de datos y seguridad visibles en un demo público
@@ -101,7 +103,7 @@ No hace falta una torre de observabilidad para un demo — sí conviene enterart
 
 ## 7. 🟡 Ampliar cobertura de pruebas
 
-La base ya es sólida (133 backend + 29 e2e) — esto no es para "producción", es para poder decir con toda confianza en LinkedIn o en una entrevista técnica que el sistema está probado a fondo, y para que cualquiera que revise el repo no encuentre un hueco.
+La base ya es sólida (133 backend + 32 e2e) — esto no es para "producción", es para poder decir con toda confianza en LinkedIn o en una entrevista técnica que el sistema está probado a fondo, y para que cualquiera que revise el repo no encuentre un hueco.
 
 - Suite de "preguntas doradas" para el asistente (30-50 preguntas con la respuesta/evidencia esperada) corrida en CI, para detectar regresiones de la guardia anti-alucinación.
 - Una pasada explícita de checklist de seguridad tipo OWASP para APIs (inyección, límites de tamaño de payload, exposición de stack traces en errores 500).

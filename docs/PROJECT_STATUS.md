@@ -18,8 +18,9 @@ recorrido a mano · ⏳ pendiente de verificar contra Snowflake real (Fase 9).
 
 - **Todo lo que se puede probar sin Snowflake funciona:** 133 tests de backend
   en verde (eran 119; se agregaron 14), `ruff` limpio, build del frontend OK,
-  57 de 58 corridas e2e pasan (la que falta es un `skip` intencional).
-- **CI dependía del día en que corriera.** Había cinco tests que pasaban o
+  63 de 64 corridas e2e pasan (32 specs × 2 proyectos; la que falta es un `skip`
+  intencional).
+- **CI dependía del día en que corriera.** Había seis tests que pasaban o
   fallaban según la fecha real, y uno de ellos ya había puesto CI en rojo el
   2026-09-15. Ya se corrigieron; ver [Reconciliación y CI](#reconciliación-y-ci-2026-09-14).
 - **El "hueco" que la versión anterior marcaba como a medias ya está cerrado
@@ -44,7 +45,7 @@ se crearon desde cero para esta auditoría.
 | Lint backend | `cd backend && ruff check .` | ✅ `All checks passed!` |
 | Tests backend | `cd backend && pytest -q` (con `USE_SNOWFLAKE=false`) | ✅ **119 passed** en ~51 s al auditar; **133 passed** tras las correcciones (warnings: `JWT_SECRET` efímero y un deprecation de starlette) |
 | Build frontend | `cd frontend && npm run build` | ✅ OK (aviso de tamaño de chunk, no bloqueante) |
-| E2E | `cd frontend && npm run e2e` | ✅ **57 passed, 1 skipped** (29 specs × 2 proyectos). Ver nota de intermitencia abajo |
+| E2E | `cd frontend && npm run e2e` | ✅ **57 passed, 1 skipped** (29 specs × 2 proyectos) al auditar; **63 passed, 1 skipped** (32 specs) tras la Fase 4. Ver nota de intermitencia abajo |
 | Stack en vivo | `python dev.py` (API :8000, web :5173) | ✅ arranca; `/health` → `{"storage":"memory","nessie_mode":"mock","payment_provider":"demo",...}`; siembra la demo al arrancar |
 | Recorrido real sin stubs | script de Playwright contra el stack vivo (no está en el repo) | ✅ 8/8 pasos, detallados en la siguiente sección |
 
@@ -69,23 +70,32 @@ Recorrido real (registro nuevo, sin `page.route`):
 | Registro → encuesta *Comida*, todo "Sí" | Gana el trigger de respuestas "No necesitas más inventario; necesitas mejor inventario" sobre el de categoría (el orden de `TRIGGERS` en `insights.js`). La microlección abre. |
 | Cerrar y volver a entrar con esa cuenta | Entra directo a Cuenta con la misma tarjeta (perfil leído del backend). |
 
-Matices para la Fase 4:
+Hallazgos de la auditoría, **resueltos en la Fase 4 (2026-09-15)**:
 
-- **La premisa de la Fase 4 ya no aplica tal cual.** `Cuenta.tsx` recibe
-  `profile` (`App.tsx` → `MainApp` → `<Cuenta profile={profile} />`) y renderiza
-  `<CashInsightCard profile={profile} />` debajo de la tarjeta de crédito.
-- **La "prioridad dato real > sólo encuesta" no está en `insights.js`.** Ese
-  archivo sólo tiene triggers de encuesta y de categoría. Los insights basados
-  en datos vienen del backend (`GET /business/{id}/analytics/insights`) y sólo
-  se muestran en `/educacion` (`DataInsightCard`, antes de la tarjeta de
-  encuesta). En Cuenta nunca aparece un insight de datos.
-- **Tarjeta duplicada en `/educacion`:** con la panadería, el insight de datos y
-  el de la encuesta tienen el mismo título ("Cuándo volver a pedir") y salen uno
-  debajo del otro.
-- **Cobertura e2e:** `login-returning.spec.ts` y `demo-picker.spec.ts` ya
-  verifican la tarjeta en Cuenta, pero después de un *login* o de la demo, con
-  el backend simulado. No hay un e2e de "termino la encuesta → la tarjeta
-  correcta aparece sin recargar".
+- ~~La prioridad "dato real > sólo encuesta" no estaba en `insights.js` y en
+  Cuenta nunca aparecía un insight de datos.~~ Ahora `pickBestTrigger(profile,
+  dataInsights)` elige primero el insight de `/analytics/insights` y, sin datos,
+  el de la encuesta. Cuenta lo aplica: una cuenta nueva ve la lección de su
+  encuesta y las demos ven "Según tus datos".
+- ~~Tarjeta duplicada en `/educacion`.~~ `pickSurveyTrigger` salta los triggers
+  de encuesta cuyo tema ya cubre un insight de datos que está en pantalla.
+- ~~No había un e2e de "termino la encuesta → la tarjeta correcta aparece sin
+  recargar".~~ Lo cubre `e2e/cash-insight.spec.ts`: sin datos, con datos y
+  Educación sin repetir tema.
+
+Flujo trazado: `OnboardingFlow.jsx` → `onComplete({category, answers, name,
+lastName})` → `App.setProfile` (estado + `sessionStorage`) → `BusinessProvider`
+y `MainApp` → `<Cuenta profile>` → `CashInsightCard`. El login arma el mismo
+perfil con `localProfileFrom`. `frontend/src/onboarding/Onboarding.jsx` es una
+copia vieja de la encuesta que no importa nadie.
+
+Verificado en vivo (sqlite/mock) el 2026-09-15:
+
+| Cuenta | Cuenta muestra | ONE Education muestra |
+|---|---|---|
+| Nueva, comida y "Sí" a todo | encuesta: "No necesitas más inventario…" (sin recargar) | la misma lección (no hay datos) |
+| `demo_panaderia` | datos: "Tu efectivo también se queda atrapado en el almacén" | datos (almacén, reorden) + encuesta: "¿El descuento al mayoreo realmente te ahorra dinero?" |
+| `demo_estetica` | datos: "Tu efectivo también se queda atrapado en el almacén" | datos (almacén, reorden) + encuesta: "¿Cuánto te deja realmente una cita?" |
 
 ### Cuentas demo y "Explorar la demo" ✅
 
@@ -232,11 +242,9 @@ Sin tocar a propósito:
 
 ## Qué cambia para las siguientes fases
 
-- **Fase 4:** conectar la encuesta con Cuenta ya está hecho. Lo que queda y
-  sigue siendo visible: (a) un e2e que termine la encuesta y verifique la
-  tarjeta sin recargar; (b) decidir si Cuenta debe preferir un insight de datos
-  del backend sobre el de la encuesta, porque hoy esa prioridad sólo existe en
-  `/educacion`; (c) quitar el título duplicado en `/educacion`.
+- **Fase 4:** hecha (ver arriba). Consecuencia para el guion: las dos demos
+  muestran hoy la **misma** tarjeta de datos en Cuenta (inventario atorado), y la
+  lección propia de cada giro quedó en ONE Education. `DEMO.md` ya lo refleja.
 - **Fases 1 y 8:** la página pública de pago no dice que sea demo ni simulado.
   Su ruta en el frontend es `/#/pay/:token`.
 - **Fase 5:** `/business-profile/stats/{category}` es público a propósito y ya

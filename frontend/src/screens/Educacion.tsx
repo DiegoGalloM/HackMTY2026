@@ -1,9 +1,8 @@
-import { useState } from "react";
-import type { Insight } from "../api/types";
 import { useBusinessQuery } from "../business/useAsync";
 import Screen from "../components/Screen";
 import CashInsightCard from "../financial-literacy/CashInsightCard.jsx";
 import MicroLessonDialog from "../financial-literacy/MicroLessonDialog.jsx";
+import { pickSurveyTrigger } from "../financial-literacy/insights.js";
 
 interface EducacionProps {
   profile: {
@@ -15,10 +14,15 @@ interface EducacionProps {
 /**
  * Educación contextual. Primero lo que disparan los DATOS reales del negocio
  * (liquidez baja, margen bajo, inventario atorado…), y después lo que
- * disparó la encuesta del onboarding. Misma tarjeta, misma micro-lección.
+ * disparó la encuesta del onboarding, sin repetir un tema que los datos ya
+ * cubren. Misma tarjeta, misma micro-lección.
  */
 export default function Educacion({ profile }: EducacionProps) {
   const insights = useBusinessQuery((a) => a.insights());
+  const shown = (insights.data ?? []).slice(0, 2);
+  // Igual que en Cuenta: la lección de la encuesta depende de qué temas cubren
+  // los datos, así que se espera la primera respuesta para no cambiarla después.
+  const insightPending = insights.state.status === "loading" && !insights.data;
 
   return (
     <Screen>
@@ -30,33 +34,11 @@ export default function Educacion({ profile }: EducacionProps) {
         embedded
       />
 
-      {(insights.data ?? []).slice(0, 2).map((insight) => (
-        <DataInsightCard key={insight.id} insight={insight} profile={profile} />
+      {shown.map((insight) => (
+        <CashInsightCard key={insight.id} profile={profile} trigger={{ ...insight, source: "data" }} />
       ))}
 
-      <CashInsightCard profile={profile} />
+      {!insightPending && <CashInsightCard profile={profile} trigger={pickSurveyTrigger(profile, shown)} />}
     </Screen>
-  );
-}
-
-function DataInsightCard({ insight, profile }: { insight: Insight; profile: EducacionProps["profile"] }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <section className="cash-insight-card" aria-labelledby={`data-insight-${insight.id}`}>
-      <div className="cash-insight-card__icon" aria-hidden="true">
-        📊
-      </div>
-      <div className="cash-insight-card__content">
-        <p className="text-[11px] font-semibold tracking-wide text-accent uppercase">Según tus datos</p>
-        <h2 id={`data-insight-${insight.id}`} className="cash-insight-card__title">
-          {insight.title}
-        </h2>
-        <p className="cash-insight-card__body">{insight.body}</p>
-        <button type="button" className="cash-insight-card__action" onClick={() => setOpen(true)}>
-          {insight.action}
-        </button>
-      </div>
-      <MicroLessonDialog isOpen={open} onClose={() => setOpen(false)} initialLesson={insight.lesson} profile={profile} />
-    </section>
   );
 }

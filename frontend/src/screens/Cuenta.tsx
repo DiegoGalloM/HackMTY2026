@@ -31,6 +31,12 @@ interface Movement {
 export default function Cuenta({ profile }: CuentaProps) {
   const { api, businessName } = useBusiness();
   const overview = useBusinessQuery((a) => a.overview());
+  // Insights de los datos reales: si hay alguno, gana sobre la lección de la
+  // encuesta. Mientras llega la primera respuesta no se pinta la tarjeta, para
+  // que la de la encuesta no aparezca y medio segundo después cambie. Si la
+  // consulta falla, decide la encuesta.
+  const insights = useBusinessQuery((a) => a.insights());
+  const insightPending = insights.state.status === "loading" && !insights.data;
 
   // El saludo se queda con el PRIMER nombre aunque la persona haya escrito
   // dos: "Hola Carlos!" y no "Hola Carlos Alberto!".
@@ -77,8 +83,8 @@ export default function Cuenta({ profile }: CuentaProps) {
       <BalanceHeader firstName={firstName} balance={h ? h.cash.cash_available : null} label={api ? `Efectivo de ${businessName}` : undefined} />
       <CreditCardTile flippable holder={holder} />
 
-      {/* La lección disparada por la encuesta (categoría + respuestas). */}
-      <CashInsightCard profile={profile} />
+      {/* Una sola lección: la de los datos del negocio si hay, si no la de la encuesta. */}
+      {!insightPending && <CashInsightCard profile={profile} dataInsights={insights.data ?? []} />}
 
       <div className="mt-6">
         <QuickActionsGrid />

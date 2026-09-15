@@ -76,7 +76,7 @@ Fuente: `frontend/package.json`. Se corren desde `frontend/`.
 | `npm run build` | `tsc -b && vite build` | Typecheck + build de produccion a `dist/`. Tambien genera el service worker de la PWA. |
 | `npm run preview` | `vite preview` | Sirve el `dist/` ya construido, para revisar el build real. |
 | `npm run typecheck` | `tsc -b --noEmit` | Solo tipos, sin generar archivos. |
-| `npm run e2e` | `playwright test` | Los 29 specs x 2 proyectos (desktop + movil). Levanta el dev server solo. |
+| `npm run e2e` | `playwright test` | Los 32 specs x 2 proyectos (desktop + movil). Levanta el dev server solo. |
 | `npm run e2e:ui` | `playwright test --ui` | Modo interactivo: se ve el navegador y se puede repetir paso por paso. |
 | `npm run e2e:report` | `playwright show-report` | Abre el reporte HTML del ultimo corrida. |
 
@@ -146,7 +146,7 @@ responde `ok` y el campo se pierde).
 ### Frontend — Playwright
 
 ```bash
-cd frontend && npm run e2e       # 29 specs x 2 proyectos (1 skip en movil: hover)
+cd frontend && npm run e2e       # 32 specs x 2 proyectos (1 skip en movil: hover)
 ```
 
 Los tests **no necesitan backend**: interceptan con `page.route()` las
@@ -154,8 +154,9 @@ llamadas a `/auth/*`, `/business-profile/*`, `/demo/session` y las de
 `/business/{id}/...` que leen las pantallas. Son deterministas, no escriben en
 Snowflake, y corren en CI sin credenciales (CI sólo corre el proyecto
 `chromium`). Cubren registro y login, la encuesta (happy path, 500, sin
-conexión, reintento), login de una cuenta existente, el selector de demos, la
-tarjeta que se voltea y la bienvenida. La contracara: ningún e2e ejercita el
+conexión, reintento), el Cash Insight después de la encuesta (sin recargar, y
+con prioridad de los insights de datos), login de una cuenta existente, el
+selector de demos, la tarjeta que se voltea y la bienvenida. La contracara: ningún e2e ejercita el
 contrato real frontend ↔ backend.
 
 Cuando agreguen tests, usen selectores por **rol y texto visible**

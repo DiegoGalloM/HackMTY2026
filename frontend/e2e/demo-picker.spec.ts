@@ -3,8 +3,9 @@ import { AppPage } from "./pages/AppPage";
 import { SALON_SESSION, SALON_USER, salonHealth, salonOverview } from "./pages/fixtures";
 
 /**
- * "Explorar la demo" ofrece dos negocios; el salón entra con su nombre, su
- * lección de belleza y un resumen de apertura con sus datos. El backend se
+ * "Explorar la demo" ofrece dos negocios; el salón entra con su nombre, el
+ * Cash Insight de sus datos (que gana sobre la lección de belleza de la
+ * encuesta) y un resumen de apertura con sus datos. El backend se
  * simula con las respuestas mínimas que leen Cuenta y Análisis.
  */
 test("Explorar la demo → estética → Cuenta con Cash Insight y Análisis con resumen de apertura", async ({ page }) => {
@@ -15,6 +16,14 @@ test("Explorar la demo → estética → Cuenta con Cash Insight y Análisis con
   });
   await page.route(new RegExp(`/business/${SALON_USER.user_id}/overview$`), (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(salonOverview()) }),
+  );
+  // El salón sembrado tiene inventario atorado: /analytics/insights lo reporta.
+  await page.route(new RegExp(`/business/${SALON_USER.user_id}/analytics/insights$`), (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify([{ id: "data_overstock", lesson: "inventory", title: "Tu efectivo también se queda atrapado en el almacén", body: "Tu inventario tarda en venderse.", action: "Ver qué se está moviendo lento", evidence: {} }]),
+    }),
   );
   await page.route(new RegExp(`/business/${SALON_USER.user_id}/analytics/health`), (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(salonHealth("week")) }),
@@ -35,7 +44,10 @@ test("Explorar la demo → estética → Cuenta con Cash Insight y Análisis con
   await app.expectOnAccount();
   await expect(page.getByText("Efectivo de Estética Carolina")).toBeVisible();
   await expect(app.greeting("Carolina")).toBeVisible();
-  await expect(app.cashInsight).toContainText("¿Cuánto te deja realmente una cita?");
+  // Con datos, Cuenta muestra el insight de datos y no la lección de la encuesta.
+  await expect(app.cashInsight).toContainText("Según tus datos");
+  await expect(app.cashInsight).toContainText("Tu efectivo también se queda atrapado en el almacén");
+  await expect(page.getByText("¿Cuánto te deja realmente una cita?")).toHaveCount(0);
 
   // El botón central abre el chat con el resumen de apertura del salón.
   await app.openTab("Análisis");
