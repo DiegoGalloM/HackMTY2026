@@ -27,6 +27,7 @@ export type AuthFailureKind =
   | "weak_password"
   | "validation"
   | "unauthorized"
+  | "rate_limited"
   | "network"
   | "unexpected";
 
@@ -108,6 +109,12 @@ async function describeFailure(res: Response): Promise<AuthFailure> {
   }
   if (res.status === 403) {
     return fail("unauthorized", "Tu sesión expiró. Vuelve a iniciar sesión para continuar.");
+  }
+  if (res.status === 429) {
+    // Límite de intentos por IP en /auth (backend/app/ratelimit.py).
+    const wait = Number(res.headers.get("Retry-After"));
+    const when = Number.isFinite(wait) && wait > 0 ? `Intenta de nuevo en ${wait} s.` : "Espera un momento e intenta de nuevo.";
+    return fail("rate_limited", `Demasiados intentos seguidos. ${when}`);
   }
   return fail("unexpected", `No pudimos completar la operación (el servidor respondió ${res.status}). Inténtalo de nuevo.`);
 }

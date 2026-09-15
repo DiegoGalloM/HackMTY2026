@@ -19,6 +19,16 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.10"
+      # En producción JWT_SECRET es obligatorio: sin él el backend no arranca
+      # (mejor un deploy fallido a la vista que sesiones que se cierran solas).
+      - key: ENVIRONMENT
+        value: production
+      # Todo el tráfico entra por el proxy de Render: el rate limiting toma la
+      # IP real del último salto de X-Forwarded-For. Sin esto, todas las
+      # peticiones compartirían la IP del proxy y un solo abusador bloquearía
+      # a todos.
+      - key: TRUST_PROXY_HEADERS
+        value: "true"
       - key: USE_MOCK_NESSIE
         value: "true"
       - key: USE_SNOWFLAKE

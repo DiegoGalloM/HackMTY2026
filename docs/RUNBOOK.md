@@ -60,6 +60,7 @@ frontend, reiniciar no sirve de nada.
 | Que consultas llegaron a Snowflake | Snowsight → Activity → Query History |
 | Cuantos creditos van | Snowsight → Admin → Cost Management |
 | Datos guardados | `SELECT * FROM business_profiles ORDER BY created_at DESC LIMIT 10;` |
+| Audio de la encuesta vigente | `SELECT owner_id, created_at, expires_at FROM onboarding_audio ORDER BY expires_at;` (sin la columna del audio: es la voz de alguien) |
 
 `nessie_mode` en `/health` refleja Nessie; `storage` dice si el backend quedo
 configurado con Snowflake (`USE_SNOWFLAKE=true` y cuenta definida) o en
@@ -85,6 +86,9 @@ Todos estos ya nos pasaron. Ordenados por que tan seguido muerden.
 | `250001: Could not connect to Snowflake backend` | Account identifier mal escrito | Sin `.snowflakecomputing.com` al final |
 | `Warehouse 'HACKMTY_WH' does not exist or not authorized` | Falto el Paso 3 del setup, o el rol no alcanza | Corran el Paso 3 completo y en orden |
 | `pytest` tarda mas de un minuto en la laptop | `test_demo.py` siembra las demos varias veces (incluida una semana de fechas simuladas) | Es esperado; en CI tarda menos. Los tests nunca tocan Snowflake, aunque `backend/.env` tenga `USE_SNOWFLAKE=true` |
+| La API responde `429 rate_limited` y la app dice "Demasiados intentos seguidos" | Se paso el limite por IP de una ruta publica (`app/ratelimit.py`: `/pay` 60/min, stats 30/min, `/demo/session`, registro y login 20/min cada uno) | Esperar lo que dice `Retry-After`. En una demo con toda la sala en la misma red se comparte la IP: si estorba, subir el limite en `LIMITS` o, en ultimo caso, `RATE_LIMIT_ENABLED=false` |
+| Todo el trafico desplegado recibe 429 a la vez | `TRUST_PROXY_HEADERS` apagado detras de Render: todas las peticiones cuentan como la IP del proxy | `TRUST_PROXY_HEADERS=true` en el servicio (ya viene en `render.yaml`) |
+| El deploy no arranca: `JWT_SECRET es obligatorio con ENVIRONMENT=production` | Falta `JWT_SECRET` en el servicio | Definirlo en Render (el blueprint lo genera con `generateValue`; revisar que siga ahi) |
 | CI falla un dia y al siguiente pasa sin cambios | Un test que depende de la fecha real (la historia demo termina "hoy") | Reproducirlo fijando la fecha (`monkeypatch.setattr(demo, "today", ...)`, como en `test_demo.py`) y volver el test independiente del dia |
 
 ### Si Nessie se cae
@@ -128,6 +132,22 @@ esta construido y tarda segundos.
 Render guarda historial de deploys pero **no** de variables. Si cambian
 `CORS_ORIGINS` o `VITE_API_URL` y algo se rompe, no hay "deshacer": anoten el
 valor anterior antes de tocarlo.
+
+### Audio de la encuesta que quedo en `business_profiles`
+
+Desde la Fase 5 el audio vive en `onboarding_audio` con caducidad y la fila del
+perfil ya no lo guarda ni lo devuelve, pero los perfiles anteriores lo siguen
+teniendo. Limpiarlo es un paso manual (no una migracion automatica, porque
+borra datos):
+
+```bash
+cd backend
+python -m scripts.purge_legacy_profile_audio          # solo cuenta (simulacion)
+python -m scripts.purge_legacy_profile_audio --apply  # vacia las columnas del audio
+```
+
+No borra perfiles ni columnas. Con Time Travel (un dia, ver abajo) todavia se
+puede consultar lo anterior si hiciera falta.
 
 ### Esquema de Snowflake
 

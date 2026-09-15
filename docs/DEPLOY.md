@@ -42,6 +42,13 @@ Render las pide al crear el blueprint. En `hackmty2026-api` llenen:
 ⚠️ Estas credenciales van **solo** en el dashboard de Render, nunca en
 `render.yaml` ni en ningun archivo del repo.
 
+`JWT_SECRET` no se captura: el blueprint lo genera (`generateValue`). Como
+`render.yaml` declara `ENVIRONMENT=production`, **el backend se niega a arrancar
+sin él**; si alguna vez lo borran del dashboard, el deploy falla a la vista en
+vez de cerrar la sesión de todos en cada reinicio. `TRUST_PROXY_HEADERS=true`
+también viene declarado, para que el límite de peticiones por IP vea la IP real
+y no la del proxy de Render.
+
 El warehouse, database, schema y rol ya vienen con valor en `render.yaml`
 (`HACKMTY_WH` / `HACKMTY` / `PUBLIC` / `ACCOUNTADMIN`). Cambienlos ahi si su
 cuenta usa otros.

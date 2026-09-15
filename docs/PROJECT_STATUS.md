@@ -16,10 +16,10 @@ recorrido a mano · ⏳ pendiente de verificar contra Snowflake real (Fase 9).
 
 ## En 30 segundos
 
-- **Todo lo que se puede probar sin Snowflake funciona:** 133 tests de backend
-  en verde (eran 119; se agregaron 14), `ruff` limpio, build del frontend OK,
-  63 de 64 corridas e2e pasan (32 specs × 2 proyectos; la que falta es un `skip`
-  intencional).
+- **Todo lo que se puede probar sin Snowflake funciona:** 151 tests de backend
+  en verde (eran 119; se agregaron 14 de fechas y 18 de la Fase 5), `ruff`
+  limpio, build del frontend OK, e2e de 34 specs × 2 proyectos (un `skip`
+  intencional en móvil).
 - **CI dependía del día en que corriera.** Había seis tests que pasaban o
   fallaban según la fecha real, y uno de ellos ya había puesto CI en rojo el
   2026-09-15. Ya se corrigieron; ver [Reconciliación y CI](#reconciliación-y-ci-2026-09-14).
@@ -138,6 +138,29 @@ Con `USE_SNOWFLAKE=false` los perfiles viven en `MemoryProfileStore` (se pierden
 al reiniciar) y el núcleo en sqlite en memoria. `test_snowflake_store_covers_all_profile_fields`
 valida el SQL de `SnowflakeProfileStore` contra el esquema **sin conectarse**.
 
+### Datos y seguridad del demo público 🧪 + ✅ en vivo
+
+Fase 5, 2026-09-15. Todo en modo sqlite/mock.
+
+| Punto | Estado |
+|---|---|
+| Audio de la encuesta | Fuera de la fila del perfil: tabla `onboarding_audio` (migración portable `005`) con `expires_at`; se borra a los `ONBOARDING_AUDIO_RETENTION_DAYS` días (7; `0` = no se guarda). Purga al arrancar y, como mucho, cada 10 min en el GET/POST del perfil. El GET nunca devuelve audio, ni el que quedó en filas viejas. `SnowflakeProfileStore` ya no lo lee y lo vacía al re-guardar un perfil |
+| `JWT_SECRET` | Obligatorio con `ENVIRONMENT=production`: el backend no arranca sin él. `render.yaml` declara `ENVIRONMENT=production` y lo genera con `generateValue` |
+| Rate limiting | Por IP, en memoria y por proceso: `/pay/{token}` 60/min, stats 30/min, `/demo/session`, `/auth/register` y `/auth/login` 20/min cada uno. 429 con `Retry-After` expuesto por CORS; el frontend dice cuánto esperar. Detrás de Render usa el último salto de `X-Forwarded-For` (`TRUST_PROXY_HEADERS=true`) |
+| Consentimiento | Cada pregunta de la encuesta aclara que las respuestas se usan agregadas y anónimas (sólo con 5 o más negocios); la grabadora avisa que el audio se borra a los 7 días |
+
+Verificado en vivo contra el stack real:
+
+- `/pay` responde 429 en la petición 61.
+- Tras 20 logins fallidos, la UI muestra "Intenta de nuevo en 45 s" con CORS real.
+- Un registro nuevo ve los dos avisos.
+- Un perfil guardado con audio no lo devuelve en el GET.
+
+**Límites conocidos:**
+
+- El contador es por proceso: con varios workers el límite efectivo se multiplica.
+- En una red compartida (una sala con la misma IP pública) todos cuentan juntos.
+
 ---
 
 ## ⏳ Pendiente de verificar contra Snowflake real (Fase 9)
@@ -164,6 +187,15 @@ Fase 9, reemplazando esta sección por el resultado verificado.
    tarda 2–4 s en Snowflake") y los ~10 s de la primera siembra de `DEMO.md`.
 5. La redacción con Snowflake Cortex (`LLM_PROVIDER=auto` sin key de Anthropic).
 6. `AUTO_SUSPEND` y tamaño de `HACKMTY_WH`.
+7. **De la Fase 5:** que `005_onboarding_audio.sql` se aplique limpio. Es
+   aditiva y, ojo, **también se aplica sola** en cuanto un backend con
+   `USE_SNOWFLAKE=true` arranque con este código (Render despliega al hacer push
+   a `main`).
+8. **De la Fase 5:** correr `python -m scripts.purge_legacy_profile_audio`
+   (primero sin `--apply`) para vaciar el audio que quedó en `business_profiles`.
+9. **De la Fase 5:** en el servicio de Render, que `JWT_SECRET` tenga valor
+   (con `ENVIRONMENT=production` sin él no arranca) y que el rate limiting vea
+   IPs distintas detrás del proxy.
 
 ---
 
@@ -247,10 +279,8 @@ Sin tocar a propósito:
   lección propia de cada giro quedó en ONE Education. `DEMO.md` ya lo refleja.
 - **Fases 1 y 8:** la página pública de pago no dice que sea demo ni simulado.
   Su ruta en el frontend es `/#/pay/:token`.
-- **Fase 5:** `/business-profile/stats/{category}` es público a propósito y ya
-  oculta el desglose con cohortes de menos de 5 negocios. El audio sigue en
-  `week_description_audio_base64` (`max_length` en el esquema, columna
-  `VARCHAR` en Snowflake).
+- **Fase 5:** hecha (ver "Datos y seguridad del demo público"). Lo que queda
+  para la Fase 9 está en los puntos 7–9 de la lista de pendientes.
 - **Fase 9:** la lista de pendientes de arriba.
 
 ---

@@ -3,7 +3,7 @@
 // español que usa auth/api.ts.
 import { API_BASE } from "./config";
 
-export type ApiErrorKind = "network" | "unauthorized" | "forbidden" | "not_found" | "validation" | "conflict" | "server" | "unexpected";
+export type ApiErrorKind = "network" | "unauthorized" | "forbidden" | "not_found" | "validation" | "conflict" | "rate_limited" | "server" | "unexpected";
 
 export interface ApiError {
   ok: false;
@@ -44,6 +44,12 @@ function describe(res: Response, body: any): ApiError {
       return { ok: false, kind: "not_found", status: 404, message: text || "No encontramos lo que buscabas." };
     case 409:
       return { ok: false, kind: "conflict", status: 409, message: text || "Esta operación ya se hizo o choca con otra." };
+    case 429: {
+      // Límite de peticiones de las rutas públicas (backend/app/ratelimit.py).
+      const wait = Number(res.headers.get("Retry-After"));
+      const when = Number.isFinite(wait) && wait > 0 ? ` Intenta de nuevo en ${wait} s.` : " Espera un momento e intenta de nuevo.";
+      return { ok: false, kind: "rate_limited", status: 429, message: `Demasiados intentos seguidos.${when}` };
+    }
     case 400:
     case 422:
       return { ok: false, kind: "validation", status: res.status, message: text || "Revisa los datos e inténtalo de nuevo." };

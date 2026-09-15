@@ -21,16 +21,15 @@ from tests.conftest import auth_headers, seed_user
 
 client = TestClient(app)
 
-# Los endpoints /business-profile/{owner_id} ahora exigen Bearer token del dueño,
-# así que cada test registra su usuario con user_id = el owner_id que usa. Los ids
-# siguen siendo fijos (no uuid) porque con USE_SNOWFLAKE=true estos tests escriben
-# en la tabla real: un id nuevo por corrida haría crecer n_negocios cada vez.
+# Los endpoints /business-profile/{owner_id} exigen Bearer token del dueño, así
+# que cada test registra su usuario con user_id = el owner_id que usa. Los ids
+# son fijos (no uuid) para poder armar el token y contar la cohorte de stats.
+# Los tests nunca tocan Snowflake: conftest.py fuerza los stores en memoria.
 OWNER_ROUNDTRIP = "test_roundtrip"
 OWNER_STATS = "test_stats_1"
 
-# Ojo: la categoría es de prueba a propósito. Con USE_SNOWFLAKE=true estos tests
-# escriben en la tabla real, así que no deben ensuciar las stats de una categoría
-# de verdad ("comida", "retail", ...) que se use en la demo.
+# La categoría es de prueba a propósito: el store en memoria es compartido por
+# toda la suite y no debe mezclarse con una categoría de verdad ("comida", ...).
 FULL_PROFILE = {
     "category": "test_categoria",
     "category_detail": "taquería",
@@ -45,9 +44,13 @@ FULL_PROFILE = {
 }
 
 
+AUDIO_FIELDS = set(snowflake_store.AUDIO_FIELDS_OUTSIDE_ROW)
+
+
 def test_save_and_get_profile_preserves_every_field():
-    """El GET tiene que regresar todo lo que mandó el POST — incluida la
-    grabación de voz de la semana, que es la que más fácil se pierde."""
+    """El GET tiene que regresar todo lo que mandó el POST, salvo el audio: la
+    voz de quien prueba el demo no vuelve a salir por la API (vive aparte, con
+    caducidad; ver tests/test_demo_hardening.py)."""
     seed_user(OWNER_ROUNDTRIP, "owner_roundtrip")
     headers = auth_headers(OWNER_ROUNDTRIP)
 
@@ -57,7 +60,10 @@ def test_save_and_get_profile_preserves_every_field():
 
     saved = client.get(f"/business-profile/{OWNER_ROUNDTRIP}", headers=headers).json()
     for field, expected in FULL_PROFILE.items():
-        assert saved[field] == expected, f"campo '{field}' no sobrevivió el round-trip"
+        if field in AUDIO_FIELDS:
+            assert saved[field] is None, f"el GET no debe regresar '{field}'"
+        else:
+            assert saved[field] == expected, f"campo '{field}' no sobrevivió el round-trip"
 
 
 def test_category_stats_includes_always_false_questions():
@@ -104,12 +110,17 @@ def test_category_stats_hides_small_cohorts():
 
 def test_snowflake_store_covers_all_profile_fields():
     """Guard de esquema: el SELECT y el MERGE de SnowflakeProfileStore tienen que
-    mencionar cada campo de BusinessProfile. No abre conexión a Snowflake."""
-    expected = set(BusinessProfile.model_fields)
+    mencionar cada campo de BusinessProfile, salvo los del audio, que a propósito
+    viven fuera de la fila. No abre conexión a Snowflake."""
+    expected = set(BusinessProfile.model_fields) - AUDIO_FIELDS
 
     selected = {c.strip() for c in snowflake_store.PROFILE_COLUMNS.split(",")}
-    assert selected == expected, f"columnas faltantes en el SELECT: {expected - selected}"
+    assert selected == expected, f"columnas faltantes o de más en el SELECT: {expected ^ selected}"
 
     merge_sql = inspect.getsource(snowflake_store.SnowflakeProfileStore._save_profile_sync)
     written = set(re.findall(r"%\((\w+)\)s", merge_sql))
     assert expected <= written, f"campos que el MERGE nunca escribe: {expected - written}"
+    # El audio no se escribe en la fila, y al actualizar se vacía lo que hubiera.
+    assert not AUDIO_FIELDS & written, "el MERGE no debe escribir el audio en business_profiles"
+    for field in AUDIO_FIELDS:
+        assert f"{field} = NULL" in merge_sql, f"el MERGE debe vaciar {field} de filas viejas"

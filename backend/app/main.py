@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -8,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import get_settings
+from app.db import get_db
 from app.routers import (
     accounts,
     auth,
@@ -17,6 +19,7 @@ from app.routers import (
     finance,
     transactions,
 )
+from app.storage.audio_store import OnboardingAudioStore
 
 settings = get_settings()
 
@@ -31,11 +34,23 @@ async def lifespan(app: FastAPI):
     del despliegue. En sqlite termina en un par de segundos, mucho antes de
     que alguien alcance a escribir sus credenciales.
     """
-    task = asyncio.create_task(demo.provision_all())
+    tasks = [asyncio.create_task(demo.provision_all()), asyncio.create_task(_purge_expired_audio())]
     try:
         yield
     finally:
-        task.cancel()
+        for task in tasks:
+            task.cancel()
+
+
+async def _purge_expired_audio() -> None:
+    """Borra el audio de la encuesta ya vencido. El demo gratis se reinicia
+    seguido y a veces nadie inicia sesión en días: sin esto, un audio vencido
+    esperaría a la siguiente encuesta o login para borrarse."""
+    try:
+        store = OnboardingAudioStore(get_db(), settings.onboarding_audio_retention_days)
+        await asyncio.to_thread(store.purge_expired)
+    except Exception:  # nunca tumbar el arranque por la limpieza
+        logging.getLogger("uvicorn.error").exception("No se pudo purgar el audio vencido de la encuesta")
 
 
 app = FastAPI(
@@ -59,6 +74,9 @@ app.add_middleware(
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
+    # El frontend desplegado vive en otro origen: sin exponerlo, el navegador
+    # esconde Retry-After y la app no puede decir cuánto esperar tras un 429.
+    expose_headers=["Retry-After"],
 )
 
 

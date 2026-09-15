@@ -17,6 +17,7 @@ from app.db import get_db
 from app.db.sqlite_db import SqliteDatabase
 from app.main import app
 from app.models.schemas import StoredUser
+from app.ratelimit import limiter
 from app.security import create_access_token, hash_password
 from app.storage import get_store, get_user_store
 from app.storage.memory_store import MemoryProfileStore, MemoryUserStore
@@ -35,6 +36,16 @@ app.dependency_overrides[get_store] = lambda: _PROFILE_STORE
 _DB = SqliteDatabase(":memory:")
 _DB.ensure_schema()
 app.dependency_overrides[get_db] = lambda: _DB
+
+
+@pytest.fixture(autouse=True)
+def _fresh_rate_limits():
+    """Todos los tests llegan desde la misma IP ("testclient"): sin reiniciar el
+    límite entre tests, la suite completa se toparía con el 429 de /auth y
+    /demo/session por pura acumulación. Cada test empieza con la cuenta en cero."""
+    limiter.reset()
+    yield
+    limiter.reset()
 
 
 @pytest.fixture

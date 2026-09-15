@@ -19,6 +19,7 @@ from app.models.schemas import (
     StoredUser,
     UserPublic,
 )
+from app.ratelimit import rate_limit
 from app.security import (
     create_access_token,
     decode_access_token,
@@ -77,7 +78,7 @@ def _auth_response(user: StoredUser) -> AuthResponse:
     return AuthResponse(access_token=token, expires_in=expires_in, user=user.to_public())
 
 
-@router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(rate_limit("auth_register"))])
 async def register(
     payload: RegisterRequest,
     users: UserStore = Depends(get_user_store),  # noqa: B008
@@ -115,7 +116,7 @@ async def register(
     return _auth_response(user)
 
 
-@router.post("/login", response_model=AuthResponse)
+@router.post("/login", response_model=AuthResponse, dependencies=[Depends(rate_limit("auth_login"))])
 async def login(
     payload: LoginRequest,
     users: UserStore = Depends(get_user_store),  # noqa: B008

@@ -20,6 +20,7 @@ from app.finance.deps import FinanceContext, run
 from app.finance.payments import get_payment_provider
 from app.finance.sales import PaymentMismatch, SalesError
 from app.models.finance import CheckoutPay, jsonable
+from app.ratelimit import rate_limit
 from app.storage import get_user_store
 from app.storage.base import UserStore
 
@@ -68,13 +69,13 @@ def _public_view(ctx: FinanceContext, order: dict) -> dict:
     )
 
 
-@router.get("/{token}")
+@router.get("/{token}", dependencies=[Depends(rate_limit("pay"))])
 async def get_checkout(token: str, db: Database = Depends(get_db), users: UserStore = Depends(get_user_store)):  # noqa: B008
     ctx, order = await _context_for_token(token, db, users)
     return _public_view(ctx, order)
 
 
-@router.post("/{token}")
+@router.post("/{token}", dependencies=[Depends(rate_limit("pay"))])
 async def pay(token: str, payload: CheckoutPay, db: Database = Depends(get_db), users: UserStore = Depends(get_user_store)):  # noqa: B008
     ctx, order = await _context_for_token(token, db, users)
     if order["status"] == "PAID":
