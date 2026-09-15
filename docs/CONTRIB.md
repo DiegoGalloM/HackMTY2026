@@ -76,7 +76,7 @@ Fuente: `frontend/package.json`. Se corren desde `frontend/`.
 | `npm run build` | `tsc -b && vite build` | Typecheck + build de produccion a `dist/`. Tambien genera el service worker de la PWA. |
 | `npm run preview` | `vite preview` | Sirve el `dist/` ya construido, para revisar el build real. |
 | `npm run typecheck` | `tsc -b --noEmit` | Solo tipos, sin generar archivos. |
-| `npm run e2e` | `playwright test` | Los 43 specs x 2 proyectos (desktop + movil). Levanta el dev server solo. |
+| `npm run e2e` | `playwright test` | Los 44 specs x 2 proyectos (desktop + movil). Levanta el dev server solo. |
 | `npm run e2e:ui` | `playwright test --ui` | Modo interactivo: se ve el navegador y se puede repetir paso por paso. |
 | `npm run e2e:report` | `playwright show-report` | Abre el reporte HTML del ultimo corrida. |
 
@@ -112,6 +112,8 @@ El backend no tiene `package.json`; sus comandos son directos:
 | `ONBOARDING_AUDIO_RETENTION_DAYS` | `7` | Dias que se conserva el audio de "narra tu semana" (tabla `onboarding_audio`); despues se borra solo. `0` = no se guarda. |
 | `RATE_LIMIT_ENABLED` | `true` | Limite por IP en rutas publicas (`/pay`, stats, `/demo/session`, `/auth`). Ver `app/ratelimit.py`. |
 | `TRUST_PROXY_HEADERS` | `false` | `true` solo detras de un proxy de confianza (Render): toma la IP real del ultimo salto de `X-Forwarded-For`. |
+| `MAX_REQUEST_BODY_BYTES` | `3000000` | Tope al cuerpo de cualquier peticion; 413 si se pasa. Alcanza para el audio de la encuesta. |
+| `ENABLE_LEGACY_NESSIE_ROUTES` | vacio | Rutas `/accounts/...` de la plantilla original. Vacio = encendidas en desarrollo y 404 en produccion; `true`/`false` lo fuerza. |
 | `SENTRY_DSN` | vacio | DSN del proyecto Python/FastAPI en Sentry (capa gratuita). Vacio = errores solo en el log, con `error_id`. Nunca manda cuerpos, headers de auth, query strings ni el token del QR. |
 | `RELEASE` | vacio | Version reportada con cada error; si esta vacio se usa `RENDER_GIT_COMMIT`. |
 
@@ -130,7 +132,7 @@ de `BusinessProfile` — ver el `ALTER TABLE` en `SNOWFLAKE_SETUP.md`.
 ### Backend — `pytest`
 
 ```bash
-cd backend && pytest -q          # 164 tests (antes de los de fechas y las Fases 5 y 6, CI tardaba ~16 s; en una laptop ~2 min)
+cd backend && pytest -q          # 280 tests (antes de los de fechas y las Fases 5 a 7, CI tardaba ~16 s; en una laptop ~2 min)
 ```
 
 **Los tests nunca tocan Snowflake**, aunque `backend/.env` tenga
@@ -144,6 +146,18 @@ La mayor parte del tiempo se va en `test_demo.py`, que siembra las dos demos
 varias veces, incluida una semana completa de fechas simuladas: la historia
 termina "hoy", así que sin ese test CI podía pasar o fallar según el día.
 
+**Preguntas doradas del asistente** (`tests/test_assistant_golden.py`): los
+casos viven en `tests/golden/asistente_preguntas_doradas.json`. Cada uno fija
+la intencion, el idioma y la evidencia esperada, y recalcula sus cifras con el
+motor. Ademas pasa por un LLM tramposo que la guardia anti-alucinacion debe
+detener. Para cubrir una pregunta nueva basta con agregarla al JSON. Si se
+agrega una herramienta al asistente sin preguntas doradas, un test falla.
+
+**Checklist OWASP** (`tests/test_owasp_api.py`, detalle en
+[SECURITY_CHECKLIST.md](./SECURITY_CHECKLIST.md)). Incluye un guard
+estructural: una ruta nueva que no este en la lista de publicas y no pida token
+rompe CI.
+
 `test_snowflake_store_covers_all_profile_fields` compara el SQL del store
 contra `BusinessProfile.model_fields` **sin conectarse a Snowflake**. Si
 agregan un campo al schema y se les olvida la columna, ese test truena — que
@@ -153,7 +167,7 @@ responde `ok` y el campo se pierde).
 ### Frontend — Playwright
 
 ```bash
-cd frontend && npm run e2e       # 43 specs x 2 proyectos (1 skip en movil: hover)
+cd frontend && npm run e2e       # 44 specs x 2 proyectos (1 skip en movil: hover)
 ```
 
 Los tests **no necesitan backend**: interceptan con `page.route()` las

@@ -86,6 +86,15 @@ class Settings(BaseSettings):
     # Sólo debe activarse cuando el backend NO es alcanzable sin ese proxy.
     trust_proxy_headers: bool = False
 
+    # Tope global al cuerpo de cualquier petición (413 si se pasa). 3 MB alcanzan
+    # para el audio de la encuesta (MAX_AUDIO_BASE64 ≈ 2 MB) más el resto del perfil.
+    max_request_body_bytes: int = 3_000_000
+
+    # Rutas /accounts/... de la plantilla original (passthrough a Nessie):
+    # públicas, sin token y sin uso en el frontend. Vacío = encendidas en
+    # desarrollo y apagadas (404) en producción; true/false lo fuerza.
+    enable_legacy_nessie_routes: bool | None = None
+
     # Tracking de errores (Sentry, capa gratuita). Vacío = apagado: los errores
     # sólo quedan en el log del proceso, con un error_id para buscarlos.
     sentry_dsn: str = ""
@@ -97,6 +106,12 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.environment.strip().lower() == "production"
+
+    @property
+    def legacy_nessie_routes_enabled(self) -> bool:
+        if self.enable_legacy_nessie_routes is not None:
+            return self.enable_legacy_nessie_routes
+        return not self.is_production
 
     @model_validator(mode="after")
     def _ensure_jwt_secret(self):

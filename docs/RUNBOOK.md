@@ -100,6 +100,8 @@ Todos estos ya nos pasaron. Ordenados por que tan seguido muerden.
 | La API responde `429 rate_limited` y la app dice "Demasiados intentos seguidos" | Se paso el limite por IP de una ruta publica (`app/ratelimit.py`: `/pay` 60/min, stats 30/min, `/demo/session`, registro y login 20/min cada uno) | Esperar lo que dice `Retry-After`. En una demo con toda la sala en la misma red se comparte la IP: si estorba, subir el limite en `LIMITS` o, en ultimo caso, `RATE_LIMIT_ENABLED=false` |
 | Todo el trafico desplegado recibe 429 a la vez | `TRUST_PROXY_HEADERS` apagado detras de Render: todas las peticiones cuentan como la IP del proxy | `TRUST_PROXY_HEADERS=true` en el servicio (ya viene en `render.yaml`) |
 | El deploy no arranca: `JWT_SECRET es obligatorio con ENVIRONMENT=production` | Falta `JWT_SECRET` en el servicio | Definirlo en Render (el blueprint lo genera con `generateValue`; revisar que siga ahi) |
+| La API responde `413 payload_too_large` | El cuerpo paso de `MAX_REQUEST_BODY_BYTES` (3 MB). En la encuesta, casi siempre una grabacion muy larga | Grabar mas corto o escribir. Solo si hace falta, subir el tope |
+| `/accounts/...` responde 404 en el servicio desplegado | Son rutas heredadas de la plantilla, apagadas en produccion a proposito (ver `SECURITY_CHECKLIST.md`, API9) | Nada; el frontend no las usa. Para forzarlas: `ENABLE_LEGACY_NESSIE_ROUTES=true` |
 | CI falla un dia y al siguiente pasa sin cambios | Un test que depende de la fecha real (la historia demo termina "hoy") | Reproducirlo fijando la fecha (`monkeypatch.setattr(demo, "today", ...)`, como en `test_demo.py`) y volver el test independiente del dia |
 
 ### Si Nessie se cae

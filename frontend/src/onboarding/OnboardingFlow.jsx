@@ -182,6 +182,11 @@ export default function Onboarding({ ownerId = "demo-owner", token = "", onCompl
       if (res.status === 401 || res.status === 403) {
         throw new Error("Tu sesión expiró. Vuelve al inicio e inicia sesión otra vez para guardar tu perfil — tus respuestas siguen aquí.");
       }
+      // 413: el backend tiene un tope al tamaño de lo que recibe y lo único que
+      // puede pasarlo aquí es una grabación muy larga.
+      if (res.status === 413) {
+        throw new Error("Tu grabación es demasiado larga para guardarla. Graba una más corta o escribe cómo es tu semana.");
+      }
       if (!res.ok) throw new Error(`El servidor respondió ${res.status}`);
       setSubmitted(true);
     } catch (err) {

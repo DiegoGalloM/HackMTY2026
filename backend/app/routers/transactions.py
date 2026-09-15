@@ -1,10 +1,16 @@
 from fastapi import APIRouter, Depends
 
+from app.http_hardening import require_legacy_nessie_routes
 from app.models.schemas import NewPurchase, Transaction
 from app.nessie import get_nessie_client
 from app.nessie.base import NessieClient
 
-router = APIRouter(prefix="/accounts/{account_id}/transactions", tags=["transactions"])
+# Igual que routers/accounts.py: legado, apagado en producción.
+router = APIRouter(
+    prefix="/accounts/{account_id}/transactions",
+    tags=["transactions"],
+    dependencies=[Depends(require_legacy_nessie_routes)],
+)
 
 
 @router.get("", response_model=list[Transaction])

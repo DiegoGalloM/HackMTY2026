@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import get_settings
 from app.db import get_db
+from app.http_hardening import BodySizeLimitMiddleware, SecurityHeadersMiddleware
 from app.observability import init_error_tracking, unhandled_exception_handler
 from app.routers import (
     accounts,
@@ -72,6 +73,11 @@ app = FastAPI(
     version="0.2.0",
 )
 
+# Orden de los middlewares: el último que se agrega es el más externo. CORS va
+# por fuera de todo para que también un 413 lleve sus headers y el navegador
+# pueda leerlo.
+app.add_middleware(BodySizeLimitMiddleware, max_bytes=settings.max_request_body_bytes)
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,

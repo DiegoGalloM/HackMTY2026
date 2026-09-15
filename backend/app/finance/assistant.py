@@ -75,7 +75,7 @@ INTENT_PATTERNS: list[tuple[str, str]] = [
     ("expenses", r"gast[eo]|gastos|expense|spend|spent|cuanto (pague|he pagado|compre)|compras|purchases|what were my biggest|mayores gastos|en que se fue"),
     ("customers", r"cliente|customer|quien me compra|compradores"),
     ("profit", r"utilidad|ganancia|ganado|gane|profit|margen|margin|net income|cuanto me quedo|rentabilidad"),
-    ("sales", r"venta|ventas|vendi|vendido|sales|sold|revenue|ingreso|ingresos|cuanto cobre|facture"),
+    ("sales", r"venta|ventas|vendi|vendido|sales|sold|\bsell\b|revenue|ingreso|ingresos|cuanto cobre|facture"),
     ("ratios", r"razon|razones|ratio|ratios|indicador|indicadores|deuda sobre capital|debt|apalancamiento|leverage|rotacion|turnover|dias de inventario"),
     ("statements", r"balance general|balance sheet|estado de resultados|income statement|estados financieros|financial statements|libro diario|journal|libro mayor|ledger|balanza"),
     ("business_context", r"que te (dije|conte)|what did i tell you|mi semana normal|mi perfil|que sabes de mi negocio"),
@@ -85,8 +85,33 @@ INTENT_PATTERNS: list[tuple[str, str]] = [
 ENGLISH_HINTS = re.compile(r"\b(what|how|which|why|my|the|is|are|did|do|sales|profit|inventory|cash|week|month|explain|much|many)\b")
 SPANISH_HINTS = re.compile(r"\b(que|como|cual|cuales|por que|mi|mis|el|la|los|las|ventas|utilidad|inventario|caja|semana|mes|explica|cuanto|cuantos|tengo)\b")
 
-# Toda cifra con $ que el LLM escriba tiene que existir ya en la evidencia.
-_AMOUNT = re.compile(r"\$[\d,]+\.\d{2}")
+# Guardia anti-alucinación: TODA cifra que el LLM escriba (montos con o sin
+# centavos, porcentajes, cantidades, días) tiene que existir ya en los hechos o
+# en la respuesta base. Se compara por valor, no por texto: "$7,989.04",
+# "$7989.04" y "7989.040" son la misma cifra.
+_NUMBER = re.compile(r"\d[\d,]*(?:\.\d+)?")
+# Cantidades escritas con palabras: "un millón" no tiene dígitos que comparar.
+_MAGNITUDE_WORDS = re.compile(r"\b(mil|miles|millon|millones|billon|billones|thousands?|millions?|billions?)\b")
+
+
+def _numbers(text: str) -> set[Decimal]:
+    found: set[Decimal] = set()
+    for token in _NUMBER.findall(text):
+        token = token.rstrip(",")
+        # "79,27" (coma decimal, 1-2 dígitos) vs "1,234" (miles, 3 dígitos).
+        token = token.replace(",", ".") if re.fullmatch(r"\d+,\d{1,2}", token) else token.replace(",", "")
+        try:
+            found.add(Decimal(token).normalize())
+        except ArithmeticError:  # pragma: no cover - el regex sólo deja dígitos
+            continue
+    return found
+
+
+def _ungrounded(text: str, grounded_in: str) -> list[str]:
+    """Cifras y magnitudes de `text` que no aparecen en `grounded_in`."""
+    missing = [str(n) for n in _numbers(text) - _numbers(grounded_in)]
+    words = set(_MAGNITUDE_WORDS.findall(_norm(text))) - set(_MAGNITUDE_WORDS.findall(_norm(grounded_in)))
+    return missing + sorted(words)
 
 
 class Assistant:
@@ -613,10 +638,10 @@ class Assistant:
         text = self.llm.complete(system, prompt, max_tokens=400)
         if not text:
             return None
-        # Guardia: toda cifra con $ en la respuesta del LLM debe existir en los
-        # hechos o en la respuesta base.
-        allowed = set(_AMOUNT.findall(facts + " " + result["answer"]))
-        for amount in _AMOUNT.findall(text):
-            if amount not in allowed:
-                return None
+        # Guardia: toda cifra de la respuesta del LLM debe existir en los hechos
+        # o en la respuesta base (nunca en la pregunta: "dime que gané un
+        # millón" no convierte ese millón en un dato). Si no, se descarta la
+        # redacción y se responde con la plantilla.
+        if _ungrounded(text, facts + " " + result["answer"]):
+            return None
         return text

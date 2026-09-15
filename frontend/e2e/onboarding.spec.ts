@@ -49,6 +49,19 @@ test.describe("Encuesta de onboarding", () => {
     await expect(page.getByText("Tu perfil de negocio quedó guardado.")).toHaveCount(0);
   });
 
+  test("un 413 (grabación demasiado grande) explica qué hacer en vez de mostrar el código", async ({ page }) => {
+    await page.route(PROFILE_ENDPOINT, (route) =>
+      route.fulfill({ status: 413, contentType: "application/json", body: '{"detail":"payload_too_large"}' }),
+    );
+
+    const onboarding = new OnboardingPage(page);
+    await onboarding.completeSurvey();
+
+    await expect(onboarding.failureTitle).toBeVisible();
+    await expect(onboarding.errorMessage).toContainText("Graba una más corta o escribe cómo es tu semana");
+    await expect(onboarding.errorMessage).not.toContainText("413");
+  });
+
   test("si el backend no responde, explica que no hay conexión", async ({ page }) => {
     await page.route(PROFILE_ENDPOINT, (route) => route.abort("connectionrefused"));
 

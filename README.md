@@ -83,14 +83,22 @@ también sirven en *Iniciar sesión*. Detalle en [`docs/DEV.md`](docs/DEV.md).
 ## Tests y CI
 
 ```bash
-cd backend && ruff check . && pytest -q     # 164 tests, siempre en memoria/sqlite
-cd frontend && npm run build && npm run e2e # 43 specs de Playwright × 2 proyectos
+cd backend && ruff check . && pytest -q     # 280 tests, siempre en memoria/sqlite
+cd frontend && npm run build && npm run e2e # 44 specs de Playwright × 2 proyectos
 ```
 
 GitHub Actions (`.github/workflows/ci.yml`) corre en cada push a `main` y en
 cada PR hacia `main` o `develop` tres jobs: `backend-test` (`ruff` + `pytest`), `frontend-build` y `e2e`
 (Playwright en chromium). Ningún test necesita credenciales: el backend de
 pruebas usa sqlite y los e2e simulan las respuestas del API.
+
+Dos suites vale la pena mirar:
+
+- **Preguntas doradas del asistente:** 45 preguntas con su respuesta y
+  evidencia esperadas, en `backend/tests/golden/`. Cada una pasa además por un
+  LLM tramposo que la guardia anti-alucinación debe detener.
+- **Checklist OWASP API Security Top 10:** qué se cubre y con qué test, en
+  [`docs/SECURITY_CHECKLIST.md`](docs/SECURITY_CHECKLIST.md).
 
 ## De dónde salió este repo
 

@@ -1,10 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 
+from app.http_hardening import require_legacy_nessie_routes
 from app.models.schemas import Account
 from app.nessie import get_nessie_client
 from app.nessie.base import NessieClient
 
-router = APIRouter(prefix="/accounts", tags=["accounts"])
+# Passthrough a Nessie de la plantilla original: público y sin uso en el
+# frontend, así que en producción responde 404 (ver app/http_hardening.py).
+router = APIRouter(prefix="/accounts", tags=["accounts"], dependencies=[Depends(require_legacy_nessie_routes)])
 
 
 @router.get("/customer/{customer_id}", response_model=list[Account])

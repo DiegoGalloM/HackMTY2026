@@ -16,9 +16,10 @@ recorrido a mano · ⏳ pendiente de verificar contra Snowflake real (Fase 9).
 
 ## En 30 segundos
 
-- **Todo lo que se puede probar sin Snowflake funciona:** 164 tests de backend
-  en verde (eran 119; se agregaron 14 de fechas, 18 de la Fase 5 y 13 de la Fase 6), `ruff`
-  limpio, build del frontend OK, e2e de 43 specs × 2 proyectos (un `skip`
+- **Todo lo que se puede probar sin Snowflake funciona:** 280 tests de backend
+  en verde (eran 119; se agregaron 14 de fechas, 18 de la Fase 5, 13 de la Fase 6
+  y 116 de la Fase 7), `ruff`
+  limpio, build del frontend OK, e2e de 44 specs × 2 proyectos (un `skip`
   intencional en móvil).
 - **CI dependía del día en que corriera.** Había seis tests que pasaban o
   fallaban según la fecha real, y uno de ellos ya había puesto CI en rojo el
@@ -45,7 +46,7 @@ se crearon desde cero para esta auditoría.
 | Lint backend | `cd backend && ruff check .` | ✅ `All checks passed!` |
 | Tests backend | `cd backend && pytest -q` (con `USE_SNOWFLAKE=false`) | ✅ **119 passed** en ~51 s al auditar; **133 passed** tras las correcciones (warnings: `JWT_SECRET` efímero y un deprecation de starlette) |
 | Build frontend | `cd frontend && npm run build` | ✅ OK (aviso de tamaño de chunk, no bloqueante) |
-| E2E | `cd frontend && npm run e2e` | ✅ **57 passed, 1 skipped** (29 specs × 2 proyectos) al auditar; **63 passed, 1 skipped** (32 specs) tras la Fase 4; **40 specs** tras integrar las Fases 1 y 8 sobre la Fase 5; **43** tras la Fase 6. Ver nota de intermitencia abajo |
+| E2E | `cd frontend && npm run e2e` | ✅ **57 passed, 1 skipped** (29 specs × 2 proyectos) al auditar; **63 passed, 1 skipped** (32 specs) tras la Fase 4; **40 specs** tras integrar las Fases 1 y 8 sobre la Fase 5; **43** tras la Fase 6; **44** tras la Fase 7. Ver nota de intermitencia abajo |
 | Stack en vivo | `python dev.py` (API :8000, web :5173) | ✅ arranca; `/health` → `{"storage":"memory","nessie_mode":"mock","payment_provider":"demo",...}`; siembra la demo al arrancar |
 | Recorrido real sin stubs | script de Playwright contra el stack vivo (no está en el repo) | ✅ 8/8 pasos, detallados en la siguiente sección |
 
@@ -210,6 +211,52 @@ tokens.
 
 - Crear en Sentry un proyecto Python/FastAPI y otro React, y poner los DSN en Render.
 - Apuntar un monitor de uptime gratuito a `/health/ready`.
+
+### Cobertura de pruebas: asistente y seguridad 🧪
+
+Fase 7, 2026-09-15.
+
+**Preguntas doradas del asistente** (`tests/test_assistant_golden.py`):
+
+- 45 casos en un JSON versionado, de las dos demos, en español e inglés,
+  incluidas inyección de instrucciones, pedir otro negocio y SQL en la pregunta.
+- Con fecha fija se verifican intención, idioma, periodo y evidencia, y las
+  cifras clave se recalculan con el motor (ventas, utilidad, efectivo, capital
+  de trabajo, inventario, capacidad, insumo que se acaba primero, producto más
+  rentable, gasto por comercio).
+- Cada caso pasa por un LLM tramposo:
+  - una reescritura fiel se acepta;
+  - montos (con o sin centavos), porcentajes, cantidades y "un millón"
+    inventados se rechazan.
+
+**Hallazgos corregidos:**
+
+1. La guardia anti-alucinación sólo revisaba montos con formato `$x.xx`: "$5,000",
+   "97%", "quedan 8,642 piezas" o "un millón" pasaban. Además comparaba texto,
+   así que rechazaba reescrituras fieles que sólo agregaban separador de miles.
+   Ahora compara toda cifra por valor.
+2. "How much did I sell last week?" caía en "no entiendo" (faltaba `sell`).
+
+Prueba de mutación: contra el asistente anterior fallan 45 tests.
+
+**Checklist OWASP API Security Top 10** (`docs/SECURITY_CHECKLIST.md`, `tests/test_owasp_api.py`):
+
+- Los 10 riesgos quedan mapeados a su test.
+- Corregido en esta pasada: rutas heredadas `/accounts/...` públicas, apagadas
+  en producción (API9); tope global del cuerpo de 3 MB con 413 (API4); headers
+  de seguridad (API8).
+- Guard estructural: una ruta nueva sin token rompe CI.
+- Mutaciones verificadas: sin los middlewares, con las rutas heredadas
+  encendidas y con una ruta sin token, falla el test correspondiente.
+
+**Hallazgos anotados, sin corregir:**
+
+- Algunas respuestas escriben montos sin separador de miles (`$7989.04`) porque
+  vienen de las explicaciones de `analytics.py`. La guardia ya lo tolera.
+- "What is gross margin?" responde en español: la base de conocimiento sólo
+  está en español.
+- La encuesta manda coordenadas del GPS a Nominatim sin avisarlo.
+- `ACCOUNTADMIN` como rol de Snowflake (Fase 9).
 
 ---
 
