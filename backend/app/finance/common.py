@@ -36,6 +36,16 @@ def money(value: Any) -> float:
     return float(q2(value))
 
 
+def fmt_money(value: Any) -> str:
+    """Dinero para texto que lee una persona: "$7,989.04", "-$14.25".
+
+    Un solo formato para todas las frases (explicaciones, asistente): antes unas
+    decían "$7989.04" y otras "$7,989.04" para la misma cifra.
+    """
+    d = q2(value)
+    return f"{'-' if d < 0 else ''}${abs(d):,.2f}"
+
+
 def qty(value: Any) -> float:
     """Para JSON: cantidades/costos unitarios a 4 decimales."""
     return float(q4(value))

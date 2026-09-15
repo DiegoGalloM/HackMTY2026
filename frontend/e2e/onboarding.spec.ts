@@ -113,4 +113,26 @@ test.describe("Encuesta de onboarding", () => {
     // Espejo de ONBOARDING_AUDIO_RETENTION_DAYS: el audio caduca.
     await expect(page.getByText(/se borra automáticamente a los 7 días/)).toBeVisible();
   });
+
+  test("la ubicación sólo va a OpenStreetMap si la persona la pide, y se avisa antes", async ({ page, context }) => {
+    const lookups: string[] = [];
+    await page.route("https://nominatim.openstreetmap.org/**", async (route) => {
+      lookups.push(route.request().url());
+      await route.fulfill({ status: 200, contentType: "application/json", body: '{"address":{"city":"Monterrey"}}' });
+    });
+    await context.grantPermissions(["geolocation"]);
+    await context.setGeolocation({ latitude: 25.67, longitude: -100.31 });
+
+    const onboarding = new OnboardingPage(page);
+    await onboarding.goto();
+    await onboarding.reachCityStep();
+
+    await expect(page.getByText(/envía tus coordenadas a OpenStreetMap \(Nominatim\)/)).toBeVisible();
+    expect(lookups).toHaveLength(0);
+
+    await page.getByRole("button", { name: "Usar mi ubicación" }).click();
+    await expect(onboarding.cityInput).toHaveValue("Monterrey");
+    expect(lookups).toHaveLength(1);
+    expect(lookups[0]).toContain("lat=25.67");
+  });
 });

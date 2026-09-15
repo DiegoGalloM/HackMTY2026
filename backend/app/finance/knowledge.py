@@ -194,6 +194,148 @@ DOCUMENTS: list[dict[str, Any]] = [
     },
 ]
 
+# Versión en inglés de cada documento: el asistente detecta el idioma de la
+# pregunta y antes respondía "What is gross margin?" en español. Mismo contenido
+# y mismas cifras de ejemplo que el texto en español. Un test exige que ningún
+# documento se quede sin traducción.
+EN: dict[str, tuple[str, str]] = {
+    "liquidez": (
+        "Liquidity and the current ratio",
+        (
+            "Liquidity is how easily you can pay what you owe soon with what you have on hand. The current ratio "
+            "compares your short-term resources (cash, what customers owe you, inventory) with your short-term debts "
+            "(card, suppliers, taxes). Above 1.5 you are comfortable; between 1 and 1.5, keep an eye on it; below 1 "
+            "means that even if everything were collected today it would not be enough. For a micro-business, a "
+            "cushion of 2 to 4 weeks of expenses in cash is the practical rule."
+        ),
+    ),
+    "prueba_acida": (
+        "Quick ratio",
+        (
+            "The quick ratio is liquidity without counting inventory, because inventory still has to be sold. Add "
+            "cash and receivables and divide by what you owe soon. If it is below 1, you depend on selling inventory "
+            "to pay your upcoming debts."
+        ),
+    ),
+    "capital_trabajo": (
+        "Working capital",
+        (
+            "Working capital is what is left after subtracting your short-term debts from your short-term resources. "
+            "It is the money you actually operate with: you buy supplies, pay helpers and get through slow days. If it "
+            "is negative, you are financing the operation with the card or with suppliers, and any delay in sales "
+            "becomes a payment problem."
+        ),
+    ),
+    "margen_bruto": (
+        "Gross margin",
+        (
+            "Gross margin is what you keep from each sale after paying ONLY the direct supplies of that product "
+            "(flour, eggs, hair dye, materials). It does not include rent or wages. A low gross margin almost always "
+            "comes from prices that were not updated when supplies got more expensive, or from recipes that use more "
+            "than you charge for. Check your best sellers first: a small change in price or recipe there moves the "
+            "most money."
+        ),
+    ),
+    "margen_neto": (
+        "Net margin and profit",
+        (
+            "Net margin is the real profit after ALL expenses: supplies, rent, utilities, wages, fees, depreciation. "
+            "You can sell a lot and still have a negative net margin if fixed costs are high for your volume. When "
+            "profit drops, separate three causes: you sold less, supplies cost more, or fixed costs went up."
+        ),
+    ),
+    "costo_ventas": (
+        "Cost of goods sold and average cost",
+        (
+            "Cost of goods sold is what the supplies of what you sold cost. Capital One Business calculates it on its "
+            "own: each product has a recipe, and when a sale is paid its supplies are deducted at their weighted "
+            "average cost (the average of what you paid in your purchases). If a supplier raises prices, the average "
+            "cost rises little by little as you restock, and your margin drops even if you sell the same."
+        ),
+    ),
+    "inventario": (
+        "Inventory: cash that is waiting",
+        (
+            "Everything you keep unsold is money you already spent and cannot use. Turnover tells you how many times "
+            "you sold your inventory in a period; days of inventory tell you how long a supply takes to go out. In "
+            "food, more than 10 to 15 days usually means overbuying and waste; in retail, 30 to 60 days can be "
+            "normal. Buying in bulk only pays off if the savings are bigger than the cost of having cash frozen for "
+            "weeks."
+        ),
+    ),
+    "punto_reorden": (
+        "Reorder point",
+        (
+            "The reorder point is the quantity at which you should order again. It is what you use per day times the "
+            "days your supplier takes to deliver, plus a small cushion. Running out of a supply that does sell is "
+            "money you stopped earning; in the app you can set a reorder point per supply and we warn you when you "
+            "reach it."
+        ),
+    ),
+    "flujo_efectivo": (
+        "Cash flow",
+        (
+            "Cash flow is what comes in and goes out of your cash box and your bank in a period. It is different from "
+            "profit: you can be profitable and run out of cash if you bought a lot of inventory or customers pay you "
+            "late. The practical rule: every week, look at what will come in, what you must pay and how much you end "
+            "with."
+        ),
+    ),
+    "deuda": (
+        "Debt, business card and leverage",
+        (
+            "Using the business card for purchases helps because every purchase is recorded automatically and you "
+            "keep personal and business money apart. Debt to equity compares what you owe with what is yours; above "
+            "1 means there is more of other people's money than yours in the business. Pay the card in full every "
+            "month: interest is an expense that produces nothing."
+        ),
+    ),
+    "impuesto_ventas": (
+        "Sales tax",
+        (
+            "The tax you charge on each sale is NOT your income: you collect it to hand it over to the state. That is "
+            "why it shows up in your books as a debt (sales tax payable) and not as a sale. Keep it separate in your "
+            "head from the cash you can spend."
+        ),
+    ),
+    "cuentas_cobrar": (
+        "Accounts receivable",
+        (
+            "A sale is not money until you get paid. If you work first and charge later, that finished work is a "
+            "receivable: it counts as a resource but you cannot spend it. Asking for a deposit or billing by "
+            "milestones changes your cash flow a lot even if you sell the same."
+        ),
+    ),
+    "depreciacion": (
+        "Depreciation and equipment",
+        (
+            "When you buy equipment (an oven, a mixer, tools) it is not an expense of the month: it is an asset you "
+            "will use for years. Depreciation spreads its cost over time with a monthly adjusting entry, so your "
+            "profit reflects the real wear and not a one-month hit."
+        ),
+    ),
+    "retiros": (
+        "Owner draws and personal purchases",
+        (
+            "What you take out of the business for yourself (or a personal purchase with the business card) is not a "
+            "business expense: it is an owner draw and it reduces your equity. Recording it that way keeps your "
+            "profit from looking worse than it is and keeps clear how much your business is really worth."
+        ),
+    ),
+    "precio": (
+        "How to set prices with margin",
+        (
+            "A healthy price covers the direct cost of the product, leaves margin for fixed costs and still earns. "
+            "Quick rule: price = direct cost ÷ (1 − target gross margin). If your cake costs $8 in supplies and you "
+            "want a 60% gross margin, the minimum price is $20. Review prices every time a key supply goes up more "
+            "than 10%."
+        ),
+    ),
+}
+
+for _doc in DOCUMENTS:
+    _doc["title_en"], _doc["text_en"] = EN[_doc["id"]]
+
 _STOP = {"de", "la", "el", "los", "las", "un", "una", "y", "o", "en", "por", "para", "con", "del", "al", "que", "como", "es", "mi", "mis", "tu", "tus", "se", "lo", "the", "a", "an", "of", "to", "in", "on", "for", "and", "is", "are", "my", "what", "how"}
 
 
@@ -215,8 +357,11 @@ def search(query: str, extra_documents: list[dict[str, Any]] | None = None, k: i
         return []
     scored = []
     for doc in [*DOCUMENTS, *(extra_documents or [])]:
-        doc_tokens = tokens(f"{doc['title']} {doc.get('tags', '')} {doc['text']}")
-        tag_tokens = set(tokens(f"{doc['title']} {doc.get('tags', '')}"))
+        # Título y texto en los dos idiomas: una pregunta en inglés encuentra el
+        # mismo documento que su equivalente en español.
+        titles = f"{doc['title']} {doc.get('title_en', '')} {doc.get('tags', '')}"
+        doc_tokens = tokens(f"{titles} {doc['text']} {doc.get('text_en', '')}")
+        tag_tokens = set(tokens(titles))
         overlap = q & set(doc_tokens)
         if not overlap:
             continue
@@ -233,19 +378,29 @@ def business_context_documents(profile: dict[str, Any] | None, business_name: st
     docs = []
     week = profile.get("week_description_text")
     if week:
-        docs.append({"id": "profile_week", "title": "Lo que contaste de tu semana", "tags": "semana normal rutina contar dije negocio", "text": week, "source": "onboarding"})
+        # El texto es lo que escribió el dueño: se cita tal cual en los dos idiomas.
+        docs.append({"id": "profile_week", "title": "Lo que contaste de tu semana", "title_en": "What you told me about your week", "tags": "semana normal rutina contar dije negocio week normal told", "text": week, "text_en": week, "source": "onboarding"})
     answers = profile.get("answers") or {}
     yes = [k.replace("_", " ") for k, v in answers.items() if v]
+    detail = f" ({profile['category_detail']})" if profile.get("category_detail") else ""
+    days = ", ".join(profile.get("operating_days") or [])
     docs.append(
         {
             "id": "profile_summary",
             "title": f"Perfil de {business_name or 'tu negocio'}",
-            "tags": "perfil negocio categoria giro ciudad empleados dias",
+            "title_en": f"Profile of {business_name or 'your business'}",
+            "tags": "perfil negocio categoria giro ciudad empleados dias profile business",
             "text": (
-                f"Giro: {profile.get('category')}{(' (' + profile['category_detail'] + ')') if profile.get('category_detail') else ''}. "
+                f"Giro: {profile.get('category')}{detail}. "
                 f"Ciudad: {profile.get('city')}. Equipo: {profile.get('employees')}. "
-                f"Días de operación: {', '.join(profile.get('operating_days') or [])}. "
+                f"Días de operación: {days}. "
                 f"Respondiste que sí a: {', '.join(yes) if yes else 'ninguna pregunta'}."
+            ),
+            "text_en": (
+                f"Business type: {profile.get('category')}{detail}. "
+                f"City: {profile.get('city')}. Team: {profile.get('employees')}. "
+                f"Operating days: {days}. "
+                f"You answered yes to: {', '.join(yes) if yes else 'no questions'}."
             ),
             "source": "onboarding",
         }

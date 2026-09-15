@@ -197,12 +197,17 @@ export class OnboardingPage {
 
   /** Sólo los pasos de la encuesta (ya en "Selecciona tu modelo de negocio"). */
   async fillSurvey({ city = "Monterrey" }: { city?: string } = {}) {
+    await this.reachCityStep();
+    await this.finish(city);
+  }
+
+  /** Llega al paso de ciudad sin llenarlo. */
+  async reachCityStep() {
     await this.pickCategory("Comida y bebidas");
     await this.answerAllQuestions("Sí");
     await this.describeWeekAsText("Los lunes recibo mercancía y los fines de semana vendo más.");
     await this.pickDays([0, 1]);
     await this.pickEmployees("Solo yo");
-    await this.finish(city);
   }
 
   // --- pantalla final -------------------------------------------------------

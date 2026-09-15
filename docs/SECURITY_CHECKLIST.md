@@ -226,7 +226,7 @@ real, crearía compras usando la API key del equipo.
 
 **Tests:**
 
-- `test_assistant_golden.py`: 45 preguntas doradas, cada una con una batería de
+- `test_assistant_golden.py`: 50 preguntas doradas, cada una con una batería de
   LLM tramposo.
 - `test_error_visibility.py::test_real_nessie_down_is_degraded_and_never_leaks_the_key`
 
@@ -234,12 +234,18 @@ real, crearía compras usando la API key del equipo.
 
 ## Pendientes fuera de esta pasada
 
-- ⏳ **Rol de Snowflake:** `render.yaml` usa `ACCOUNTADMIN`. Para un servicio
-  público conviene un rol de mínimo privilegio. Queda para la Fase 9, con la
-  cuenta real.
-- 🟡 **Geolocalización:** la encuesta manda las coordenadas del GPS a
-  `nominatim.openstreetmap.org` para obtener la ciudad, sin avisarlo
-  explícitamente. Es un tercero, pero no guarda nada del lado del proyecto. Un
-  aviso en ese paso sería lo honesto.
-- 🟡 **`frontend/src/onboarding/Onboarding.jsx`:** copia vieja de la encuesta
-  que nadie importa. No se sirve, pero confunde al revisar el repo.
+- ⏳ **Rol de Snowflake:** `render.yaml` todavía usa `ACCOUNTADMIN`. El rol de
+  mínimo privilegio ya está escrito (Fase 11) en
+  `backend/scripts/snowflake/rol_minimo_privilegio.sql`: el rol `HACKMTY_APP`
+  sólo tiene uso del warehouse, lectura y escritura de datos en
+  `HACKMTY.PUBLIC`, creación de tablas y vistas en ese schema y Cortex. Lo
+  vigila `tests/test_snowflake_role_script.py` sin conectarse. Se aplica en la
+  Fase 9 con la cuenta real; los pasos están en
+  [`SNOWFLAKE_SETUP.md`](SNOWFLAKE_SETUP.md#rol-de-mínimo-privilegio-fase-9).
+  `render.yaml` cambia sólo cuando `/health/ready` responda bien con el rol nuevo.
+- ✅ **Geolocalización (Fase 11):** el paso de ciudad avisa, antes del clic, que
+  "Usar mi ubicación" manda las coordenadas a OpenStreetMap (Nominatim) sólo
+  para obtener el nombre de la ciudad. Nada se consulta si la persona no pulsa
+  el botón. Lo verifica `e2e/onboarding.spec.ts`.
+- ✅ **`frontend/src/onboarding/Onboarding.jsx` (Fase 11):** la copia vieja de la
+  encuesta se borró, junto con su exclusión en `tsconfig.app.json`.

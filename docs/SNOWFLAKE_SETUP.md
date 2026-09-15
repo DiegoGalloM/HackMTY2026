@@ -103,7 +103,8 @@ Deben salir vacías (0 filas) — eso significa que sí existen.
 
 Si la cuenta con la que se registraron tiene el rol `ACCOUNTADMIN`,
 pueden usarla directo para el hackathon (no es buena práctica a largo
-plazo, pero para 36 horas está bien). Anoten en un lugar seguro (no en el
+plazo, pero para 36 horas está bien). Para el backend desplegado con link
+público está el [rol de mínimo privilegio](#rol-de-mínimo-privilegio-fase-9). Anoten en un lugar seguro (no en el
 canal general del equipo):
 
 - Usuario (el que usan para entrar a Snowsight)
@@ -211,6 +212,59 @@ SELECT * FROM business_profiles;
 
 ⚠️ En `users` van a ver `password_hash`, nunca la contraseña — si ahí aparece
 texto legible algo está muy mal y hay que reportarlo de inmediato.
+
+## Rol de mínimo privilegio (Fase 9)
+
+Usar `ACCOUNTADMIN` sirve para las 36 horas del hackathon, pero no para un demo
+con link público: si esa contraseña se filtra desde Render, quien la tenga
+administra la cuenta entera. El reemplazo ya está escrito y **todavía no se ha
+aplicado**. Se aplica en la Fase 9, con la cuenta real.
+
+`backend/scripts/snowflake/rol_minimo_privilegio.sql` crea:
+
+| Qué | Para qué |
+|---|---|
+| Rol `HACKMTY_APP` | Usa `HACKMTY_WH`; lee y escribe tablas y vistas de `HACKMTY.PUBLIC` (también las futuras); crea tablas y vistas en ese schema (migraciones al arrancar); usa Cortex |
+| Usuario `HACKMTY_APP_SVC` | Usuario de servicio del backend, con `HACKMTY_APP` como rol por default |
+
+El rol no puede crear bases ni warehouses, ni administrar usuarios o roles.
+Tampoco toca nada fuera de `HACKMTY.PUBLIC`.
+
+Pasos:
+
+1. Con el usuario administrador, dejen las migraciones al día:
+   `cd backend && python -m scripts.migrate`. La `001` crea el warehouse, la
+   base y el schema, y eso sí necesita privilegios de cuenta.
+2. Generen una contraseña con
+   `python -c "import secrets; print(secrets.token_urlsafe(32))"`, pónganla en el
+   script en lugar de `<CONTRASEÑA_LARGA_Y_ALEATORIA>` y corran el script
+   completo en un worksheet de Snowsight. No commiteen el script con la
+   contraseña.
+3. Revisen la sección de verificación del final del script: `SHOW GRANTS` y los
+   `SELECT` con el rol nuevo deben funcionar.
+4. En Render, cambien `SNOWFLAKE_USER=HACKMTY_APP_SVC`, `SNOWFLAKE_PASSWORD` y
+   `SNOWFLAKE_ROLE=HACKMTY_APP`, y hagan redeploy. `GET /health/ready` debe
+   responder `checks.database.status = "ok"`.
+5. Sólo entonces cambien `SNOWFLAKE_ROLE` en `render.yaml` y este documento para
+   que dejen de sugerir `ACCOUNTADMIN`.
+
+⚠️ **Contraseña del usuario de servicio.** El conector del backend
+(`app/db/snowflake_db.py`) conecta con usuario y contraseña, así que el script
+usa `TYPE = LEGACY_SERVICE`. Snowflake está retirando el acceso con contraseña
+sola. Revisen la política vigente de su cuenta; si ya no la permite, el camino
+es `TYPE = SERVICE` con par de llaves, y eso requiere pasarle `private_key` al
+conector.
+
+⚠️ **Migraciones con `ALTER TABLE`.** Una migración futura que altere una tabla
+creada por `ACCOUNTADMIN` falla con el rol nuevo, porque `ALTER` exige ser
+dueño de la tabla. Esa migración se corre a mano con el administrador. La
+alternativa es quitar `CREATE TABLE, CREATE VIEW` del script y correr siempre
+las migraciones a mano.
+
+`tests/test_snowflake_role_script.py` revisa el script sin conectarse. Verifica
+tres cosas: que no está en `backend/sql/` (ahí lo aplicaría el backend al
+arrancar), que no otorga nada a nivel de cuenta ni `OWNERSHIP`, y que no trae
+una contraseña real.
 
 ## Si algo falla
 

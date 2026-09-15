@@ -23,7 +23,7 @@ from typing import Any
 from app.finance import knowledge
 from app.finance.analytics import AnalyticsService
 from app.finance.catalog import CatalogService
-from app.finance.common import ZERO, D, q2
+from app.finance.common import ZERO, D, fmt_money, q2
 from app.finance.inventory import InventoryService
 from app.finance.llm import LLMProvider, NoLLM
 from app.finance.purchases import PurchaseService
@@ -38,13 +38,50 @@ def _norm(text: str) -> str:
 
 
 def _money(v: Any) -> str:
-    d = q2(v)
-    sign = "-" if d < 0 else ""
-    return f"{sign}${abs(d):,.2f}"
+    return fmt_money(v)
 
 
 def _pct(v: Any) -> str:
     return f"{q2(v)}%"
+
+
+# Las etiquetas de las razones y de los factores de utilidad salen del motor en
+# español (la UI es en español); el asistente las traduce cuando responde en inglés.
+RATIO_LABELS_EN = {
+    "current_ratio": "Current ratio",
+    "quick_ratio": "Quick ratio",
+    "cash_ratio": "Cash ratio",
+    "working_capital": "Working capital",
+    "gross_margin": "Gross margin",
+    "net_margin": "Net margin",
+    "return_on_assets": "Return on assets",
+    "debt_to_equity": "Debt to equity",
+    "debt_ratio": "Debt ratio",
+    "inventory_turnover": "Inventory turnover",
+    "days_inventory": "Days of inventory",
+}
+DRIVER_LABELS_EN = {"revenue": "Sales", "cogs": "Cost of goods", "expenses": "Operating expenses"}
+
+
+def _ratio_label(ratio: dict[str, Any], lang: str) -> str:
+    return RATIO_LABELS_EN.get(ratio["key"], ratio["label"]) if lang == "en" else ratio["label"]
+
+
+def _ratio_value(ratio: dict[str, Any], lang: str) -> str:
+    if not ratio["available"]:
+        return "n/a"
+    if ratio["unit"] == "%":
+        return _pct(ratio["value"])
+    if ratio["unit"] == "$":
+        return _money(ratio["value"])
+    if ratio["unit"] == "días":
+        return f"{q2(ratio['value'])} {'days' if lang == 'en' else 'días'}"
+    return f"{q2(ratio['value'])}"
+
+
+def _knowledge_source(doc: dict[str, Any], lang: str) -> dict[str, Any]:
+    title = doc.get("title_en", doc["title"]) if lang == "en" else doc["title"]
+    return {"type": "knowledge", "id": doc["id"], "title": title}
 
 
 PERIOD_PATTERNS: list[tuple[str, str]] = [
@@ -70,7 +107,7 @@ INTENT_PATTERNS: list[tuple[str, str]] = [
     ("cash", r"\bcaja\b|\bcash\b|efectivo|flujo|cuanto dinero tengo|how much money do i have|cuanto tengo en el banco|banco"),
     ("capacity", r"cuantos? .*(puedo|puedes|podria).*(hacer|producir|preparar|vender)|how many .*(can|could) i (make|produce|sell)|para cuantos"),
     ("runout", r"se (va a )?(acabar|agotar|terminar)|run out|se me acaba|primero se acaba|que insumo|bajo de stock|por agotarse|reorden"),
-    ("inventory", r"inventario|inventory|existencias|insumos|stock|almacen|cuanta harina|cuantos huevos|cuanto (tengo|queda) de"),
+    ("inventory", r"inventario|inventory|existencias|insumos|stock|almacen|cuanta harina|cuantos huevos|cuanto (tengo|queda) de|how much .* (do i have|is left|left)"),
     ("top_products", r"(que|cual|cuales) (producto|productos|platillo|servicio).*(mas|mejor|menos)|which product|best.?sell|mas vendid|mas ganancia|mas utilidad|mas rentable|top product"),
     ("expenses", r"gast[eo]|gastos|expense|spend|spent|cuanto (pague|he pagado|compre)|compras|purchases|what were my biggest|mayores gastos|en que se fue"),
     ("customers", r"cliente|customer|quien me compra|compradores"),
@@ -82,8 +119,11 @@ INTENT_PATTERNS: list[tuple[str, str]] = [
     ("concept", r"que es|que significa|what is|what does|explica|explain|explicame|que quiere decir"),
 ]
 
-ENGLISH_HINTS = re.compile(r"\b(what|how|which|why|my|the|is|are|did|do|sales|profit|inventory|cash|week|month|explain|much|many)\b")
-SPANISH_HINTS = re.compile(r"\b(que|como|cual|cuales|por que|mi|mis|el|la|los|las|ventas|utilidad|inventario|caja|semana|mes|explica|cuanto|cuantos|tengo)\b")
+ENGLISH_HINTS = re.compile(r"\b(what|when|how|which|why|my|the|is|are|was|were|did|do|does|i|you|will|can|have|of|show|tell|about|sales|profit|inventory|cash|week|month|explain|much|many)\b")
+SPANISH_HINTS = re.compile(r"\b(que|cuando|como|cual|cuales|por que|mi|mis|el|la|los|las|de|del|es|son|hay|puedo|tengo|ventas|utilidad|inventario|caja|semana|mes|explica|cuanto|cuantos|cuanta)\b")
+# "What are my financial ratios?" o "¿Cuál es mi capital de trabajo?" piden el
+# dato del negocio, no la definición. "Explain my current ratio" sí es concepto.
+ASKS_FOR_OWN_FIGURE = re.compile(r"\b(what (is|are|was|were) my|cual(es)? (es|son) mis?)\b")
 
 # Guardia anti-alucinación: TODA cifra que el LLM escriba (montos con o sin
 # centavos, porcentajes, cantidades, días) tiene que existir ya en los hechos o
@@ -145,9 +185,13 @@ class Assistant:
         lang = self._language(text)
         period = self._period(text)
         intent = self._intent(text)
-        if intent == "concept" and not knowledge.search(text, knowledge.business_context_documents(self.profile, self.business_name), k=1):
-            # "Explícame cómo van mis ventas": no es un concepto, es un dato.
-            intent = self._intent(text, exclude={"concept"})
+        if intent == "concept":
+            data_intent = self._intent(text, exclude={"concept"})
+            if not knowledge.search(text, knowledge.business_context_documents(self.profile, self.business_name), k=1):
+                # "Explícame cómo van mis ventas": no es un concepto, es un dato.
+                intent = data_intent
+            elif data_intent not in {"unknown", "business_context"} and ASKS_FOR_OWN_FIGURE.search(text):
+                intent = data_intent
         handler = getattr(self, f"_tool_{intent}")
         try:
             result = handler(text, period, lang)
@@ -302,7 +346,7 @@ class Assistant:
                 answer = f"Your profit {label} equals the previous period ({_money(d['net_income'])})."
             else:
                 answer = f"Your profit {label} went {'down' if delta < 0 else 'up'} by {_money(abs(delta))} ({_money(d['previous_net_income'])} → {_money(d['net_income'])})."
-                parts = [f"{drv['label']} ({'+' if drv['impact'] >= 0 else '−'}{_money(abs(drv['impact']))})" for drv in d["drivers"][:3]]
+                parts = [f"{DRIVER_LABELS_EN.get(drv['driver'], drv['label'])} ({'+' if drv['impact'] >= 0 else '−'}{_money(abs(drv['impact']))})" for drv in d["drivers"][:3]]
                 if parts:
                     answer += " Main drivers: " + "; ".join(parts) + "."
         return {"answer": answer, "evidence": evidence, "tools": ["profit_drivers", "income_statement", "sales_summary"], "sources": [{"type": "structured", "title": "journal_lines + order_lines (comparación de periodos)"}]}
@@ -325,8 +369,8 @@ class Assistant:
             if qr["available"]:
                 answer += f" {qr['explanation']}"
         else:
-            answer = f"Your liquidity is {status_en[cr['status']]}. You have about ${q2(cr['value']) if cr['available'] else '—'} in short-term resources for every $1.00 due soon; working capital is {_money(wc['value'])}."
-        return {"answer": answer, "evidence": evidence, "tools": ["ratios", "balance_sheet"], "sources": [{"type": "structured", "title": "balance general (v_general_ledger)"}, {"type": "knowledge", "id": "liquidez", "title": "Liquidez y razón circulante"}], "suggestions": ["¿Qué es la razón circulante?", "¿Cuánto debo de la tarjeta?", "¿Cómo va mi caja este mes?"] if lang == "es" else ["What is the current ratio?", "How much do I owe on the card?", "How is my cash this month?"]}
+            answer = f"Your liquidity is {status_en[cr['status']]}. You have about {fmt_money(cr['value']) if cr['available'] else '—'} in short-term resources for every $1.00 due soon; working capital is {_money(wc['value'])}."
+        return {"answer": answer, "evidence": evidence, "tools": ["ratios", "balance_sheet"], "sources": [{"type": "structured", "title": "balance general (v_general_ledger)"}, {"type": "knowledge", "id": "liquidez", "title": "Liquidez y razón circulante" if lang == "es" else "Liquidity and the current ratio"}], "suggestions": ["¿Qué es la razón circulante?", "¿Cuánto debo de la tarjeta?", "¿Cómo va mi caja este mes?"] if lang == "es" else ["What is the current ratio?", "How much do I owe on the card?", "How is my cash this month?"]}
 
     def _tool_cash(self, text: str, period: str, lang: str) -> dict[str, Any]:
         c = self.analytics.cash_intelligence(period)
@@ -553,11 +597,11 @@ class Assistant:
         r = self.analytics.ratios(period)
         wanted = [x for x in r["ratios"] if any(w in text for w in _norm(x["label"]).split() if len(w) > 4) or x["key"].replace("_", " ") in text]
         rows = wanted or [x for x in r["ratios"] if x["available"]]
-        evidence = [{"label": x["label"], "value": (f"{q2(x['value'])}{'%' if x['unit'] == '%' else ''}" if x["available"] else "n/a"), "detail": x["formula"]} for x in rows[:6]]
+        evidence = [{"label": _ratio_label(x, lang), "value": _ratio_value(x, lang), "detail": x["formula"]} for x in rows[:6]]
         if lang == "es":
             answer = " ".join(f"{x['label']}: {x['explanation']}" for x in rows[:4]) or "Todavía no hay datos suficientes para calcular razones."
         else:
-            answer = "; ".join(f"{x['label']} = {q2(x['value'])}{'%' if x['unit'] == '%' else ''} ({x['status']})" for x in rows[:5] if x["available"]) or "Not enough data to compute ratios yet."
+            answer = "; ".join(f"{_ratio_label(x, lang)} = {_ratio_value(x, lang)} ({x['status']})" for x in rows[:5] if x["available"]) or "Not enough data to compute ratios yet."
         return {"answer": answer, "evidence": evidence, "tools": ["ratios"], "sources": [{"type": "structured", "title": "razones financieras (backend)"}]}
 
     def _tool_statements(self, text: str, period: str, lang: str) -> dict[str, Any]:
@@ -584,8 +628,11 @@ class Assistant:
             return {"answer": "Todavía no tengo tu perfil de negocio: complétalo desde el onboarding." if lang == "es" else "I don't have your business profile yet.", "evidence": [], "tools": ["business_context"], "sources": []}
         week = next((d for d in docs if d["id"] == "profile_week"), None)
         summary = next(d for d in docs if d["id"] == "profile_summary")
-        answer = (f"Me contaste esto de tu semana: “{week['text']}” " if week else "") + summary["text"]
-        return {"answer": answer, "evidence": [], "tools": ["business_context"], "sources": [{"type": "knowledge", "id": d["id"], "title": d["title"]} for d in docs], "allow_llm": False}
+        if lang == "es":
+            answer = (f"Me contaste esto de tu semana: “{week['text']}” " if week else "") + summary["text"]
+        else:
+            answer = (f"You told me this about your week: “{week['text']}” " if week else "") + summary["text_en"]
+        return {"answer": answer, "evidence": [], "tools": ["business_context"], "sources": [_knowledge_source(d, lang) for d in docs], "allow_llm": False}
 
     def _tool_concept(self, text: str, period: str, lang: str) -> dict[str, Any]:
         docs = knowledge.search(text, knowledge.business_context_documents(self.profile, self.business_name), k=2)
@@ -597,12 +644,12 @@ class Assistant:
         r = self.analytics.ratios("30d")
         by = {x["key"]: x for x in r["ratios"]}
         link = {"liquidez": "current_ratio", "prueba_acida": "quick_ratio", "capital_trabajo": "working_capital", "margen_bruto": "gross_margin", "margen_neto": "net_margin", "inventario": "days_inventory", "deuda": "debt_to_equity"}.get(doc["id"])
-        answer = doc["text"]
+        answer = doc["text"] if lang == "es" else doc.get("text_en", doc["text"])
         if link and by[link]["available"]:
             x = by[link]
-            evidence.append({"label": x["label"], "value": f"{q2(x['value'])}{'%' if x['unit'] == '%' else ''}", "detail": x["formula"]})
-            answer += f" En tu negocio, hoy: {x['explanation']}" if lang == "es" else f" In your business today: {x['label']} = {q2(x['value'])}."
-        return {"answer": answer, "evidence": evidence, "tools": ["knowledge_search"] + (["ratios"] if link else []), "sources": [{"type": "knowledge", "id": d["id"], "title": d["title"]} for d in docs], "suggestions": [f"¿Cómo está mi {doc['title'].split(' ')[0].lower()}?", "¿Qué debería hacer al respecto?"] if lang == "es" else ["How is mine doing?", "What should I do about it?"]}
+            evidence.append({"label": _ratio_label(x, lang), "value": _ratio_value(x, lang), "detail": x["formula"]})
+            answer += f" En tu negocio, hoy: {x['explanation']}" if lang == "es" else f" In your business today: {_ratio_label(x, lang)} = {_ratio_value(x, lang)}."
+        return {"answer": answer, "evidence": evidence, "tools": ["knowledge_search"] + (["ratios"] if link else []), "sources": [_knowledge_source(d, lang) for d in docs], "suggestions": [f"¿Cómo está mi {doc['title'].split(' ')[0].lower()}?", "¿Qué debería hacer al respecto?"] if lang == "es" else ["How is mine doing?", "What should I do about it?"]}
 
     def _tool_unknown(self, text: str, period: str, lang: str) -> dict[str, Any]:
         docs = knowledge.search(text, knowledge.business_context_documents(self.profile, self.business_name), k=1)

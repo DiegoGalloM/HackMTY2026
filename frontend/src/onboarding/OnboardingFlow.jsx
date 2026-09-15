@@ -1,4 +1,4 @@
-// frontend/src/onboarding/Onboarding.jsx
+// frontend/src/onboarding/OnboardingFlow.jsx
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, CircleAlert, MapPin, Mic, Pencil, Scissors, Sparkles, Square, Store, Truck, Utensils, Wrench, HardHat, X } from "lucide-react";
 import SurveyLayout from "./SurveyLayout.jsx";
@@ -342,6 +342,9 @@ export default function Onboarding({ ownerId = "demo-owner", token = "", onCompl
       {locationError && <p className="ob-error" role="alert">{locationError}</p>}
       <label className="survey-field">Ciudad<input placeholder="O escribe tu ciudad" autoComplete="address-level2" value={city} disabled={submitting} onChange={(event) => setCity(event.target.value)} /></label>
       {controls(submit, submitting ? "Guardando…" : "Terminar", !city.trim())}
+      {/* detectCity manda las coordenadas a Nominatim (OpenStreetMap), un servicio
+          externo: se avisa antes del clic y sólo se llama si la persona lo pide. */}
+      <p className="survey-auto-note">"Usar mi ubicación" envía tus coordenadas a OpenStreetMap (Nominatim) sólo para averiguar el nombre de tu ciudad; no las guardamos. Si prefieres, escríbela.</p>
     </>;
   } else {
     title = submitted ? "¡Listo! Tu siguiente paso empieza aquí." : "No se pudo guardar";

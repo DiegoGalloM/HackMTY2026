@@ -148,6 +148,13 @@ def _check_engine(ctx: FinanceContext, case: dict[str, Any], answer: dict[str, A
         raise AssertionError(f"engine desconocido: {case['engine']}")
 
 
+_UNGROUPED_MONEY = re.compile(r"\$\d{4,}")
+_SPANISH_TEMPLATE = [
+    "Tienes", "Tu ", "tu negocio", "Me contaste", "En tu negocio", "Giro:", "Días de operación", "Ventas", "Utilidad",
+    "Razón", "Prueba ácida", "Capital de trabajo", "Margen bruto", "Margen neto", "Costo de insumos", "Gastos", "Efectivo",
+]
+
+
 @pytest.mark.parametrize("case", CASES, ids=[c["id"] for c in CASES])
 def test_golden_question(businesses, case):
     ctx = _ctx(businesses, case["business"])
@@ -170,6 +177,14 @@ def test_golden_question(businesses, case):
         assert text not in answer["answer"], f"la respuesta dice {text!r}"
     if "engine" in case:
         _check_engine(ctx, case, answer)
+    # Un solo formato de dinero: "$7,989.04", nunca "$7989.04".
+    shown = [answer["answer"]] + [f"{e['value']} {e.get('detail') or ''}" for e in answer["evidence"]]
+    assert not [t for t in shown if _UNGROUPED_MONEY.search(t)], shown
+    if case["language"] == "en":
+        # Los nombres que capturó el dueño ("Harina de trigo") siguen en español;
+        # las frases y etiquetas del asistente no.
+        leaked = [m for m in _SPANISH_TEMPLATE if m in answer["answer"] or m in labels]
+        assert not leaked, f"respuesta en inglés con plantilla en español: {leaked}"
 
 
 def test_questions_never_touch_the_database_schema(businesses):
