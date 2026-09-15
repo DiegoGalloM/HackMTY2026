@@ -127,10 +127,19 @@ Tests: `backend/tests/test_error_visibility.py` y `frontend/e2e/error-visibility
 
 ## 7. 🟡 Ampliar cobertura de pruebas
 
-La base ya es sólida (164 backend + 43 e2e) — esto no es para "producción", es para poder decir con toda confianza en LinkedIn o en una entrevista técnica que el sistema está probado a fondo, y para que cualquiera que revise el repo no encuentre un hueco.
+La base ya es sólida (280 backend + 44 e2e) — esto no es para "producción", es para poder decir con toda confianza en LinkedIn o en una entrevista técnica que el sistema está probado a fondo, y para que cualquiera que revise el repo no encuentre un hueco.
 
 - Suite de "preguntas doradas" para el asistente (30-50 preguntas con la respuesta/evidencia esperada) corrida en CI, para detectar regresiones de la guardia anti-alucinación.
 - Una pasada explícita de checklist de seguridad tipo OWASP para APIs (inyección, límites de tamaño de payload, exposición de stack traces en errores 500).
+
+**Hecha (2026-09-15).**
+
+- **Preguntas doradas.** 45 casos en `backend/tests/golden/asistente_preguntas_doradas.json`, de las dos demos, en español e inglés, incluidas inyecciones. `tests/test_assistant_golden.py` los corre en CI con fecha fija y verifica intención, evidencia y cifras recalculadas con el motor. Cada caso pasa además por un LLM tramposo: una reescritura fiel se acepta; montos, porcentajes, cantidades o "un millón" inventados se rechazan.
+  - **Dos hallazgos corregidos.** La guardia sólo revisaba montos con formato `$x.xx`, y ahora revisa toda cifra por valor. "How much did I sell…?" no se entendía.
+  - **Prueba de mutación.** Contra el asistente anterior fallan 45 tests.
+- **Checklist OWASP API Top 10 (2023).** Está en `docs/SECURITY_CHECKLIST.md`, con `tests/test_owasp_api.py` (24 tests) y un guard estructural para rutas sin token.
+  - **Corregido.** Las rutas heredadas `/accounts/...` eran públicas y quedan apagadas en producción. Se agregaron un tope global del cuerpo (413) y headers de seguridad.
+  - **Pendiente para la Fase 9.** Rol de Snowflake de mínimo privilegio. ✅
 
 ---
 

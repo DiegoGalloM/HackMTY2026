@@ -33,6 +33,8 @@ backend/app/
     health.py          # /health (liveness for Render) and /health/ready (db, Nessie, LLM)
   observability.py     # optional Sentry (SENTRY_DSN), event scrubbing, 500 handler with error_id
   ratelimit.py         # per-IP limits on public routes
+  http_hardening.py    # body size limit (413), security headers, legacy /accounts routes off in production
+backend/tests/golden/  # golden questions for the assistant (JSON), run by test_assistant_golden.py
     demo.py            # /demo/session + /business/{owner_id}/demo/seed
   models/schemas.py, models/finance.py  # Pydantic contracts
 sql/003_financial_core.sql, 004_financial_views.sql  # portable migrations (sqlite + Snowflake)

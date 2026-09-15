@@ -44,6 +44,9 @@ function describe(res: Response, body: any): ApiError {
       return { ok: false, kind: "not_found", status: 404, message: text || "No encontramos lo que buscabas." };
     case 409:
       return { ok: false, kind: "conflict", status: 409, message: text || "Esta operación ya se hizo o choca con otra." };
+    case 413:
+      // Tope global del cuerpo en el backend (app/http_hardening.py).
+      return { ok: false, kind: "validation", status: 413, message: "Lo que intentas enviar es demasiado grande." };
     case 429: {
       // Límite de peticiones de las rutas públicas (backend/app/ratelimit.py).
       const wait = Number(res.headers.get("Retry-After"));

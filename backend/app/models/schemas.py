@@ -20,9 +20,10 @@ class Transaction(BaseModel):
 
 
 class NewPurchase(BaseModel):
-    merchant_id: str
-    amount: float
-    description: str = ""
+    # Ruta heredada de Nessie: acotada aunque en producción esté apagada.
+    merchant_id: str = Field(min_length=1, max_length=64)
+    amount: float = Field(gt=0, le=1_000_000)
+    description: str = Field(default="", max_length=300)
 
 # Topes de tamaño del perfil. Sin ellos, cualquier usuario registrado puede
 # mandar `answers` con 100 000 llaves y, como /business-profile/stats/{category}
